@@ -1,4 +1,3 @@
-#pragma once
 #include "GSMSocket.h"
 
 
@@ -41,6 +40,11 @@ void GSMSocket::OnConnectionConfirm(int error)
     }
 }
 
+void GSMSocket::OnSendData(uint16_t size)
+{
+    // TODO: Send remain data
+}
+
 bool GSMSocket::Connect(char *ip, uint16_t port, bool keepAlive, GSM_SOCKET_SSL sslType)
 {
     Serial.println("GSMSocket::Connect");
@@ -48,26 +52,7 @@ bool GSMSocket::Connect(char *ip, uint16_t port, bool keepAlive, GSM_SOCKET_SSL 
     this->keepAlive = keepAlive;
     this->sslType = sslType;
 
-    char octet[4];
-
-    int len = strlen(ip);
-    int octetIndex = 0;
-    int octetCharIndex = 0;
-
-    for (int i = 0; i < len; i++, octetCharIndex++) {
-        if (ip[i] == '.') {
-            octet[octetCharIndex] = 0;
-            octetCharIndex = 0;
-            ip[octetIndex] = atoi(octet);
-            octetIndex++;
-        } else if (i + 1 == len) {
-            octetCharIndex++;
-            octet[octetCharIndex] = 0;
-            ip[octetIndex] = atoi(octet);
-        } else if (octetCharIndex >= 4) {
-            return false;
-        }
-    }
+    GetAddr(ip, &this->ip);
 
     if (keepAlive) {
         return socketHandler->SetKeepAlive(this);
@@ -82,7 +67,7 @@ bool GSMSocket::Connect(char *ip, uint16_t port, bool keepAlive, GSM_SOCKET_SSL 
 bool GSMSocket::Close()
 {
     if (state == GSM_SOCKET_STATE_CLOSING) {
-        return;
+        return false;
     }
     state = GSM_SOCKET_STATE_CLOSING;
     return socketHandler->Close(this);
@@ -98,6 +83,9 @@ bool GSMSocket::SendData(uint8_t *data, uint16_t len)
     if (state != GSM_SOCKET_STATE_READY) {
         return false;
     }
+    
+    // TODO: Check unwritten data
+
     uint16_t written = socketHandler->Send(socketId, data, len);
 
     // TODO: save remain data for next send?
@@ -116,9 +104,9 @@ uint8_t GSMSocket::GetId()
 {
     return socketId;
 }
-uint8_t *GSMSocket::GetIp()
+IPAddr GSMSocket::GetIp()
 {
-    return ip;
+    return IPAddr(ip);
 }
 uint16_t GSMSocket::GetPort()
 {

@@ -31,7 +31,7 @@ public:
     virtual void OnDTMF(char sign) = 0;
 };
 
-class GSMCallHandler: IBaseGSMHandler, public ITimerCallback
+class GSMCallHandler: public IBaseGSMHandler, public ITimerCallback
 {
 private:
     char *callingNumber = NULL;

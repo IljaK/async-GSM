@@ -60,8 +60,6 @@ public:
 
     void StartModem(bool restart, unsigned long baudRate = MODEM_BAUD_RATE);
 
-    void SetHandler(IBaseGSMHandler *handler);
-
 	void OnTimerComplete(TimerID timerId, uint8_t data) override;
 	void OnTimerStop(TimerID timerId, uint8_t data) override;
     //void handleUrc(const String& urc) override;

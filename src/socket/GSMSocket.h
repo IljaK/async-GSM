@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include "GSMSocketHandler.h"
+#include "GSMUtils.h"
 
 enum GSM_SOCKET_STATE: uint8_t {
     GSM_SOCKET_STATE_DISCONNECTED,
@@ -28,7 +29,7 @@ private:
     bool keepAlive = false;
     GSM_SOCKET_SSL sslType = GSM_SOCKET_SSL_DISABLE;
 
-    uint8_t ip[4] = {0,0,0,0};
+    IPAddr ip;
     uint16_t port = 0;
 
     char * domain = NULL;
@@ -40,6 +41,7 @@ protected:
     void OnSSLConfirm(bool isSuccess);
     void OnConnectionConfirm(int error);
     void OnReadData(char *data, uint16_t available);
+    void OnSendData(uint16_t size);
 
     friend class GSMSocketHandler;
 public:
@@ -47,7 +49,7 @@ public:
     ~GSMSocket();
 
     uint8_t GetId();
-    uint8_t *GetIp();
+    IPAddr GetIp();
     uint16_t GetPort();
     GSM_SOCKET_STATE GetState();
     uint16_t GetAvailable();

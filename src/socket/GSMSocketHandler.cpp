@@ -83,9 +83,8 @@ bool GSMSocketHandler::OnGSMResponse(char *request, char * response, MODEM_RESPO
         if (strncmp(request, GSM_SOCKET_CONFIG_CMD, strlen(GSM_SOCKET_CONFIG_CMD)) == 0) {
             char *soso = request + strlen(GSM_SOCKET_CONFIG_CMD) + 1;
             char *sosoArgs[4];
-            uint16_t items = SplitString(soso, ',', sosoArgs, 2, false);
-            uint8_t socketId = atoi(sosoArgs[0]);
-            GSMSocket *sock = GetSocket(socketId);
+            SplitString(soso, ',', sosoArgs, 4, false);
+            GSMSocket *sock = GetSocket(atoi(sosoArgs[0]));
             if (type == MODEM_RESPONSE_OK) {
                 // AT+USOSO=0,6,2,30000
                 // +USOSO: (0-6),(0,6,65535)
@@ -102,7 +101,7 @@ bool GSMSocketHandler::OnGSMResponse(char *request, char * response, MODEM_RESPO
         if (strncmp(request, GSM_SOCKET_TYPE_CMD, strlen(GSM_SOCKET_TYPE_CMD)) == 0) {
             char *soso = request + strlen(GSM_SOCKET_TYPE_CMD) + 1;
             char *sosoArgs[3];
-            uint16_t items = SplitString(soso, ',', sosoArgs, 2, false);
+            SplitString(soso, ',', sosoArgs, 2, false);
             uint8_t socketId = atoi(sosoArgs[0]);
             GSMSocket *sock = GetSocket(socketId);
             if (type == MODEM_RESPONSE_OK) {
@@ -150,6 +149,25 @@ bool GSMSocketHandler::OnGSMResponse(char *request, char * response, MODEM_RESPO
             }
             return true;
         }
+        if (strncmp(request, GSM_SOCKET_WRITE_CMD, strlen(GSM_SOCKET_WRITE_CMD)) == 0) {
+            uint8_t socketId = 0;
+
+            if (type == MODEM_RESPONSE_OK) {
+                char *usowr = request + strlen(GSM_SOCKET_WRITE_CMD) + 1;
+                char *usowrArgs[2];
+                SplitString(usowr, ',', usowrArgs, 2, false);
+                socketId = atoi(usowrArgs[0]);
+                uint16_t written = atoi(usowrArgs[1]);
+                GSMSocket *sock = GetSocket(socketId);
+                if (sock != NULL) {
+                    sock->OnSendData(written);
+                }
+
+            } else if (type > MODEM_RESPONSE_OK) {
+
+            }
+            return true;
+        }
 
     }
     return false;
@@ -157,10 +175,11 @@ bool GSMSocketHandler::OnGSMResponse(char *request, char * response, MODEM_RESPO
 bool GSMSocketHandler::OnGSMEvent(char * data)
 {
     if (strncmp(data, GSM_SOCKET_OPEN_EVENT, strlen(GSM_SOCKET_OPEN_EVENT)) == 0) {
-        char *openData[2];
-        SplitString(data + strlen(GSM_SOCKET_OPEN_EVENT) + 2, ",", openData, 2, false);
-        uint8_t socketId = atoi(openData[0]);
-        int error = atoi(openData[1]);
+        char *uusoco = data + strlen(GSM_SOCKET_OPEN_EVENT) + 2;
+        char *uusocoData[2];
+        SplitString(uusoco, ',', uusocoData, 2, false);
+        uint8_t socketId = atoi(uusocoData[0]);
+        int error = atoi(uusocoData[1]);
 
         GSMSocket *sock = GetSocket(socketId);
         if (sock != NULL) {
@@ -223,8 +242,10 @@ bool GSMSocketHandler::Connect(GSMSocket *sock)
     
     // TODO: Check ip
 
-    char cmd[32];
-    snprintf(cmd, 32, "%s%s=%u,\"%u.%u.%u.%s\",%u,1", GSM_PREFIX_CMD, GSM_SOCKET_OPEN_CMD, sock->GetId(), sock->GetIp()[0], sock->GetIp()[1], sock->GetIp()[2], sock->GetIp()[3], sock->GetPort()); //  "AT+USOCO=%d,\"%s\",%d", _socket, _host, _port);
+    char cmd[128];
+    IPAddr ip = sock->GetIp();
+
+    snprintf(cmd, 128, "%s%s=%u,\"%u.%u.%u.%u\",%u", GSM_PREFIX_CMD, GSM_SOCKET_OPEN_CMD, sock->GetId(), ip.octet[0], ip.octet[1], ip.octet[2], ip.octet[3], sock->GetPort()); //  "AT+USOCO=%d,\"%s\",%d", _socket, _host, _port);
     gsmHandler->AddCommand(cmd);
 
     return false;
@@ -271,13 +292,12 @@ uint16_t GSMSocketHandler::Send(uint8_t socketId, uint8_t *data, uint16_t len)
     char cmd[MODEM_SERIAL_BUFFER_SIZE];
     snprintf(cmd, MODEM_SERIAL_BUFFER_SIZE, "%s%s=%u,%u,\"", GSM_PREFIX_CMD, GSM_SOCKET_WRITE_CMD, socketId, len);
 
-    uint16_t wrote = 0;
     uint16_t wrote = strlen(cmd);
     char *pBuff = cmd;
 
     for (uint16_t i = 0; i < len; i++) {
         
-        pBuff = cmd + wrote;
+        pBuff = cmd + wrote;      
 
         byte b = data[i];
         byte n1 = (b >> 4) & 0x0f;

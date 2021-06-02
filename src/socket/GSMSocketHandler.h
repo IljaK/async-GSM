@@ -1,7 +1,8 @@
 #pragma once
+#include "common/Timer.h"
+#include "array/StackArray.h"
 #include "../BaseGSMHandler.h"
 #include "GSMSocket.h"
-#include "array/StackArray.h"
 
 constexpr char GSM_SOCKET_CREATE_CMD[] = "+USOCR"; // AT+USOCR=6  6 - TCP; 16 - UDP;
 constexpr char GSM_SOCKET_OPEN_CMD[] = "+USOCO"; // "AT+USOCO=%d,\"%s\",%d", _socket, _host, _port);

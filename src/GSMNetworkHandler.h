@@ -1,9 +1,10 @@
 #pragma once
 #include "GSMCallHandler.h"
-#include "common/Util.h"
 
 constexpr unsigned long REQUEST_DELAY_DURATION = 100000ul;
 constexpr unsigned long QUALITY_CHECK_DURATION = 20000000ul;
+
+constexpr char GSM_NETWORK_REG_STATUS[] = "+UREG"; // Reports the network or the device PS (Packet Switched) radio capabilities.
 
 constexpr char GSM_SIM_PIN_CMD[] = "+CPIN";
 constexpr char GSM_SIM_PIN_READY[] = "READY"; // Ready sim card state

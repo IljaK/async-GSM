@@ -1,6 +1,6 @@
 #include "BaseGSMHandler.h"
 
-BaseGSMHandler::BaseGSMHandler():commandStack(OUT_MESSAGE_STACK_SIZE)
+BaseGSMHandler::BaseGSMHandler():GSMSerialModem(), commandStack(OUT_MESSAGE_STACK_SIZE)
 {
 }
 
