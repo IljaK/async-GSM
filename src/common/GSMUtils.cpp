@@ -1,4 +1,3 @@
-#pragma omce
 #include "GSMUtils.h"
 
 

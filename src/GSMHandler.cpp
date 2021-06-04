@@ -4,9 +4,8 @@
 
 GSMHandler::GSMHandler():
     BaseGSMHandler(),
-    gsmApn(this),
-    gsmHandler(this),
     gprsHandler(this),
+    gsmHandler(this),
     socketHandler(this)
 {
 
@@ -25,6 +24,9 @@ bool GSMHandler::OnGSMResponse(char *request, char * response, MODEM_RESPONSE_TY
     if (socketHandler.OnGSMResponse(request, response, type)) {
         return true;
     }
+    if (gprsHandler.OnGSMResponse(request, response, type)) {
+        return true;
+    }
     return false;
 }
 
@@ -34,6 +36,9 @@ bool GSMHandler::OnGSMEvent(char * data)
         return true;
     }
     if (socketHandler.OnGSMEvent(data)) {
+        return true;
+    }
+    if (gprsHandler.OnGSMEvent(data)) {
         return true;
     }
     return false;

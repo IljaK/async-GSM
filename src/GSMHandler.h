@@ -3,15 +3,13 @@
 #include "GSMNetworkHandler.h"
 #include "GSMCallHandler.h"
 #include "GPRSHandler.h"
-#include "GSMApn.h"
 #include "socket/GSMSocketHandler.h"
 
 class GSMHandler: public BaseGSMHandler
 {
 protected:
-    GSMApn gsmApn;
-    GSMNetworkHandler gsmHandler;
     GPRSHandler gprsHandler;
+    GSMNetworkHandler gsmHandler;
     GSMSocketHandler socketHandler;
 public:
     GSMHandler();

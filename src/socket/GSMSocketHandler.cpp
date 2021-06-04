@@ -81,9 +81,10 @@ bool GSMSocketHandler::OnGSMResponse(char *request, char * response, MODEM_RESPO
             return true;
         }
         if (strncmp(request, GSM_SOCKET_CONFIG_CMD, strlen(GSM_SOCKET_CONFIG_CMD)) == 0) {
-            char *soso = request + strlen(GSM_SOCKET_CONFIG_CMD) + 1;
+            char sosReqData[128];
+            strcpy(sosReqData, request + strlen(GSM_SOCKET_CONFIG_CMD) + 1);
             char *sosoArgs[4];
-            SplitString(soso, ',', sosoArgs, 4, false);
+            SplitString(sosReqData, ',', sosoArgs, 4, false);
             GSMSocket *sock = GetSocket(atoi(sosoArgs[0]));
             if (type == MODEM_RESPONSE_OK) {
                 // AT+USOSO=0,6,2,30000
@@ -99,9 +100,10 @@ bool GSMSocketHandler::OnGSMResponse(char *request, char * response, MODEM_RESPO
             return true;
         }
         if (strncmp(request, GSM_SOCKET_TYPE_CMD, strlen(GSM_SOCKET_TYPE_CMD)) == 0) {
-            char *soso = request + strlen(GSM_SOCKET_TYPE_CMD) + 1;
+            char sosecReqData[128];
+            strcpy(sosecReqData, request + strlen(GSM_SOCKET_CONFIG_CMD) + 1);
             char *sosoArgs[3];
-            SplitString(soso, ',', sosoArgs, 2, false);
+            SplitString(sosecReqData, ',', sosoArgs, 2, false);
             uint8_t socketId = atoi(sosoArgs[0]);
             GSMSocket *sock = GetSocket(socketId);
             if (type == MODEM_RESPONSE_OK) {
@@ -130,6 +132,10 @@ bool GSMSocketHandler::OnGSMResponse(char *request, char * response, MODEM_RESPO
                 sock = GetSocket(socketId);
                 sock->OnReadData(ShiftQuotations(usordArgs[2]), size);
             } else {
+
+                char sosecReqData[128];
+                strcpy(sosecReqData, request + strlen(GSM_SOCKET_CONFIG_CMD) + 1);
+
                 char *usord1 = request + strlen(GSM_SOCKET_READ_CMD) + 1;
                 char *usordArgs1[2];
                 SplitString(usord1, ',', usordArgs1, 3, false);
@@ -185,7 +191,7 @@ bool GSMSocketHandler::OnGSMEvent(char * data)
         if (sock != NULL) {
             sock->OnConnectionConfirm(error);
             if (socketHandler != NULL) {
-                socketHandler->OnSocketConnection(sock, error);
+                socketHandler->OnSocketConnected(sock, error);
             }
         }
         // TODO: Error?
@@ -246,7 +252,7 @@ bool GSMSocketHandler::Connect(GSMSocket *sock)
     IPAddr ip = sock->GetIp();
 
     snprintf(cmd, 128, "%s%s=%u,\"%u.%u.%u.%u\",%u", GSM_PREFIX_CMD, GSM_SOCKET_OPEN_CMD, sock->GetId(), ip.octet[0], ip.octet[1], ip.octet[2], ip.octet[3], sock->GetPort()); //  "AT+USOCO=%d,\"%s\",%d", _socket, _host, _port);
-    gsmHandler->AddCommand(cmd);
+    gsmHandler->AddCommand(cmd, SOCKET_CONNECTION_TIMEOUT);
 
     return false;
 }

@@ -1,6 +1,6 @@
 #pragma once
 #include <Arduino.h>
-#include "array/StringStackArray.h"
+#include "common/ModemCommandStack.h"
 #include "common/Timer.h"
 #include "GSMSerialModem.h"
 
@@ -20,7 +20,6 @@ class IModemBootHandler
 public:
     virtual void OnModemBooted() = 0;
     virtual void OnModemFailedBoot() = 0;
-    // TODO: check modem state
 };
 
 class IBaseGSMHandler
@@ -28,6 +27,23 @@ class IBaseGSMHandler
 public:
     virtual bool OnGSMResponse(char *request, char * response, MODEM_RESPONSE_TYPE type) = 0;
     virtual bool OnGSMEvent(char * data) = 0;
+    bool IsRequestCMD(char *request, const char *cmd, const size_t cmdLen) {
+        if (strncmp(request, cmd, cmdLen) != 0) {
+            return false;
+        }
+        switch (cmd[cmdLen])
+        {
+        case 0:
+        case ' ':
+        case '=':
+        case '?':
+            return true;
+        default:
+            break;
+        }
+        return false;
+    }
+    // TODO: check modem state
 };
 
 enum MODEM_BOOT_STATE {
@@ -50,10 +66,10 @@ protected:
     void OnGSMResponseInternal(char * response, MODEM_RESPONSE_TYPE type);
 
 private:
-    char *pengingRequest = NULL;
     unsigned long baudRate = 0;
     TimerID connectionTimer = 0;
-    StringStackArray commandStack;
+    ModemCommand *pendingCommand = NULL;
+    ModemCommandStack commandStack;
 public:
     BaseGSMHandler();
     virtual ~BaseGSMHandler();
@@ -65,9 +81,9 @@ public:
     //void handleUrc(const String& urc) override;
 
     // Append command to request stack
-    bool AddCommand(const char *command);
+    bool AddCommand(const char *command, unsigned long timeout = MODEM_COMMAND_TIMEOUT);
     // Insert command to begin of request stack
-    bool ForceCommand(const char *command);
+    bool ForceCommand(const char *command, unsigned long timeout = MODEM_COMMAND_TIMEOUT);
 
     void Loop() override;
     void Flush();

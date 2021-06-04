@@ -4,12 +4,12 @@
 constexpr unsigned long REQUEST_DELAY_DURATION = 100000ul;
 constexpr unsigned long QUALITY_CHECK_DURATION = 20000000ul;
 
-constexpr char GSM_NETWORK_REG_STATUS[] = "+UREG"; // Reports the network or the device PS (Packet Switched) radio capabilities.
-
 constexpr char GSM_SIM_PIN_CMD[] = "+CPIN";
 constexpr char GSM_SIM_PIN_READY[] = "READY"; // Ready sim card state
 constexpr char GSM_SIM_PIN_REQUIRE[] = "SIM PIN"; // Pin code input sim card state
 
+// Reports the network or the device PS (Packet Switched) radio capabilities.
+constexpr char GSM_NETWORK_TYPE_STATUS[] = "+UREG";
 constexpr char GSM_CMD_NETWORK_REG[] = "+CREG"; // "AT+CREG=1"
 constexpr char GSM_CMD_MSG_FROMAT[] = "+CMGF"; // "AT+CMGF=1"
 constexpr char GSM_CMD_HEX_MODE[] = "+UDCONF"; // "AT+UDCONF=1,1"
@@ -34,6 +34,19 @@ enum GSM_REG_STATE {
     GSM_REG_STATE_CONNECTED_CSFB_NOT_ROAMING, // registered for "CSFB not preferred", roaming (applicable only when <AcTStatus> indicates E-UTRAN)
 };
 
+enum GSM_NETWORK_TYPE {
+    GSM_NETWORK_UNKNOWN, // 0: not registered for PS service
+    GSM_NETWORK_2G_GPRS, // 1: registered for PS service, RAT=2G, GPRS available
+    GSM_NETWORK_2G_EDGE, // 2: registered for PS service, RAT=2G, EDGE available
+    GSM_NETWORK_3G_WCDMA, // 3: registered for PS service, RAT=3G, WCDMA available
+    GSM_NETWORK_3G_HSDPA, // 4: registered for PS service, RAT=3G, HSDPA available
+    GSM_NETWORK_3G_HSUPA, // 5: registered for PS service, RAT=3G, HSUPA available
+    GSM_NETWORK_3G_HSDPA_HSUPA, // 6: registered for PS service, RAT=3G, HSDPA and HSUPA available
+    GSM_NETWORK_4G, // 7: registered for PS service, RAT=4G
+    GSM_NETWORK_2G_GPRS_DTM, // 8: registered for PS service, RAT=2G, GPRS available, DTM available
+    GSM_NETWORK_2G_EDGE_DTM, // 9: registered for PS service, RAT=2G, EDGE available, DTM available
+};
+
 enum GSM_INIT_STATE {
     GSM_STATE_ERROR,
 
@@ -45,6 +58,7 @@ enum GSM_INIT_STATE {
     GSM_STATE_AUTOMATIC_TIME_ZONE,
     GSM_STATE_DTMF_DETECTION,
     GSM_STATE_WAIT_REG_NETWORK,
+    GSM_STATE_NETWORK_TYPE,
     GSM_STATE_CALL_STATUS,
     GSM_STATE_DONE
 };
@@ -56,6 +70,7 @@ public:
     virtual void OnGSMConnected() = 0;
     virtual void OnGSMStatus(GSM_REG_STATE state) = 0;
     virtual void OnGSMQuality(uint8_t strength, uint8_t quality) = 0;
+    virtual void OnGSMNetworkType(GSM_NETWORK_TYPE type) = 0;
 };
 
 class GSMNetworkHandler: public GSMCallHandler
@@ -68,6 +83,7 @@ private:
     const char *simPin;
     GSM_REG_STATE regState = GSM_REG_STATE_UNKNOWN;
     GSM_INIT_STATE initState = GSM_STATE_CHECK_SIM;
+    GSM_NETWORK_TYPE networkType = GSM_NETWORK_UNKNOWN;
     bool isSimUnlocked = false;
     TimerID delayedRequest = 0;
 
@@ -101,4 +117,7 @@ public:
 
     unsigned long GetUTCTime();
     unsigned long GetLocalTime();
+
+    GSM_REG_STATE GetRegState() { return regState; };
+    GSM_NETWORK_TYPE GetNetworkType() { return networkType; };
 };

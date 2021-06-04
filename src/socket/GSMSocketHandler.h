@@ -4,6 +4,8 @@
 #include "../BaseGSMHandler.h"
 #include "GSMSocket.h"
 
+constexpr unsigned long SOCKET_CONNECTION_TIMEOUT = 10000000ul;
+
 constexpr char GSM_SOCKET_CREATE_CMD[] = "+USOCR"; // AT+USOCR=6  6 - TCP; 16 - UDP;
 constexpr char GSM_SOCKET_OPEN_CMD[] = "+USOCO"; // "AT+USOCO=%d,\"%s\",%d", _socket, _host, _port);
 constexpr char GSM_SOCKET_OPEN_EVENT[] = "+UUSOCO"; //
@@ -30,8 +32,7 @@ public:
     virtual void OnSocketOpen(GSMSocket * socket) = 0;
     virtual void OnSocketClose(uint8_t sockedId) = 0;
 
-    virtual void OnSocketConnection(GSMSocket * socket, int error) = 0;
-    virtual void OnSocketDisconnected(GSMSocket * socket) = 0;
+    virtual void OnSocketConnected(GSMSocket * socket, int error) = 0;
     virtual void OnSocketData(GSMSocket * socket) = 0;
 
     virtual void OnSocketStartListen(GSMSocket * socket) = 0;

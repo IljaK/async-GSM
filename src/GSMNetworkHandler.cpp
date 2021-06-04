@@ -71,6 +71,13 @@ bool GSMNetworkHandler::OnGSMEvent(char * data)
         }
         return true;
     }
+    if (strncmp(data, GSM_NETWORK_TYPE_STATUS, strlen(GSM_NETWORK_TYPE_STATUS)) == 0) {
+        char *ureg = data + strlen(GSM_CMD_NETWORK_REG) + 2;
+        networkType = (GSM_NETWORK_TYPE)atoi(ureg);
+        if (listener != NULL) {
+            listener->OnGSMNetworkType(networkType);
+        }
+    }
     
     return GSMCallHandler::OnGSMEvent(data);
 }
@@ -120,6 +127,7 @@ bool GSMNetworkHandler::OnGSMResponse(char *request, char *response, MODEM_RESPO
             }
 
             if (strncmp(request, GSM_CMD_NETWORK_REG, strlen(GSM_CMD_NETWORK_REG)) == 0 ||
+                strncmp(request, GSM_NETWORK_TYPE_STATUS, strlen(GSM_NETWORK_TYPE_STATUS)) == 0 ||
                 strncmp(request, GSM_CMD_MSG_FROMAT, strlen(GSM_CMD_MSG_FROMAT)) == 0 ||
                 strncmp(request, GSM_CMD_HEX_MODE, strlen(GSM_CMD_HEX_MODE)) == 0 ||
                 strncmp(request, GSM_CMD_TIME_ZONE, strlen(GSM_CMD_TIME_ZONE)) == 0 ||
@@ -272,6 +280,9 @@ void GSMNetworkHandler::TriggerCommand()
     case GSM_STATE_WAIT_REG_NETWORK:
         // Nothing to do here, wait for connection
         return;
+    case GSM_STATE_NETWORK_TYPE:
+        snprintf(cmd, cmdSize, "%s%s=1", GSM_PREFIX_CMD, GSM_NETWORK_TYPE_STATUS);
+        break;
     case GSM_STATE_CALL_STATUS:
         snprintf(cmd, cmdSize, "%s%s=1", GSM_PREFIX_CMD, GSM_CMD_CALL_STATUS);
         break;

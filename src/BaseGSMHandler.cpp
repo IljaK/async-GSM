@@ -57,33 +57,35 @@ void BaseGSMHandler::StartModem(bool restart, unsigned long baudRate)
     
 }
 
-bool BaseGSMHandler::AddCommand(const char *command)
+bool BaseGSMHandler::AddCommand(const char *command, unsigned long timeout)
 {
     Serial.print("AddCommand: ");
     Serial.println(command);
 
-    bool isFail = commandStack.AppendCopy((char *)command) == NULL;
-    if (isFail) {
+    if (!commandStack.Append((char *)command, timeout)) {
         Serial.println("AddCommand => FAIL");
         return false;
     }
     return true;
 }
 
-bool BaseGSMHandler::ForceCommand(const char *command)
+bool BaseGSMHandler::ForceCommand(const char *command, unsigned long timeout)
 {
     Serial.print("ForceCommand: ");
     Serial.println(command);
 
-    if (commandStack.InsertCopy((char *)command, 0) == NULL) {
+    if (!commandStack.Insert((char *)command, timeout, 0)) {
         Serial.println("ForceCommand => FAIL");
         return false;
     }
 
     Serial.print("Stack: ");
     for (size_t i = 0; i < commandStack.Size(); i++) {
-        Serial.print(commandStack.Peek(i));
-        Serial.print(" ");
+        ModemCommand *cmd = commandStack.Peek(i);
+        if (cmd != NULL) {
+            Serial.print(cmd->command);
+            Serial.print(" ");
+        }
     }
     Serial.println("");
     return true;
@@ -92,12 +94,12 @@ bool BaseGSMHandler::ForceCommand(const char *command)
 void BaseGSMHandler::Loop()
 {
     GSMSerialModem::Loop();
-    if (!IsBusy() && modemBootState == MODEM_BOOT_COMPLETED && pengingRequest == NULL) {
+    if (!IsBusy() && modemBootState == MODEM_BOOT_COMPLETED && pendingCommand == NULL) {
         if (commandStack.Size() > 0) {
-            pengingRequest = commandStack.UnshiftFirst();
+            pendingCommand = commandStack.UnshiftFirst();
             Serial.print("Send command: ");
-            Serial.println(pengingRequest);
-            Send(pengingRequest, MODEM_COMMAND_TIMEOUT);
+            Serial.println(pendingCommand->command);
+            Send(pendingCommand->command, pendingCommand->timeout);
         }
     }
 }
@@ -127,10 +129,10 @@ void BaseGSMHandler::OnGSMResponseInternal(char * response, MODEM_RESPONSE_TYPE 
 {
     Serial.print("OnGSMResponseInternal: ");
     
-    if (pengingRequest == NULL ) {
+    if (pendingCommand == NULL ) {
         Serial.print("[");
     } else {
-        Serial.print(pengingRequest);
+        Serial.print(pendingCommand->command);
         Serial.print(" [");
     }
     Serial.print(buffer);
@@ -140,11 +142,11 @@ void BaseGSMHandler::OnGSMResponseInternal(char * response, MODEM_RESPONSE_TYPE 
     switch (modemBootState)
     {
     case MODEM_BOOT_COMPLETED:
-        OnGSMResponse(pengingRequest, response, type);
+        OnGSMResponse(pendingCommand->command, response, type);
         if (type >= MODEM_RESPONSE_OK) {
-            if (pengingRequest != NULL) {
-                free(pengingRequest);
-                pengingRequest = NULL;
+            if (pendingCommand != NULL) {
+                commandStack.FreeItem(pendingCommand);
+                pendingCommand = NULL;
             }
         }
         break;
@@ -232,13 +234,10 @@ void BaseGSMHandler::OnTimerStop(TimerID timerId, uint8_t data)
 
 void BaseGSMHandler::Flush()
 {
-    if (pengingRequest != NULL) {
-        free(pengingRequest);
-        pengingRequest = NULL;
+    if (pendingCommand != NULL) {
+        commandStack.FreeItem(pendingCommand);
+        pendingCommand = NULL;
     }
-    while(commandStack.Size() > 0) {
-        char *cmd = commandStack.UnshiftFirst();
-        free(cmd);
-    }
+    commandStack.Clear();
     ResetBuffer();
 }

@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include "GSMSocketHandler.h"
-#include "GSMUtils.h"
+#include "common/GSMUtils.h"
 
 enum GSM_SOCKET_STATE: uint8_t {
     GSM_SOCKET_STATE_DISCONNECTED,

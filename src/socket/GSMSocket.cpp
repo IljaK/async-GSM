@@ -8,7 +8,10 @@ GSMSocket::GSMSocket(GSMSocketHandler * socketHandler, uint8_t socketId)
 }
 GSMSocket::~GSMSocket()
 {
-
+    if (domain != NULL) {
+        // TODO:
+    }
+    // TODO: Flush stack
 }
 
 
@@ -16,7 +19,7 @@ void GSMSocket::OnKeepAliveConfirm(bool isSuccess)
 {
     Serial.println("GSMSocket::OnKeepAliveConfirm");
     // TODO: if !isSuccess ?
-    if (sslType == GSM_SOCKET_SSL_DISABLE) {
+    if (sslType > GSM_SOCKET_SSL_DISABLE) {
         socketHandler->SetSSL(this);
     } else {
         socketHandler->Connect(this);
@@ -51,6 +54,7 @@ bool GSMSocket::Connect(char *ip, uint16_t port, bool keepAlive, GSM_SOCKET_SSL 
     state = GSM_SOCKET_STATE_CONNECTING;
     this->keepAlive = keepAlive;
     this->sslType = sslType;
+    this->port = port;
 
     GetAddr(ip, &this->ip);
 
