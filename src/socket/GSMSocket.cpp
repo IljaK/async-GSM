@@ -1,7 +1,8 @@
 #include "GSMSocket.h"
 
 
-GSMSocket::GSMSocket(GSMSocketHandler * socketHandler, uint8_t socketId)
+GSMSocket::GSMSocket(GSMSocketHandler * socketHandler, uint8_t socketId):
+    outgoingMessageStack(16, 128)
 {
     this->socketHandler = socketHandler;
     this->socketId = socketId;
@@ -9,9 +10,9 @@ GSMSocket::GSMSocket(GSMSocketHandler * socketHandler, uint8_t socketId)
 GSMSocket::~GSMSocket()
 {
     if (domain != NULL) {
-        // TODO:
+        free(domain);
     }
-    // TODO: Flush stack
+    outgoingMessageStack.Clear();
 }
 
 
@@ -82,26 +83,16 @@ bool GSMSocket::StartListen(uint16_t port)
     return false;
 }
 
-bool GSMSocket::SendData(uint8_t *data, uint16_t len)
+bool GSMSocket::SendData(uint8_t *data, size_t len)
 {
     if (state != GSM_SOCKET_STATE_READY) {
         return false;
     }
-    
-    // TODO: Check unwritten data
-
-    uint16_t written = socketHandler->Send(socketId, data, len);
-
-    // TODO: save remain data for next send?
-
-    return written > 1;
-}
-
-void GSMSocket::OnReadData(char *data, uint16_t available)
-{
-    this->available += available;
-    // TODO: Decode hex
-    // TODO: Split to packets?
+    if (outgoingMessageStack.Append(data, len) == 0) {
+        return false;
+    }
+    socketHandler->Send(this);
+    return true;
 }
 
 uint8_t GSMSocket::GetId()
@@ -120,10 +111,6 @@ GSM_SOCKET_STATE GSMSocket::GetState()
 {
     return state;
 }
-uint16_t GSMSocket::GetAvailable()
-{
-    return available;
-}
 bool GSMSocket::IsKeepAlive()
 {
     return keepAlive;
@@ -132,4 +119,8 @@ bool GSMSocket::IsKeepAlive()
 GSM_SOCKET_SSL GSMSocket::SSLType()
 {
     return sslType;
+}
+
+bool GSMSocket::IsConnected() {
+    return state == GSM_SOCKET_STATE_READY;
 }

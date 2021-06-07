@@ -8,6 +8,19 @@ constexpr char GSM_SIM_PIN_CMD[] = "+CPIN";
 constexpr char GSM_SIM_PIN_READY[] = "READY"; // Ready sim card state
 constexpr char GSM_SIM_PIN_REQUIRE[] = "SIM PIN"; // Pin code input sim card state
 
+// Enables / disables the smart temperature mode:
+// 0 (default value and factory-programmed value): smart temperature feature disabled
+// 1: smart temperature feature enabled; the indication by means of the +UUSTS URC and shutting down (if needed) are performed
+// 2: smart temperature indication enabled; the +UUSTS URC will be issued to notify the Smart Temperature Supervisor status
+// 3: smart temperature feature enabled with no indication; the shutdown (if needed) is performed, but without a URC notification 
+// Allowed values:
+// TOBY-L4 - 1, 3 (default value and factory-programmed value)
+// TOBY-L2 / MPCI-L2 / LARA-R2 / TOBY-R2 / SARA-U2 / LISA-U2 / LISA-U1 /
+// SARA-G4 / SARA-G3 / LEON-G1 - 0 (default value and factory-programmed value), 1, 2
+constexpr char GSM_TEMP_THRESOLD_CMD[] = "+USTS"; 
+constexpr char GSM_TEMP_THRESOLD_EVENT[] = "+UUSTS";
+constexpr char GSM_TEMP_CMD[] = "+UTEMP";
+
 // Reports the network or the device PS (Packet Switched) radio capabilities.
 constexpr char GSM_NETWORK_TYPE_STATUS[] = "+UREG";
 constexpr char GSM_CMD_NETWORK_REG[] = "+CREG"; // "AT+CREG=1"
@@ -19,6 +32,19 @@ constexpr char GSM_CMD_CALL_STATUS[] = "+UCALLSTAT"; // "AT+UCALLSTAT=1"
 
 constexpr char GSM_CMD_NETWORK_QUALITY[] = "+CSQ";
 constexpr char GSM_CMD_TIME[] = "+CCLK";
+
+// Provides the event status:
+enum GSM_THRESOLD_STATE {
+    GSM_THRESOLD_T_MINUS_2 = -2, // -2: temperature below t-2 threshold
+    GSM_THRESOLD_T_MINUS_1 = -1, // -1: temperature below t-1 threshold
+    GSM_THRESOLD_T = 0, // 0: temperature inside the allowed range - not close to the limits
+    GSM_THRESOLD_T_PLUS_1 = 1, // 1: temperature above t+1 threshold
+    GSM_THRESOLD_T_PLUS_2 = 2, // 2: temperature above the t+2 threshold
+
+    GSM_THRESOLD_SHUTDOWN_AFTER_CALL = 10, // 10: timer expired and no emergency call is in progress, shutdown phase started
+    GSM_THRESOLD_SHUTDOWN = 20, // 20: emergency call ended, shutdown phase started
+    GSM_THRESOLD_ERROR = 100, // 100: error during measurement
+};
 
 enum GSM_REG_STATE {
     GSM_REG_STATE_CONNECTING_HOME, // not registered, the MT is not currently searching a new operator to register to
@@ -53,6 +79,7 @@ enum GSM_INIT_STATE {
     GSM_STATE_CHECK_SIM,
     GSM_STATE_ENTER_SIM,
     GSM_STATE_AUTO_NETWOR_STATE,
+    GSM_STATE_TEMP_THRESOLD,
     GSM_STATE_PREFERRED_MESSAGE_FORMAT,
     GSM_STATE_HEX_MODE,
     GSM_STATE_AUTOMATIC_TIME_ZONE,
@@ -71,6 +98,7 @@ public:
     virtual void OnGSMStatus(GSM_REG_STATE state) = 0;
     virtual void OnGSMQuality(uint8_t strength, uint8_t quality) = 0;
     virtual void OnGSMNetworkType(GSM_NETWORK_TYPE type) = 0;
+    virtual void OnGSMThresold(GSM_THRESOLD_STATE type) = 0;
 };
 
 class GSMNetworkHandler: public GSMCallHandler
@@ -84,6 +112,8 @@ private:
     GSM_REG_STATE regState = GSM_REG_STATE_UNKNOWN;
     GSM_INIT_STATE initState = GSM_STATE_CHECK_SIM;
     GSM_NETWORK_TYPE networkType = GSM_NETWORK_UNKNOWN;
+    GSM_THRESOLD_STATE thresoldState = GSM_THRESOLD_T;
+
     bool isSimUnlocked = false;
     TimerID delayedRequest = 0;
 
@@ -120,4 +150,5 @@ public:
 
     GSM_REG_STATE GetRegState() { return regState; };
     GSM_NETWORK_TYPE GetNetworkType() { return networkType; };
+    GSM_THRESOLD_STATE GetThresoldState() { return thresoldState; };
 };

@@ -3,6 +3,8 @@
 #include <stdint.h>
 #include "GSMSocketHandler.h"
 #include "common/GSMUtils.h"
+#include "array/ByteStackArray.h"
+#include "SocketMessageBuffer.h"
 
 enum GSM_SOCKET_STATE: uint8_t {
     GSM_SOCKET_STATE_DISCONNECTED,
@@ -34,13 +36,11 @@ private:
 
     char * domain = NULL;
     GSMSocketHandler * socketHandler = NULL;
-    uint16_t available = 0;
-    uint8_t *data = NULL;
 protected:
+    ByteStackArray outgoingMessageStack;
     void OnKeepAliveConfirm(bool isSuccess);
     void OnSSLConfirm(bool isSuccess);
     void OnConnectionConfirm(int error);
-    void OnReadData(char *data, uint16_t available);
     void OnSendData(uint16_t size);
 
     friend class GSMSocketHandler;
@@ -62,5 +62,6 @@ public:
     bool Close();
 
     bool StartListen(uint16_t port);
-    bool SendData(uint8_t *data, uint16_t len);
+    bool SendData(uint8_t *data, size_t len);
+    bool IsConnected();
 };

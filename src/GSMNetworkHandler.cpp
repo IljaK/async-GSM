@@ -77,6 +77,18 @@ bool GSMNetworkHandler::OnGSMEvent(char * data)
         if (listener != NULL) {
             listener->OnGSMNetworkType(networkType);
         }
+        return true;
+    }
+    if (strncmp(data, GSM_TEMP_THRESOLD_EVENT, strlen(GSM_TEMP_THRESOLD_EVENT)) == 0) {
+        // GSM_TEMP_THRESOLD_EVENT
+        char *uusts = data + strlen(GSM_TEMP_THRESOLD_EVENT) + 2;
+		char *uustsArgs[2];
+        SplitString(uusts, ',', uustsArgs, 2, false);
+        thresoldState = (GSM_THRESOLD_STATE)atoi(uustsArgs[1]);
+        if (listener != NULL) {
+            listener->OnGSMThresold(thresoldState);
+        }
+        return true;
     }
     
     return GSMCallHandler::OnGSMEvent(data);
@@ -128,6 +140,7 @@ bool GSMNetworkHandler::OnGSMResponse(char *request, char *response, MODEM_RESPO
 
             if (strncmp(request, GSM_CMD_NETWORK_REG, strlen(GSM_CMD_NETWORK_REG)) == 0 ||
                 strncmp(request, GSM_NETWORK_TYPE_STATUS, strlen(GSM_NETWORK_TYPE_STATUS)) == 0 ||
+                strncmp(request, GSM_TEMP_THRESOLD_CMD, strlen(GSM_TEMP_THRESOLD_CMD)) == 0 ||
                 strncmp(request, GSM_CMD_MSG_FROMAT, strlen(GSM_CMD_MSG_FROMAT)) == 0 ||
                 strncmp(request, GSM_CMD_HEX_MODE, strlen(GSM_CMD_HEX_MODE)) == 0 ||
                 strncmp(request, GSM_CMD_TIME_ZONE, strlen(GSM_CMD_TIME_ZONE)) == 0 ||
@@ -265,6 +278,9 @@ void GSMNetworkHandler::TriggerCommand()
     case GSM_STATE_AUTO_NETWOR_STATE:
         snprintf(cmd, cmdSize, "%s%s=1", GSM_PREFIX_CMD, GSM_CMD_NETWORK_REG);
         break;
+    case GSM_STATE_TEMP_THRESOLD:
+        snprintf(cmd, cmdSize, "%s%s=2", GSM_PREFIX_CMD, GSM_TEMP_THRESOLD_CMD);
+        break;
     case GSM_STATE_PREFERRED_MESSAGE_FORMAT:
         snprintf(cmd, cmdSize, "%s%s=1", GSM_PREFIX_CMD, GSM_CMD_MSG_FROMAT);
         break;
@@ -303,8 +319,9 @@ void GSMNetworkHandler::TriggerCommand()
 void GSMNetworkHandler::FetchTime() {
     Timer::Stop(delayedRequest);
     delayedRequest = Timer::Start(this, QUALITY_CHECK_DURATION, 1u);
-    gsmHandler->AddCommand("AT+CCLK?");
-    gsmHandler->AddCommand("AT+CSQ");
+    gsmHandler->AddCommand("AT+CCLK?");  // Sync time
+    gsmHandler->AddCommand("AT+CSQ");    // Get signal quality
+    //gsmHandler->AddCommand("AT+UTEMP?", 5000000ul);  // Get temperature;
 }
 
 bool GSMNetworkHandler::IsInitialized()
