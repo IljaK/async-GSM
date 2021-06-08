@@ -2,8 +2,8 @@
 #include "array/StackArray.h"
 
 union MessageSize {
-    uint8_t data[8] = { 0,0,0,0,0,0,0,0 };
-    uint64_t l;
+    uint8_t data[8];
+    uint64_t l = 0;
 };
 
 struct SocketMessage{
@@ -22,6 +22,7 @@ private:
     const uint8_t lengthBytes;
 
     uint64_t GetLength(uint8_t * data, size_t length, uint8_t * data2 = NULL, size_t length2 = 0) {
+
         if ((uint64_t)length + (uint64_t)length2 < (uint64_t)lengthBytes) {
             return 0;
         }
@@ -29,22 +30,24 @@ private:
         MessageSize msz;
         for (uint8_t i = 0; i < lengthBytes; i++) {
             if (i < length) {
-                msz.data[8u - lengthBytes + i] = data[i];
+                msz.data[i] = data[i];
             } else {
-                msz.data[8u - lengthBytes + i] = data2[i - length];
+                msz.data[i] = data2[i - length];
             }
         }
         return msz.l;
     }
 
     size_t AppendToItem(SocketMessage *item , uint8_t * data, size_t length) {
+
         // TODO: fetch item size from buffer
         if (item->size == 0) {
             // We havent received enough data for length
             item->size = GetLength(item->data, item->filled, data, length);
+
             if (item->size == 0) {
-                // still not enough bytes for length, and nothing been written
-                if (item->data == NULL) {
+                // still not enough bytes for length
+                if (item->data == NULL) { // nothing been written
                     // Allocate memory for storing "data length size"
                     item->data = (uint8_t *)malloc(lengthBytes);
                     item->filled = length;
@@ -52,6 +55,7 @@ private:
                 } else {
                     // We already have allocated memory for length bytes
                     memcpy(item->data + item->filled, data, length);
+                    item->filled += length;
                 }
                 return length;
             } else {
@@ -59,9 +63,13 @@ private:
                     // No data has been stored for length, but content has full of it
                     item->data = (uint8_t *)malloc(item->size);
                     item->filled = length - lengthBytes;
-                    if (item->filled > 0) {
-                        memcpy(item->data + lengthBytes, data, item->filled);
+                    if (item->filled > item->size) {
+                        item->filled = item->size;
                     }
+                    if (item->filled > 0) {
+                        memcpy(item->data, data + lengthBytes, item->filled);
+                    }
+                    return item->filled + lengthBytes;
                 } else {
                     // Partly length bytes has been stored, so need to fill proper values
                     size_t sizeRemainPart = lengthBytes - item->filled;
@@ -70,10 +78,10 @@ private:
                     free(item->data); // Flush old stored data
                     item->data = (uint8_t *)malloc(item->size); // Create new buffer with proper size
                     if (item->size >= dataLen) {
-                        memcpy(item->data + sizeRemainPart, data, dataLen);
+                        memcpy(item->data, data + sizeRemainPart, dataLen);
                         item->filled = dataLen;
                     } else {
-                        memcpy(item->data + sizeRemainPart, data, item->size);
+                        memcpy(item->data, data + sizeRemainPart, item->size);
                         item->filled = item->size;
                     }
                     return item->filled + sizeRemainPart;
@@ -83,11 +91,15 @@ private:
         // Append unfilled data with known message size
         size_t append = item->size - item->filled;
         if (append > length) append = length;
-        //Serial.printf("AppendToItem: %u\n", append);
         memcpy(item->data + item->filled, data, append);
 
         return append;
 
+    }
+
+    bool Append(SocketMessage *item) override {
+        // TODO:
+        return false;
     }
 
     SocketMessage * InsertNewItem(size_t index) {
@@ -134,7 +146,6 @@ public:
         size_t remain = length;
         while (remain > 0) {
             size_t added = AppendInternal((uint8_t *)item + (length - remain), remain);
-            //Serial.printf("Added: %u\n", added);
             if (added == 0) {
                 break;
             }
@@ -145,7 +156,7 @@ public:
 
     bool HasMessage() {
         if (Size() == 1) {
-            return arr[0]->size == arr[0]->filled;
+            return arr[0]->IsFull();
         }
         return Size() > 0;
     }
@@ -158,5 +169,29 @@ public:
             }
         }
         return totalLength;
+    }
+
+    SocketMessage * UnshiftFirst() override
+    {
+        if (size == 0) {
+            return NULL;
+        }
+        if (arr[0]->IsFull()) {
+            return StackArray::UnshiftFirst();
+        }
+        return NULL;
+    }
+    SocketMessage * Unshift(size_t index) override
+    {
+        if (size == 0) {
+            return NULL;
+        }
+        if (index >= maxSize) {
+            return NULL;
+        }
+        if (arr[index]->IsFull()) {
+            return StackArray::Unshift(index);
+        }
+        return NULL;
     }
 };

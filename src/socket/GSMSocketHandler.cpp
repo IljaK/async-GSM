@@ -308,15 +308,10 @@ bool GSMSocketHandler::Close(GSMSocket *socket)
 
 size_t GSMSocketHandler::Send(GSMSocket *socket)
 {
-
-    Serial.println("GSMSocketHandler::Send");
-
     // We have pending send data command, wait till it finished to not overflow command buffer
     if (pendingSockTransmission != 255) return 0;
     if (socket == NULL) return 0;
     ByteArray *packet = socket->outgoingMessageStack.UnshiftFirst();
-
-    Serial.println("GSMSocketHandler::Send->UnshiftFirst");
 
     if (packet == NULL) return 0;
 
@@ -331,10 +326,9 @@ size_t GSMSocketHandler::Send(GSMSocket *socket)
     for (size_t i = 0; i < packet->length; i++) {
         
         pBuff = cmd + wrote;      
-
-        byte b = packet->array[i];
-        byte n1 = (b >> 4) & 0x0f;
-        byte n2 = (b & 0x0f);
+        uint8_t b = packet->array[i];
+        uint8_t n1 = (b >> 4) & 0x0f;
+        uint8_t n2 = (b & 0x0f);
         pBuff[0] = (char)(n1 > 9 ? 'A' + n1 - 10 : '0' + n1);
         pBuff[1] = (char)(n2 > 9 ? 'A' + n2 - 10 : '0' + n2);
         pBuff[2] = 0;
@@ -372,6 +366,8 @@ bool GSMSocketHandler::CloseSocket(uint8_t socketId)
 uint8_t *GSMSocketHandler::DecodeHexData(char *hex, uint8_t bytesLen)
 {
     // Decode hex data to same buffer
+    uint8_t *dcode = (uint8_t *)hex;
+
     for (size_t i = 0; i < bytesLen; i++) {
         uint8_t n1 = hex[i * 2];
         uint8_t n2 = hex[i * 2 + 1];
@@ -387,9 +383,9 @@ uint8_t *GSMSocketHandler::DecodeHexData(char *hex, uint8_t bytesLen)
         } else {
             n2 = (n2 - '0');
         }
-        hex[i] = (n1 << 4) | n2;
+        dcode[i] = (n1 << 4) | n2;
     }
-    return (uint8_t *)hex;
+    return dcode;
 }
 size_t GSMSocketHandler::SendNextAvailableData()
 {
@@ -405,12 +401,10 @@ size_t GSMSocketHandler::SendNextAvailableData()
         if (sock == NULL) {
             continue;
         }
-        ByteArray *packet = sock->outgoingMessageStack.UnshiftFirst();
-        if (packet == NULL) {
-            continue;
+        if (sock->outgoingMessageStack.Size() > 0) {
+            pendingSockTransmission = 255;
+            return Send(sock);
         }
-        pendingSockTransmission = 255;
-        return Send(sock);
     }
     // Check next socket with lower ID
     for(uint8_t i = 0; i <= pendingSockTransmission; i++) {
@@ -418,12 +412,10 @@ size_t GSMSocketHandler::SendNextAvailableData()
         if (sock == NULL) {
             continue;
         }
-        ByteArray *packet = sock->outgoingMessageStack.UnshiftFirst();
-        if (packet == NULL) {
-            continue;
+        if (sock->outgoingMessageStack.Size() > 0) {
+            pendingSockTransmission = 255;
+            return Send(sock);
         }
-        pendingSockTransmission = 255;
-        return Send(sock);
     }
     // No data to send
     pendingSockTransmission = 255;
