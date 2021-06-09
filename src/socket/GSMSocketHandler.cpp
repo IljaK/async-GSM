@@ -155,7 +155,7 @@ bool GSMSocketHandler::OnGSMResponse(char *request, char * response, MODEM_RESPO
                 size = atoi(usordArgs[1]);
                 sock = GetSocket(socketId);
                 uint8_t *data = DecodeHexData(usordArgs[2], size);
-                if (sock != NULL) {
+                if (socketHandler != NULL) {
                     socketHandler->OnSocketData(sock, data, size);
                 }
             } else if (type == MODEM_RESPONSE_OK) {
@@ -187,7 +187,26 @@ bool GSMSocketHandler::OnGSMResponse(char *request, char * response, MODEM_RESPO
             }
             return true;
         }
+        if (strncmp(request, GSM_SOCKET_CLOSE_CMD, strlen(GSM_SOCKET_CLOSE_CMD)) == 0) {
+            if (type >= MODEM_RESPONSE_OK) {
+                char *usocl = request + strlen(GSM_SOCKET_READ_CMD) + 1;
+                char *usoclArgs[2] = {0,0};
+                // No need to copy request, we are procwssing string on last state
+                SplitString(usocl, ',', usoclArgs, 2, false);
 
+                uint8_t isAsync = atoi(usoclArgs[1]);
+                if (isAsync == 1) {
+                    if (type != MODEM_RESPONSE_OK) {
+                        // TODO: ?
+                    }
+                    // No need to process state, async response will be triggered
+                    return true;
+                }
+                uint8_t socketId = atoi(usoclArgs[0]);
+                DestroySocket(socketId);
+            }
+            return true;
+        }
     }
     return false;
 }
@@ -212,13 +231,7 @@ bool GSMSocketHandler::OnGSMEvent(char * data)
     }
     if (strncmp(data, GSM_SOCKET_CLOSE_EVENT, strlen(GSM_SOCKET_CLOSE_EVENT)) == 0) {
         uint8_t socketId = atoi(data + strlen(GSM_SOCKET_CLOSE_EVENT) + 2);
-        GSMSocket *sock = UnshiftSocket(socketId);
-        if (sock != NULL) {
-            if (socketHandler != NULL) {
-                socketHandler->OnSocketClose(socketId);
-            }
-            delete sock;
-        }
+        DestroySocket(socketId);
         // TODO: Error?
         return true;
     }
@@ -252,7 +265,7 @@ bool GSMSocketHandler::CreateSocket()
     
     char cmd[32];
     snprintf(cmd, 32, "%s%s=6", GSM_PREFIX_CMD, GSM_SOCKET_CREATE_CMD); // 6 - TCP; 16 - UDP;
-    return gsmHandler->AddCommand(cmd);
+    return gsmHandler->AddCommand(cmd, SOCKET_CMD_TIMEOUT);
 }
 
 bool GSMSocketHandler::Connect(GSMSocket *sock)
@@ -302,8 +315,10 @@ bool GSMSocketHandler::Close(GSMSocket *socket)
 {
     if (socket == NULL) return false;
     char cmd[32];
-    snprintf(cmd, 32, "%s%s=%u,1", GSM_PREFIX_CMD, GSM_SOCKET_CLOSE_CMD, socket->GetId());
-    return gsmHandler->AddCommand(cmd);
+    snprintf(cmd, 32, "%s%s=%u", GSM_PREFIX_CMD, GSM_SOCKET_CLOSE_CMD, socket->GetId());
+    // Async close, SARAU2 does not have async close support
+    //snprintf(cmd, 32, "%s%s=%u,1", GSM_PREFIX_CMD, GSM_SOCKET_CLOSE_CMD, socket->GetId());
+    return gsmHandler->AddCommand(cmd, SOCKET_CONNECTION_TIMEOUT);
 }
 
 size_t GSMSocketHandler::Send(GSMSocket *socket)
@@ -317,8 +332,9 @@ size_t GSMSocketHandler::Send(GSMSocket *socket)
 
     pendingSockTransmission = socket->GetId();
 
-    char cmd[MODEM_SERIAL_BUFFER_SIZE];
-    snprintf(cmd, MODEM_SERIAL_BUFFER_SIZE, "%s%s=%u,%u,\"", GSM_PREFIX_CMD, GSM_SOCKET_WRITE_CMD, socket->GetId(), packet->length);
+    const int sz = GSM_SOCKET_BUFFER_SIZE * 2 + 20;
+    char cmd[sz];
+    snprintf(cmd, sz, "%s%s=%u,%u,\"", GSM_PREFIX_CMD, GSM_SOCKET_WRITE_CMD, socket->GetId(), packet->length);
 
     size_t wrote = strlen(cmd);
     char *pBuff = cmd;
@@ -344,7 +360,7 @@ size_t GSMSocketHandler::Send(GSMSocket *socket)
 
     strcat(cmd, "\"");
 
-    if (!gsmHandler->AddCommand(cmd)) {
+    if (!gsmHandler->AddCommand(cmd, SOCKET_CMD_TIMEOUT)) {
         return 0;
     }
     return wrote;
@@ -368,6 +384,8 @@ uint8_t *GSMSocketHandler::DecodeHexData(char *hex, uint8_t bytesLen)
     // Decode hex data to same buffer
     uint8_t *dcode = (uint8_t *)hex;
 
+    Serial.print("Decoded socket data: ");
+
     for (size_t i = 0; i < bytesLen; i++) {
         uint8_t n1 = hex[i * 2];
         uint8_t n2 = hex[i * 2 + 1];
@@ -384,7 +402,10 @@ uint8_t *GSMSocketHandler::DecodeHexData(char *hex, uint8_t bytesLen)
             n2 = (n2 - '0');
         }
         dcode[i] = (n1 << 4) | n2;
+        Serial.print(dcode[i]);
+        Serial.print(" ");
     }
+    Serial.println("");
     return dcode;
 }
 size_t GSMSocketHandler::SendNextAvailableData()
@@ -420,4 +441,17 @@ size_t GSMSocketHandler::SendNextAvailableData()
     // No data to send
     pendingSockTransmission = 255;
     return 0;
+}
+
+bool GSMSocketHandler::DestroySocket(uint8_t socketId)
+{
+    GSMSocket *sock = UnshiftSocket(socketId);
+    if (sock == NULL) {
+        return false;
+    }
+    if (socketHandler != NULL) {
+        socketHandler->OnSocketClose(socketId, true);
+    }
+    delete sock;
+    return true;
 }

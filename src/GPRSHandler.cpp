@@ -152,6 +152,7 @@ bool GPRSHandler::OnGSMResponse(char *request, char * response, MODEM_RESPONSE_T
             }
             else if (type == MODEM_RESPONSE_OK) {
                 if (state == UPSDN_SETTING_IP) {
+                    apnState = GSM_APN_ACTIVE;
                     if (apnHandler != NULL) {
                         apnHandler->OnGPRSStarted(type == MODEM_RESPONSE_OK);
                     }
@@ -250,7 +251,6 @@ bool GPRSHandler::IsActive()
 {
     return apnState == GSM_APN_ACTIVE;
 }
-
 
 IPAddr GPRSHandler::GetDeviceAddr()
 {
