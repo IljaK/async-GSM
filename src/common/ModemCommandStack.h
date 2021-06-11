@@ -60,10 +60,10 @@ public:
 
     bool Append(char *item, unsigned long timeout)
     {
-        if (item == NULL) return NULL;
-        if (item[0] == 0) return NULL;
-        if (IsFull()) return NULL;
-        if (Contains(item)) return NULL;
+        if (item == NULL) return false;
+        if (item[0] == 0) return false;
+        if (IsFull()) return false;
+        if (Contains(item)) return false;
 
         ModemCommand *newItem = CreateItem(item, timeout);
         if (newItem == NULL) {
@@ -80,10 +80,10 @@ public:
 
     bool Insert(char *item, unsigned long timeout, size_t index)
     {
-        if (item == NULL) return NULL;
-        if (item[0] == 0) return NULL;
-        if (IsFull()) return NULL;
-        if (Contains(item)) return NULL;
+        if (item == NULL) return false;
+        if (item[0] == 0) return false;
+        if (IsFull()) return false;
+        if (Contains(item)) return false;
 
         ModemCommand *newItem = CreateItem(item, timeout);
         if (newItem == NULL) {

@@ -59,6 +59,7 @@ private:
                     memcpy(item->data, data, length);
                 } else {
                     // We already have allocated memory for length bytes
+                    item->data = (uint8_t *)realloc(item->data, item->filled + length);
                     memcpy(item->data + item->filled, data, length);
                     item->filled += length;
                 }
@@ -96,6 +97,7 @@ private:
         // Append unfilled data with known message size
         size_t append = item->size - item->filled;
         if (append > length) append = length;
+        item->filled += append;
         memcpy(item->data + item->filled, data, append);
 
         return append;
@@ -139,8 +141,10 @@ private:
     }
 public:
     void FreeItem(SocketMessage * item) override {
-        free(item->data);
-        free(item);
+        if (item != NULL) {
+            free(item->data);
+            free(item);
+        }
     }
     SocketMessageBuffer(const uint8_t lengthBytes, const size_t maxSize):
         StackArray(maxSize),
