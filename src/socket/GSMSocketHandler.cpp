@@ -154,9 +154,11 @@ bool GSMSocketHandler::OnGSMResponse(char *request, char * response, MODEM_RESPO
                 socketId = atoi(usordArgs[0]);
                 size = atoi(usordArgs[1]);
                 sock = GetSocket(socketId);
-                uint8_t *data = DecodeHexData(usordArgs[2], size);
+                // Decode string to same char buffer
+                uint8_t *data = (uint8_t *)usordArgs[2];
+                size_t decoded = decodeFromHex(usordArgs[2], data, size);
                 if (socketHandler != NULL) {
-                    socketHandler->OnSocketData(sock, data, size);
+                    socketHandler->OnSocketData(sock, data, decoded);
                 }
             } else if (type == MODEM_RESPONSE_OK) {
                 // TODO: No need to handle next read, event +UUSORD will be triggered again if there is something left
@@ -337,28 +339,13 @@ size_t GSMSocketHandler::Send(GSMSocket *socket)
     char cmd[sz];
     snprintf(cmd, sz, "%s%s=%u,%zu,\"", GSM_PREFIX_CMD, GSM_SOCKET_WRITE_CMD, socket->GetId(), packet->length);
 
-    size_t wrote = strlen(cmd);
-    char *pBuff = cmd;
-
-    for (size_t i = 0; i < packet->length; i++) {
-        
-        pBuff = cmd + wrote;      
-        uint8_t b = packet->array[i];
-        uint8_t n1 = (b >> 4) & 0x0f;
-        uint8_t n2 = (b & 0x0f);
-        pBuff[0] = (char)(n1 > 9 ? 'A' + n1 - 10 : '0' + n1);
-        pBuff[1] = (char)(n2 > 9 ? 'A' + n2 - 10 : '0' + n2);
-        pBuff[2] = 0;
-
-        wrote += 2;
-
-        // pBuff[0] + pBuff[1] + " + \r + 0 = 5 chars; 
-
-        if (wrote + 5 >= MODEM_SERIAL_BUFFER_SIZE) {
-            break;
-        }
+    char *pBuff = cmd + strlen(cmd);
+    // Max write amount
+    size_t bytesAmount = GSM_SOCKET_BUFFER_SIZE;
+    if (packet->length < bytesAmount) {
+        bytesAmount = packet->length;
     }
-
+    size_t wrote = encodeToHex(packet->array, bytesAmount, pBuff);
     strcat(cmd, "\"");
 
     if (!gsmHandler->AddCommand(cmd, SOCKET_CMD_TIMEOUT)) {
@@ -367,7 +354,7 @@ size_t GSMSocketHandler::Send(GSMSocket *socket)
 
     packet = socket->outgoingMessageStack.UnshiftFirst();
     socket->outgoingMessageStack.FreeItem(packet);
-    return wrote;
+    return wrote / 2;
 }
 
 bool GSMSocketHandler::CreateServer()
@@ -383,35 +370,6 @@ bool GSMSocketHandler::CloseSocket(uint8_t socketId)
     return sock->Close();
 }
 
-uint8_t *GSMSocketHandler::DecodeHexData(char *hex, uint8_t bytesLen)
-{
-    // Decode hex data to same buffer
-    uint8_t *dcode = (uint8_t *)hex;
-
-    Serial.print("Decoded socket data: ");
-
-    for (size_t i = 0; i < bytesLen; i++) {
-        uint8_t n1 = hex[i * 2];
-        uint8_t n2 = hex[i * 2 + 1];
-
-        if (n1 > '9') {
-            n1 = (n1 - 'A') + 10;
-        } else {
-            n1 = (n1 - '0');
-        }
-
-        if (n2 > '9') {
-            n2 = (n2 - 'A') + 10;
-        } else {
-            n2 = (n2 - '0');
-        }
-        dcode[i] = (n1 << 4) | n2;
-        Serial.print(dcode[i]);
-        Serial.print(" ");
-    }
-    Serial.println("");
-    return dcode;
-}
 size_t GSMSocketHandler::SendNextAvailableData()
 {
     //GSMSocket *sock = NULL;

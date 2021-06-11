@@ -57,7 +57,6 @@ protected:
     bool SetSSL(GSMSocket *socket);
     bool Close(GSMSocket *socket);
     size_t Send(GSMSocket *socket);
-    uint8_t *DecodeHexData(char *hex, uint8_t bytesLen);
     size_t SendNextAvailableData();
 public:
     GSMSocketHandler(BaseGSMHandler *gsmHandler);
