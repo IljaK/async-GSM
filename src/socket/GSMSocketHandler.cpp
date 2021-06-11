@@ -363,6 +363,8 @@ size_t GSMSocketHandler::Send(GSMSocket *socket)
     if (!gsmHandler->AddCommand(cmd, SOCKET_CMD_TIMEOUT)) {
         return 0;
     }
+
+    socket->outgoingMessageStack.FreeItem(packet);
     return wrote;
 }
 
