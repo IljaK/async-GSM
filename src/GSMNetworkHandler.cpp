@@ -4,6 +4,11 @@
 
 GSMNetworkHandler::GSMNetworkHandler(BaseGSMHandler *gsmHandler):GSMCallHandler(gsmHandler)
 {
+    gsmStats.regState = GSM_REG_STATE_UNKNOWN;
+    gsmStats.networkType = GSM_NETWORK_UNKNOWN;
+    gsmStats.thresoldState = GSM_THRESOLD_T;
+    gsmStats.signalStrength = 0;
+    gsmStats.signalQuality = 0;
 }
 GSMNetworkHandler::~GSMNetworkHandler()
 {
@@ -18,7 +23,7 @@ void GSMNetworkHandler::SetGSMListener(IGSMNetworkHandler *listener)
 void GSMNetworkHandler::Connect(const char *simPin)
 {
     this->simPin = simPin;
-    regState = GSM_REG_STATE_UNKNOWN;
+    gsmStats.regState = GSM_REG_STATE_UNKNOWN;
     initState = GSM_STATE_CHECK_SIM;
     TriggerCommand();
 }
@@ -35,15 +40,15 @@ bool GSMNetworkHandler::OnGSMEvent(char * data)
 
 		SplitString(creg, ',', cregArgs, 2, false);
         if (cregArgs[1] == 0) {
-            regState = (GSM_REG_STATE)atoi(cregArgs[0]);
+            gsmStats.regState = (GSM_REG_STATE)atoi(cregArgs[0]);
         } else {
-		    regState = (GSM_REG_STATE)atoi(cregArgs[1]);
+		    gsmStats.regState = (GSM_REG_STATE)atoi(cregArgs[1]);
         }
 
         Serial.print("regState: ");
-        Serial.println((int)regState);
+        Serial.println((int)gsmStats.regState);
         
-        switch (regState) {
+        switch (gsmStats.regState) {
             case GSM_REG_STATE_CONNECTING_HOME:
             case GSM_REG_CONNECTED_HOME:
             case GSM_REG_STATE_CONNECTING_OTHER:
@@ -59,7 +64,7 @@ bool GSMNetworkHandler::OnGSMEvent(char * data)
                 }
 
                 if (listener != NULL) {
-                    listener->OnGSMStatus(regState);
+                    listener->OnGSMStatus(gsmStats.regState);
                 }
                 break;
             case GSM_REG_STATE_DENIED:
@@ -73,9 +78,9 @@ bool GSMNetworkHandler::OnGSMEvent(char * data)
     }
     if (strncmp(data, GSM_NETWORK_TYPE_STATUS, strlen(GSM_NETWORK_TYPE_STATUS)) == 0) {
         char *ureg = data + strlen(GSM_CMD_NETWORK_REG) + 2;
-        networkType = (GSM_NETWORK_TYPE)atoi(ureg);
+        gsmStats.networkType = (GSM_NETWORK_TYPE)atoi(ureg);
         if (listener != NULL) {
-            listener->OnGSMNetworkType(networkType);
+            listener->OnGSMNetworkType(gsmStats.networkType);
         }
         return true;
     }
@@ -84,9 +89,9 @@ bool GSMNetworkHandler::OnGSMEvent(char * data)
         char *uusts = data + strlen(GSM_TEMP_THRESOLD_EVENT) + 2;
 		char *uustsArgs[2];
         SplitString(uusts, ',', uustsArgs, 2, false);
-        thresoldState = (GSM_THRESOLD_STATE)atoi(uustsArgs[1]);
+        gsmStats.thresoldState = (GSM_THRESOLD_STATE)atoi(uustsArgs[1]);
         if (listener != NULL) {
-            listener->OnGSMThresold(thresoldState);
+            listener->OnGSMThresold(gsmStats.thresoldState);
         }
         return true;
     }
@@ -195,20 +200,20 @@ bool GSMNetworkHandler::OnGSMResponse(char *request, char *response, MODEM_RESPO
 
         SplitString(csq, ',', csqArgs, 2, false);
 
-        signalStrength = atoi(csqArgs[0]); // 0 - 31, 99
-        if (signalStrength > 31) {
-            signalStrength = 0;
+        gsmStats.signalStrength = atoi(csqArgs[0]); // 0 - 31, 99
+        if (gsmStats.signalStrength > 31) {
+            gsmStats.signalStrength = 0;
         }
-        signalStrength = ((double)signalStrength / 31.0) * 100.0;
+        gsmStats.signalStrength = ((double)gsmStats.signalStrength / 31.0) * 100.0;
 
-        signalQuality = atoi(csqArgs[1]); // 0 - 7, 99
-        if (signalQuality > 7) {
-            signalQuality = 0;
+        gsmStats.signalQuality = atoi(csqArgs[1]); // 0 - 7, 99
+        if (gsmStats.signalQuality > 7) {
+            gsmStats.signalQuality = 0;
         }
-        signalQuality = ((7.0 - (double)signalQuality) / 7.0) * 100.0;
+        gsmStats.signalQuality = ((7.0 - (double)gsmStats.signalQuality) / 7.0) * 100.0;
 
         if (listener != NULL) {
-            listener->OnGSMQuality(signalStrength, signalQuality);
+            listener->OnGSMQuality(gsmStats.signalStrength, gsmStats.signalQuality);
         }
         return true;
     }
@@ -344,11 +349,6 @@ unsigned long GSMNetworkHandler::GetLocalTime()
     return currentTime + syncDelta;
 }
 
-uint8_t GSMNetworkHandler::GetSignalStrength()
-{
-    return signalStrength;
-}
-uint8_t GSMNetworkHandler::GetSignalQuality()
-{
-    return signalQuality;
+GSMNetworkStats *GSMNetworkHandler::GetGSMStats() {
+    return &gsmStats;
 }

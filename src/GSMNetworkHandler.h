@@ -90,6 +90,14 @@ enum GSM_INIT_STATE {
     GSM_STATE_DONE
 };
 
+struct GSMNetworkStats {
+    GSM_REG_STATE regState = GSM_REG_STATE_UNKNOWN;
+    GSM_NETWORK_TYPE networkType = GSM_NETWORK_UNKNOWN;
+    GSM_THRESOLD_STATE thresoldState = GSM_THRESOLD_T;
+    uint8_t signalStrength = 0;
+    uint8_t signalQuality = 0;
+};
+
 class IGSMNetworkHandler {
 public:
     virtual void OnGSMSimUnlocked() = 0;
@@ -109,18 +117,14 @@ private:
     int timeZone = 0;
 
     const char *simPin;
-    GSM_REG_STATE regState = GSM_REG_STATE_UNKNOWN;
     GSM_INIT_STATE initState = GSM_STATE_CHECK_SIM;
-    GSM_NETWORK_TYPE networkType = GSM_NETWORK_UNKNOWN;
-    GSM_THRESOLD_STATE thresoldState = GSM_THRESOLD_T;
+    GSMNetworkStats gsmStats;
 
     bool isSimUnlocked = false;
     TimerID delayedRequest = 0;
 
     IGSMNetworkHandler *listener = NULL;
 
-    uint8_t signalStrength = 0;
-    uint8_t signalQuality = 0;
 
     void TriggerCommand();
     void IncreaseState();
@@ -142,13 +146,8 @@ public:
     bool IsInitialized();
     bool IsSimUnlocked();
 
-    uint8_t GetSignalStrength();
-    uint8_t GetSignalQuality();
-
     unsigned long GetUTCTime();
     unsigned long GetLocalTime();
 
-    GSM_REG_STATE GetRegState() { return regState; };
-    GSM_NETWORK_TYPE GetNetworkType() { return networkType; };
-    GSM_THRESOLD_STATE GetThresoldState() { return thresoldState; };
+    GSMNetworkStats *GetGSMStats();
 };
