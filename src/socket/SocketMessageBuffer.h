@@ -142,7 +142,9 @@ private:
 public:
     void FreeItem(SocketMessage * item) override {
         if (item != NULL) {
-            free(item->data);
+            if (item->data != NULL) {
+                free(item->data);
+            }
             free(item);
         }
     }
@@ -180,16 +182,6 @@ public:
         return totalLength;
     }
 
-    SocketMessage * UnshiftFirst() override
-    {
-        if (size == 0) {
-            return NULL;
-        }
-        if (arr[0]->IsFull()) {
-            return StackArray::UnshiftFirst();
-        }
-        return NULL;
-    }
     SocketMessage * Unshift(size_t index) override
     {
         if (size == 0) {
