@@ -139,7 +139,9 @@ private:
     }
 public:
     void FreeItem(SocketMessage * item) override {
-        free(item->data);
+        if (item->data != NULL) {
+            free(item->data);
+        }
         free(item);
     }
     SocketMessageBuffer(const uint8_t lengthBytes, const size_t maxSize):
@@ -176,16 +178,6 @@ public:
         return totalLength;
     }
 
-    SocketMessage * UnshiftFirst() override
-    {
-        if (size == 0) {
-            return NULL;
-        }
-        if (arr[0]->IsFull()) {
-            return StackArray::UnshiftFirst();
-        }
-        return NULL;
-    }
     SocketMessage * Unshift(size_t index) override
     {
         if (size == 0) {
