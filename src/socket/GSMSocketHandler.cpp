@@ -326,9 +326,10 @@ size_t GSMSocketHandler::Send(GSMSocket *socket)
     // We have pending send data command, wait till it finished to not overflow command buffer
     if (pendingSockTransmission != 255) return 0;
     if (socket == NULL) return 0;
-    ByteArray *packet = socket->outgoingMessageStack.UnshiftFirst();
+    
+    ByteArray *packet = socket->outgoingMessageStack.Peek();
 
-    if (packet == NULL) return 0;
+    if (packet == NULL || packet->length == 0) return 0;
 
     pendingSockTransmission = socket->GetId();
 
@@ -364,6 +365,7 @@ size_t GSMSocketHandler::Send(GSMSocket *socket)
         return 0;
     }
 
+    packet = socket->outgoingMessageStack.UnshiftFirst();
     socket->outgoingMessageStack.FreeItem(packet);
     return wrote;
 }
