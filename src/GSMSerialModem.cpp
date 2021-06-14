@@ -17,10 +17,7 @@ void GSMSerialModem::OnResponseReceived(bool IsTimeOut, bool isOverFlow)
             return;
         }
         size_t sz = strlen(GSM_PREFIX_CMD);
-        if (bufferLength < sz) {
-            sz = bufferLength;
-        }
-        if (strncmp(buffer, GSM_PREFIX_CMD, sz) == 0) {
+        if (bufferLength >= sz && strncmp(buffer, GSM_PREFIX_CMD, sz) == 0) {
             return;
         }
     }
@@ -28,22 +25,12 @@ void GSMSerialModem::OnResponseReceived(bool IsTimeOut, bool isOverFlow)
     if (debugPrint != NULL) {
         debugPrint->print("Response: [");
         debugPrint->print(buffer);
-        debugPrint->print("]");
-        if (IsTimeOut) {
-            debugPrint->print(" true");
-        } else {
-            debugPrint->print(" false");
-        }
-        if (isOverFlow) {
-            debugPrint->print(" true");
-        } else {
-            debugPrint->print(" false");
-        }
-        if (isWaitingConfirm) {
-            debugPrint->println(" true ");
-        } else {
-            debugPrint->println(" false ");
-        }
+        debugPrint->print("] IsTimeOut: ");
+        debugPrint->print(IsTimeOut);
+        debugPrint->print(" isOverFlow: ");
+        debugPrint->print(isOverFlow);
+        debugPrint->print(" isWaitingConfirm: ");
+        debugPrint->println(isWaitingConfirm);
     }
 
 
@@ -81,8 +68,8 @@ bool GSMSerialModem::Send(char *data, unsigned long timeout)
 {
     if (IsBusy()) return false;
     if (data == NULL || data[0] == 0) return false;
-    isWaitingConfirm = true;
     ResetBuffer();
+    isWaitingConfirm = true;
 	StartTimeoutTimer(timeout);
     serial->println(data);
     return true;
@@ -126,4 +113,17 @@ bool GSMSerialModem::Sendf(const char * cmd, unsigned long timeout, bool isCheck
 	}
 	StartTimeoutTimer(timeout);
     return true;
+}
+void GSMSerialModem::SetDebugPrint(Print *debugPrint)
+{
+    this->debugPrint = debugPrint;
+}
+void GSMSerialModem::FlushIncoming()
+{
+    isWaitingConfirm = false;
+    while (serial->available()>0)
+    {
+        serial->read();
+    }
+    ResetBuffer();
 }

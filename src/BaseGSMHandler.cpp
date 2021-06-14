@@ -55,8 +55,8 @@ void BaseGSMHandler::StartModem(bool restart, unsigned long baudRate)
     modemBootState = MODEM_BOOT_CONNECTING;
     Timer::Stop(connectionTimer);
     connectionTimer = Timer::Start(this, GSM_MODEM_CONNECTION_TIME);
+    FlushIncoming();
     Send((char *)GSM_PREFIX_CMD, MODEM_BOOT_COMMAND_TIMEOUT);
-    
 }
 
 bool BaseGSMHandler::AddCommand(const char *command, unsigned long timeout)
@@ -114,8 +114,10 @@ void BaseGSMHandler::OnModemResponse(char *data, MODEM_RESPONSE_TYPE type)
     switch (type)
     {
     case MODEM_RESPONSE_EVENT:
-        OnGSMEvent(data);
-        break;
+        if (modemBootState == MODEM_BOOT_COMPLETED) {
+            OnGSMEvent(data);
+            break;
+        }
     case MODEM_RESPONSE_DATA:
     case MODEM_RESPONSE_OK:
     case MODEM_RESPONSE_ERROR:
@@ -171,6 +173,7 @@ void BaseGSMHandler::OnGSMResponseInternal(char * response, MODEM_RESPONSE_TYPE 
             }
         } else {
             // TODO: Resend AT?
+            FlushIncoming();
             Send((char *)GSM_PREFIX_CMD, MODEM_BOOT_COMMAND_TIMEOUT);
         }
         break;
@@ -202,6 +205,7 @@ void BaseGSMHandler::OnGSMResponseInternal(char * response, MODEM_RESPONSE_TYPE 
             modemBootState = MODEM_BOOT_COMPLETED;
             OnModemBooted();
         } else {
+            FlushIncoming();
             Send((char *)GSM_PREFIX_CMD, MODEM_BOOT_COMMAND_TIMEOUT);
         }
         break;

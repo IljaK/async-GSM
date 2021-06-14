@@ -337,7 +337,7 @@ size_t GSMSocketHandler::Send(GSMSocket *socket)
 
     const int sz = GSM_SOCKET_BUFFER_SIZE * 2 + 20;
     char cmd[sz];
-    snprintf(cmd, sz, "%s%s=%u,%zu,\"", GSM_PREFIX_CMD, GSM_SOCKET_WRITE_CMD, socket->GetId(), packet->length);
+    snprintf(cmd, sz, "%s%s=%u,%lu,\"", GSM_PREFIX_CMD, GSM_SOCKET_WRITE_CMD, socket->GetId(), (unsigned long)packet->length);
 
     char *pBuff = cmd + strlen(cmd);
     // Max write amount

@@ -8,7 +8,7 @@
 
 constexpr char GSM_MODEM_SPEED_CMD[] = "+IPR";
 
-constexpr unsigned long GSM_MODEM_CONNECTION_TIME = 10000000ul;
+constexpr unsigned long GSM_MODEM_CONNECTION_TIME = 30000000ul;
 constexpr unsigned long MODEM_COMMAND_TIMEOUT = 500000ul;
 constexpr unsigned long MODEM_BOOT_COMMAND_TIMEOUT = 100000ul;
 

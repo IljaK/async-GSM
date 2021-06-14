@@ -26,6 +26,7 @@ protected:
     Print *debugPrint = NULL;
 	void OnResponseReceived(bool IsTimeOut, bool isOverFlow = false) override;
 	virtual void OnModemResponse(char *data, MODEM_RESPONSE_TYPE type) = 0;
+    void FlushIncoming();
 public:
     GSMSerialModem();
     virtual ~GSMSerialModem();
