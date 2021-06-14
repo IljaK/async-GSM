@@ -45,8 +45,8 @@ bool GSMNetworkHandler::OnGSMEvent(char * data)
 		    gsmStats.regState = (GSM_REG_STATE)atoi(cregArgs[1]);
         }
 
-        Serial.print("regState: ");
-        Serial.println((int)gsmStats.regState);
+        //Serial.print("regState: ");
+        //Serial.println((int)gsmStats.regState);
         
         switch (gsmStats.regState) {
             case GSM_REG_STATE_CONNECTING_HOME:

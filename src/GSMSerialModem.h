@@ -23,6 +23,7 @@ class GSMSerialModem : public SerialCharResponseHandler
 private:
     bool isWaitingConfirm = false;
 protected:
+    Print *debugPrint = NULL;
 	void OnResponseReceived(bool IsTimeOut, bool isOverFlow = false) override;
 	virtual void OnModemResponse(char *data, MODEM_RESPONSE_TYPE type) = 0;
 public:
@@ -31,6 +32,7 @@ public:
 
 	//void FlushData() override;
 	bool IsBusy() override;
+    void SetDebugPrint(Print *debugPrint);
 
     bool Sendf(const char * cmd, unsigned long timeout, bool isCheck = false, bool isSet = false, char *data = NULL, bool dataQuotations = false, bool semicolon = false);
     bool Send(char *data, unsigned long timeout);

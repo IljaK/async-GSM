@@ -1,6 +1,5 @@
 #include "GSMSerialModem.h"
 
-
 GSMSerialModem::GSMSerialModem():SerialCharResponseHandler(MODEM_SERIAL_BUFFER_SIZE, "\r\n", &SerialGSM)
 {
 
@@ -26,23 +25,25 @@ void GSMSerialModem::OnResponseReceived(bool IsTimeOut, bool isOverFlow)
         }
     }
 
-    Serial.print("OnResponseReceived: [");
-    Serial.print(buffer);
-    Serial.print("]");
-    if (IsTimeOut) {
-        Serial.print(" true");
-    } else {
-        Serial.print(" false");
-    }
-    if (isOverFlow) {
-        Serial.print(" true");
-    } else {
-        Serial.print(" false");
-    }
-    if (isWaitingConfirm) {
-        Serial.println(" true ");
-    } else {
-        Serial.println(" false ");
+    if (debugPrint != NULL) {
+        debugPrint->print("Response: [");
+        debugPrint->print(buffer);
+        debugPrint->print("]");
+        if (IsTimeOut) {
+            debugPrint->print(" true");
+        } else {
+            debugPrint->print(" false");
+        }
+        if (isOverFlow) {
+            debugPrint->print(" true");
+        } else {
+            debugPrint->print(" false");
+        }
+        if (isWaitingConfirm) {
+            debugPrint->println(" true ");
+        } else {
+            debugPrint->println(" false ");
+        }
     }
 
 
