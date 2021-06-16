@@ -95,3 +95,11 @@ void GSMCallHandler::HangCall()
 char * GSMCallHandler::GetCallingNumber() {
     return callingNumber;
 }
+
+void GSMCallHandler::OnModemReboot()
+{
+    if (callingNumber != NULL) {
+        free(callingNumber);
+    }
+    callState = VOICE_CALL_STATE_DISCONNECTED;
+}

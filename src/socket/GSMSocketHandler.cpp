@@ -382,3 +382,11 @@ bool GSMSocketHandler::DestroySocket(uint8_t socketId)
     socketArray->FreeItem(sock);
     return true;
 }
+
+void GSMSocketHandler::OnModemReboot()
+{
+    pendingSockTransmission = 255;
+    while(socketArray->Size() > 0) {
+        DestroySocket(socketArray->Peek(0)->GetId());
+    }
+}

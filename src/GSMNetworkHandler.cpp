@@ -416,3 +416,23 @@ bool GSMNetworkHandler::SMSSendBegin(char *phone)
     snprintf(cmd, 64, "%s%s=\"%s\"", GSM_PREFIX_CMD, GSM_CMD_SMS_SEND, phone);
     return gsmHandler->AddCommand(cmd);
 }
+
+void GSMNetworkHandler::OnModemReboot()
+{
+    initState = GSM_STATE_CHECK_SIM;
+    gsmStats.regState = GSM_REG_STATE_UNKNOWN;
+    gsmStats.networkType = GSM_NETWORK_UNKNOWN;
+    gsmStats.thresoldState = GSM_THRESOLD_T;
+    gsmStats.signalStrength = 0;
+    gsmStats.signalQuality = 0;
+    Timer::Stop(delayedRequest);
+
+    if (incomingSms != NULL) {
+        if (incomingSms->sender != NULL) {
+            free(incomingSms->sender);
+        }
+        delete incomingSms;
+        incomingSms = NULL;
+    }
+    GSMCallHandler::OnModemReboot();
+}

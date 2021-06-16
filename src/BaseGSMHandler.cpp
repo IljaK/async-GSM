@@ -14,6 +14,7 @@ void BaseGSMHandler::StartModem(bool restart, unsigned long baudRate)
     if (debugPrint != NULL) {
         debugPrint->println(F("StartModem"));
     }
+    OnModemReboot();
     Flush();
     this->baudRate = baudRate;
     modemBootState = MODEM_BOOT_RESET;

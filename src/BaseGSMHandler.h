@@ -20,6 +20,7 @@ class IModemBootHandler
 public:
     virtual void OnModemBooted() = 0;
     virtual void OnModemFailedBoot() = 0;
+    virtual void OnModemReboot() = 0;
 };
 
 class IBaseGSMHandler
@@ -43,7 +44,6 @@ public:
         }
         return false;
     }
-    // TODO: check modem state
 };
 
 enum MODEM_BOOT_STATE {

@@ -15,6 +15,8 @@ public:
     GSMHandler();
     virtual ~GSMHandler();
 
+    void OnModemReboot() override;
+
     bool OnGSMResponse(char *request, char * response, MODEM_RESPONSE_TYPE type) override;
     bool OnGSMEvent(char * data) override;
 

@@ -90,4 +90,5 @@ public:
 
     bool IsActive();
     IPAddr GetDeviceAddr();
+    void OnModemReboot();
 };

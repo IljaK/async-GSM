@@ -166,4 +166,6 @@ public:
     unsigned long GetLocalTime();
 
     GSMNetworkStats *GetGSMStats();
+
+    void OnModemReboot() override;
 };

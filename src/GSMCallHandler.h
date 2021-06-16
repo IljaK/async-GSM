@@ -49,4 +49,5 @@ public:
     void SetCallStateHandler(IGSMCallHandler *callStateHandler);
     void HangCall();
     char * GetCallingNumber();
+    virtual void OnModemReboot();
 };

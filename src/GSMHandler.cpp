@@ -16,6 +16,13 @@ GSMHandler::~GSMHandler()
     
 }
 
+void GSMHandler::OnModemReboot()
+{
+    gprsHandler.OnModemReboot();
+    socketHandler.OnModemReboot();
+    gsmHandler.OnModemReboot();
+}
+
 bool GSMHandler::OnGSMResponse(char *request, char * response, MODEM_RESPONSE_TYPE type)
 {
     if (gsmHandler.OnGSMResponse(request, response, type)) {

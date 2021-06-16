@@ -72,4 +72,5 @@ public:
     bool CloseSocket(uint8_t socketId);
 
     bool CreateServer();
+    void OnModemReboot();
 };

@@ -47,6 +47,7 @@ void GPRSHandler::FlushAuthData()
         free(this->password);
         this->password = NULL;
     }
+    Timer::Stop(checkTimer);
 }
 
 bool GPRSHandler::Connect(char* apn, char* login, char* password)
@@ -255,4 +256,9 @@ bool GPRSHandler::IsActive()
 IPAddr GPRSHandler::GetDeviceAddr()
 {
     return IPAddr(deviceAddr);
+}
+void GPRSHandler::OnModemReboot()
+{
+    FlushAuthData();
+    apnState = GSM_APN_DEACTIVATED;
 }
