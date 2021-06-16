@@ -18,8 +18,8 @@ void BaseGSMHandler::StartModem(bool restart, unsigned long baudRate)
     this->baudRate = baudRate;
     modemBootState = MODEM_BOOT_RESET;
 
-    SerialGSM.end();
-    SerialGSM.begin(baudRate > MODEM_MAX_AUTO_BAUD_RATE ? MODEM_MAX_AUTO_BAUD_RATE : baudRate);
+    ((Uart *)serial)->end();
+    ((Uart *)serial)->begin(baudRate > MODEM_MAX_AUTO_BAUD_RATE ? MODEM_MAX_AUTO_BAUD_RATE : baudRate);
 
 #ifdef GSM_RESETN
     pinMode(GSM_RESETN, OUTPUT);
@@ -184,9 +184,9 @@ void BaseGSMHandler::OnGSMResponseInternal(char * response, MODEM_RESPONSE_TYPE 
                 debugPrint->println(F("MODEM_BOOT_SPEED_CHAGE OK"));
             }
             modemBootState = MODEM_BOOT_RECONNECTING;
-            SerialGSM.end();
+            ((Uart *)serial)->end();
             ResetBuffer();
-            SerialGSM.begin(baudRate);
+            ((Uart *)serial)->begin(baudRate);
             Timer::Stop(connectionTimer);
             connectionTimer = Timer::Start(this, GSM_MODEM_CONNECTION_TIME);
             Send((char *)GSM_PREFIX_CMD, MODEM_BOOT_COMMAND_TIMEOUT);
@@ -242,4 +242,9 @@ void BaseGSMHandler::Flush()
     }
     commandStack.Clear();
     ResetBuffer();
+}
+
+Stream *BaseGSMHandler::GetModemStream()
+{
+    return serial;
 }

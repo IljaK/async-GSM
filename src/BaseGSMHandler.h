@@ -85,6 +85,8 @@ public:
     // Insert command to begin of request stack
     bool ForceCommand(const char *command, unsigned long timeout = MODEM_COMMAND_TIMEOUT);
 
+    Stream *GetModemStream();
+
     void Loop() override;
     void Flush();
 };

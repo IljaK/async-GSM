@@ -1,7 +1,7 @@
 #pragma once
 #include "common/Timer.h"
-#include "array/StackArray.h"
 #include "../BaseGSMHandler.h"
+#include "SocketArray.h"
 #include "GSMSocket.h"
 
 constexpr unsigned long SOCKET_CONNECTION_TIMEOUT = 60000000ul;
@@ -26,6 +26,7 @@ constexpr char GSM_SOCKET_WRITE_CMD[] = "+USOWR"; // "AT+USOCO=%d,\"%s\",%d", _s
 #define GSM_SOCKET_BUFFER_SIZE 256
 
 class GSMSocket;
+class SocketArray;
 
 class IGSMSocketHandler {
 public:
@@ -43,11 +44,9 @@ public:
 class GSMSocketHandler: public IBaseGSMHandler, public ITimerCallback
 {
 private:
-    StackArray<GSMSocket *> socketArray;
+    SocketArray *socketArray = NULL;
     BaseGSMHandler *gsmHandler = NULL;
     IGSMSocketHandler *socketHandler = NULL;
-    GSMSocket *GetSocket(uint8_t socketId);
-    GSMSocket *UnshiftSocket(uint8_t socketId);
     uint8_t pendingSockTransmission = 255; // 255 = NONE
     bool DestroySocket(uint8_t socketId);
 protected:

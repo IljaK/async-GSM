@@ -41,7 +41,6 @@ protected:
     void OnKeepAliveConfirm(bool isSuccess);
     void OnSSLConfirm(bool isSuccess);
     void OnConnectionConfirm(int error);
-    void OnSendData(uint16_t size);
 
     friend class GSMSocketHandler;
 public:

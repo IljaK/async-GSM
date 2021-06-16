@@ -18,7 +18,6 @@ GSMSocket::~GSMSocket()
 
 void GSMSocket::OnKeepAliveConfirm(bool isSuccess)
 {
-    Serial.println("GSMSocket::OnKeepAliveConfirm");
     // TODO: if !isSuccess ?
     if (sslType > GSM_SOCKET_SSL_DISABLE) {
         socketHandler->SetSSL(this);
@@ -29,14 +28,12 @@ void GSMSocket::OnKeepAliveConfirm(bool isSuccess)
 
 void GSMSocket::OnSSLConfirm(bool isSuccess)
 {
-    Serial.println("GSMSocket::OnSSLConfirm");
     // TODO: if !isSuccess ?
     socketHandler->Connect(this);
 }
 
 void GSMSocket::OnConnectionConfirm(int error)
 {
-    Serial.println("GSMSocket::OnConnectionConfirm");
     if (error == 0) {
         state = GSM_SOCKET_STATE_READY;
     } else {
@@ -44,14 +41,8 @@ void GSMSocket::OnConnectionConfirm(int error)
     }
 }
 
-void GSMSocket::OnSendData(uint16_t size)
-{
-    // TODO: Send remain data
-}
-
 bool GSMSocket::Connect(char *ip, uint16_t port, bool keepAlive, GSM_SOCKET_SSL sslType)
 {
-    Serial.println("GSMSocket::Connect");
     state = GSM_SOCKET_STATE_CONNECTING;
     this->keepAlive = keepAlive;
     this->sslType = sslType;

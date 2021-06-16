@@ -24,11 +24,15 @@ constexpr char GSM_TEMP_CMD[] = "+UTEMP";
 // Reports the network or the device PS (Packet Switched) radio capabilities.
 constexpr char GSM_NETWORK_TYPE_STATUS[] = "+UREG";
 constexpr char GSM_CMD_NETWORK_REG[] = "+CREG"; // "AT+CREG=1"
-constexpr char GSM_CMD_MSG_FROMAT[] = "+CMGF"; // "AT+CMGF=1"
+constexpr char GSM_CMD_SMS_FROMAT[] = "+CMGF"; // "AT+CMGF=1" // Incomming message format: 0 - PDU, 1 - text
+constexpr char GSM_CMD_SMS_INDICATION[] = "+CNMI"; // AT+CNMI=2,2,0,0,0 // Message event format
 constexpr char GSM_CMD_HEX_MODE[] = "+UDCONF"; // "AT+UDCONF=1,1"
 constexpr char GSM_CMD_TIME_ZONE[] = "+CTZU"; // "AT+CTZU=1"
 constexpr char GSM_CMD_DTFM[] = "+UDTMFD"; // "AT+UDTMFD=1,2"
 constexpr char GSM_CMD_CALL_STATUS[] = "+UCALLSTAT"; // "AT+UCALLSTAT=1"
+
+constexpr char GSM_SMS_EVENT[] = "+CMT"; // Data event
+constexpr char GSM_CMD_SMS_SEND[] = "+CMGS"; // "Send sms"
 
 constexpr char GSM_CMD_NETWORK_QUALITY[] = "+CSQ";
 constexpr char GSM_CMD_TIME[] = "+CCLK";
@@ -81,6 +85,7 @@ enum GSM_INIT_STATE {
     GSM_STATE_AUTO_NETWOR_STATE,
     GSM_STATE_TEMP_THRESOLD,
     GSM_STATE_PREFERRED_MESSAGE_FORMAT,
+    GSM_STATE_MESSAGE_INDICATION,
     GSM_STATE_HEX_MODE,
     GSM_STATE_AUTOMATIC_TIME_ZONE,
     GSM_STATE_DTMF_DETECTION,
@@ -88,6 +93,13 @@ enum GSM_INIT_STATE {
     GSM_STATE_NETWORK_TYPE,
     GSM_STATE_CALL_STATUS,
     GSM_STATE_DONE
+};
+
+struct IncomingSMSData {
+    char *sender = NULL;
+    uint32_t utcTime = 0;
+    uint32_t timeZone = 0;
+    char *message = NULL;
 };
 
 struct GSMNetworkStats {
@@ -107,6 +119,8 @@ public:
     virtual void OnGSMQuality(uint8_t strength, uint8_t quality) = 0;
     virtual void OnGSMNetworkType(GSM_NETWORK_TYPE type) = 0;
     virtual void OnGSMThresold(GSM_THRESOLD_STATE type) = 0;
+    virtual bool OnSMSSendStream(Stream *smsStream) = 0;
+    virtual void OnSMSReceive(IncomingSMSData *smsData) = 0;
 };
 
 class GSMNetworkHandler: public GSMCallHandler
@@ -124,7 +138,7 @@ private:
     TimerID delayedRequest = 0;
 
     IGSMNetworkHandler *listener = NULL;
-
+    IncomingSMSData *incomingSms = NULL;
 
     void TriggerCommand();
     void IncreaseState();
@@ -133,6 +147,8 @@ private:
 public:
     GSMNetworkHandler(BaseGSMHandler *gsmHandler);
     virtual ~GSMNetworkHandler();
+
+    bool SMSSendBegin(char *phone);
 
     bool OnGSMResponse(char *request, char * response, MODEM_RESPONSE_TYPE type) override;
     bool OnGSMEvent(char * data) override;

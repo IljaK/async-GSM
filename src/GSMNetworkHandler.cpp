@@ -30,8 +30,46 @@ void GSMNetworkHandler::Connect(const char *simPin)
 
 bool GSMNetworkHandler::OnGSMEvent(char * data)
 {
+    if (incomingSms != NULL) {
+        incomingSms->message = data;
+        if (listener != NULL) {
+            listener->OnSMSReceive(incomingSms);
+        }
+        if (incomingSms->sender != NULL) {
+            free(incomingSms->sender);
+            incomingSms->sender = NULL;
+        }
+        delete incomingSms;
+        incomingSms = NULL;
+        // We got sms data?
+        return true;
+    }
     // Handle +CREG?
-    
+
+    if (strncmp(data, GSM_SMS_EVENT, strlen(GSM_SMS_EVENT)) == 0 && data[strlen(GSM_SMS_EVENT)] == ':') {
+        // +CMT: "+393475234652",,"14/11/21,11:58:23+01"
+        char *cmt = data + strlen(GSM_SMS_EVENT) + 2;
+		char *cmtArgs[3];
+        SplitString(cmt, ',', cmtArgs, 2, false);
+        ShiftQuotations(cmtArgs, 3);
+
+        incomingSms = new IncomingSMSData();
+        incomingSms->sender = (char *)malloc(strlen(cmtArgs[0]) + 1);
+        strcpy(incomingSms->sender, cmtArgs[0]);
+        tm smsTime;
+        if (strptime(cmtArgs[2], "%y/%m/%d,%H:%M:%S", &smsTime) != NULL) {
+            incomingSms->utcTime = mktime(&smsTime);
+            char *zPointer = strchr(cmtArgs[2], '+');
+            if (zPointer == NULL) {
+                zPointer = strchr(cmtArgs[2], '-');
+            }
+            if (zPointer != NULL) {
+                incomingSms->timeZone = atoi(zPointer) * (15 * 60);
+            }
+            incomingSms->utcTime -= incomingSms->timeZone;
+        }
+        return true;
+    }
     if (strncmp(data, GSM_CMD_NETWORK_REG, strlen(GSM_CMD_NETWORK_REG)) == 0) {
 
         char *creg = data + strlen(GSM_CMD_NETWORK_REG) + 2;
@@ -146,7 +184,8 @@ bool GSMNetworkHandler::OnGSMResponse(char *request, char *response, MODEM_RESPO
             if (strncmp(request, GSM_CMD_NETWORK_REG, strlen(GSM_CMD_NETWORK_REG)) == 0 ||
                 strncmp(request, GSM_NETWORK_TYPE_STATUS, strlen(GSM_NETWORK_TYPE_STATUS)) == 0 ||
                 strncmp(request, GSM_TEMP_THRESOLD_CMD, strlen(GSM_TEMP_THRESOLD_CMD)) == 0 ||
-                strncmp(request, GSM_CMD_MSG_FROMAT, strlen(GSM_CMD_MSG_FROMAT)) == 0 ||
+                strncmp(request, GSM_CMD_SMS_FROMAT, strlen(GSM_CMD_SMS_FROMAT)) == 0 ||
+                strncmp(request, GSM_CMD_SMS_INDICATION, strlen(GSM_CMD_SMS_INDICATION)) == 0 ||
                 strncmp(request, GSM_CMD_HEX_MODE, strlen(GSM_CMD_HEX_MODE)) == 0 ||
                 strncmp(request, GSM_CMD_TIME_ZONE, strlen(GSM_CMD_TIME_ZONE)) == 0 ||
                 strncmp(request, GSM_CMD_DTFM, strlen(GSM_CMD_DTFM)) == 0 ||
@@ -237,6 +276,21 @@ bool GSMNetworkHandler::OnGSMResponse(char *request, char *response, MODEM_RESPO
         }
         return true;
     }
+    if (strncmp(GSM_CMD_SMS_SEND, request + 2, strlen(GSM_CMD_SMS_SEND)) == 0) {
+        if (type == MODEM_RESPONSE_DATA) {
+            if (strncmp("> ", response, 2) == 0) {
+                Stream *modemStream = gsmHandler->GetModemStream();
+                if (listener != NULL && listener->OnSMSSendStream(modemStream)) {
+                    //Send message end
+                    modemStream->write(CRTLZ_ASCII_SYMBOL);
+                } else {
+                    // Send message cancel callback
+                    modemStream->write(ESC_ASCII_SYMBOL);
+                }
+            }
+        }        
+        return true;
+    }
     return GSMCallHandler::OnGSMResponse(request, response, type);
 }
 
@@ -287,7 +341,10 @@ void GSMNetworkHandler::TriggerCommand()
         snprintf(cmd, cmdSize, "%s%s=2", GSM_PREFIX_CMD, GSM_TEMP_THRESOLD_CMD);
         break;
     case GSM_STATE_PREFERRED_MESSAGE_FORMAT:
-        snprintf(cmd, cmdSize, "%s%s=1", GSM_PREFIX_CMD, GSM_CMD_MSG_FROMAT);
+        snprintf(cmd, cmdSize, "%s%s=1", GSM_PREFIX_CMD, GSM_CMD_SMS_FROMAT);
+        break;
+    case GSM_STATE_MESSAGE_INDICATION:
+        snprintf(cmd, cmdSize, "%s%s=2,2,0,0,0", GSM_PREFIX_CMD, GSM_CMD_SMS_INDICATION);
         break;
     case GSM_STATE_HEX_MODE:
         snprintf(cmd, cmdSize, "%s%s=1,1", GSM_PREFIX_CMD, GSM_CMD_HEX_MODE);
@@ -351,4 +408,11 @@ unsigned long GSMNetworkHandler::GetLocalTime()
 
 GSMNetworkStats *GSMNetworkHandler::GetGSMStats() {
     return &gsmStats;
+}
+
+bool GSMNetworkHandler::SMSSendBegin(char *phone)
+{
+    char cmd[64];
+    snprintf(cmd, 64, "%s%s=\"%s\"", GSM_PREFIX_CMD, GSM_CMD_SMS_SEND, phone);
+    return gsmHandler->AddCommand(cmd);
 }
