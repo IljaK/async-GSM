@@ -53,62 +53,66 @@ bool GSMSocketHandler::OnGSMResponse(char *request, char * response, MODEM_RESPO
         }
         if (strncmp(request, GSM_SOCKET_OPEN_CMD, strlen(GSM_SOCKET_OPEN_CMD)) == 0) {
 
-            char socoReqData[128];
-            strcpy(socoReqData, request + strlen(GSM_SOCKET_CONFIG_CMD) + 1);
-            char *socoArgs[3];
-            SplitString(socoReqData, ',', socoArgs, 4, false);
+            // There mustn't be any data response
+            if (type > MODEM_RESPONSE_OK) {
+                char *socoArgs[3];
+                SplitString(request + strlen(GSM_SOCKET_OPEN_CMD) + 1, ',', socoArgs, 4, false);
 
-            // AT+USOCO=0,"195.34.89.241",7
-            GSMSocket *sock = socketArray->PeekSocket(atoi(socoArgs[0]));
+                // AT+USOCO=0,"195.34.89.241",7
+                GSMSocket *sock = socketArray->PeekSocket(atoi(socoArgs[0]));
 
-            if (type == MODEM_RESPONSE_OK) {
-                sock->OnConnectionConfirm(0);
-                if (socketHandler != NULL) {
-                    socketHandler->OnSocketConnected(sock, 0);
-                }
-            } else if (type > MODEM_RESPONSE_OK) {
-                sock->OnConnectionConfirm(1);
-                if (socketHandler != NULL) {
-                    socketHandler->OnSocketConnected(sock, 1);
+                if (type == MODEM_RESPONSE_OK) {
+                    sock->OnConnectionConfirm(0);
+                    if (socketHandler != NULL) {
+                        socketHandler->OnSocketConnected(sock, 0);
+                    }
+                } else {
+                    // TODO: create auto close timer if +UUSOCL hasnt been triggered
+                    sock->OnConnectionConfirm(1);
+                    if (socketHandler != NULL) {
+                        socketHandler->OnSocketConnected(sock, 1);
+                    }
                 }
             }
             return true;
         }
         if (strncmp(request, GSM_SOCKET_CONFIG_CMD, strlen(GSM_SOCKET_CONFIG_CMD)) == 0) {
-            char sosReqData[128];
-            strcpy(sosReqData, request + strlen(GSM_SOCKET_CONFIG_CMD) + 1);
-            char *sosoArgs[4];
-            SplitString(sosReqData, ',', sosoArgs, 4, false);
-            GSMSocket *sock = socketArray->PeekSocket(atoi(sosoArgs[0]));
-            if (type == MODEM_RESPONSE_OK) {
-                // AT+USOSO=0,6,2,30000
-                // +USOSO: (0-6),(0,6,65535)
-                if (sock != NULL) {
-                    sock->OnKeepAliveConfirm(true);
-                }
-            } else if (type != MODEM_RESPONSE_DATA) {
-                if (sock != NULL) {
-                    sock->OnKeepAliveConfirm(false);
+            if (type != MODEM_RESPONSE_DATA) {
+                char sosReqData[128];
+                strcpy(sosReqData, request + strlen(GSM_SOCKET_CONFIG_CMD) + 1);
+                char *sosoArgs[4];
+                SplitString(sosReqData, ',', sosoArgs, 4, false);
+                GSMSocket *sock = socketArray->PeekSocket(atoi(sosoArgs[0]));
+                if (type == MODEM_RESPONSE_OK) {
+                    // AT+USOSO=0,6,2,30000
+                    // +USOSO: (0-6),(0,6,65535)
+                    if (sock != NULL) {
+                        sock->OnKeepAliveConfirm(true);
+                    }
+                } else {
+                    if (sock != NULL) {
+                        sock->OnKeepAliveConfirm(false);
+                    }
                 }
             }
             return true;
         }
         if (strncmp(request, GSM_SOCKET_TYPE_CMD, strlen(GSM_SOCKET_TYPE_CMD)) == 0) {
-            char sosecReqData[128];
-            strcpy(sosecReqData, request + strlen(GSM_SOCKET_CONFIG_CMD) + 1);
-            char *sosoArgs[3];
-            SplitString(sosecReqData, ',', sosoArgs, 2, false);
-            uint8_t socketId = atoi(sosoArgs[0]);
-            GSMSocket *sock = socketArray->PeekSocket(socketId);
-            if (type == MODEM_RESPONSE_OK) {
-                // AT+USOSO=0,6,2,30000
-                // +USOSO: (0-6),(0,6,65535)
-                if (sock != NULL) {
-                    sock->OnSSLConfirm(true);
-                }
-            } else if (type != MODEM_RESPONSE_DATA) {
-                if (sock != NULL) {
-                    sock->OnSSLConfirm(false);
+            if (type != MODEM_RESPONSE_DATA) {
+                char sosecReqData[128];
+                strcpy(sosecReqData, request + strlen(GSM_SOCKET_TYPE_CMD) + 1);
+                char *sosoArgs[3];
+                SplitString(sosecReqData, ',', sosoArgs, 2, false);
+                uint8_t socketId = atoi(sosoArgs[0]);
+                GSMSocket *sock = socketArray->PeekSocket(socketId);
+                if (type == MODEM_RESPONSE_OK) {
+                    if (sock != NULL) {
+                        sock->OnSSLConfirm(true);
+                    }
+                } else {
+                    if (sock != NULL) {
+                        sock->OnSSLConfirm(false);
+                    }
                 }
             }
             return true;
@@ -197,9 +201,18 @@ bool GSMSocketHandler::OnGSMEvent(char * data)
         return true;
     }
     if (strncmp(data, GSM_SOCKET_CLOSE_EVENT, strlen(GSM_SOCKET_CLOSE_EVENT)) == 0) {
-        uint8_t socketId = atoi(data + strlen(GSM_SOCKET_CLOSE_EVENT) + 2);
+        size_t pLen = strlen(GSM_SOCKET_CLOSE_EVENT) + 2;
+        if (pLen >= strlen(data)) {
+            return true;
+        }
+        char *pSockID = data + pLen;
+
+        if (pSockID[0] == 0) {
+            return true;
+        }
+
+        uint8_t socketId = atoi(pSockID);
         DestroySocket(socketId);
-        // TODO: Error?
         return true;
     }
     if (strncmp(data, GSM_SOCKET_READ_EVENT, strlen(GSM_SOCKET_READ_EVENT)) == 0) {

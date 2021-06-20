@@ -49,10 +49,35 @@ void GSMSerialModem::OnResponseReceived(bool IsTimeOut, bool isOverFlow)
         }
         if (type >= MODEM_RESPONSE_OK) {
             isWaitingConfirm = false;
+        } else {
+            StartTimeoutTimer(timeout);
         }
         OnModemResponse(buffer, type);
     } else {
         OnModemResponse(buffer, MODEM_RESPONSE_EVENT);
+    }
+}
+
+void GSMSerialModem::Loop()
+{
+    size_t prevBuffAmount = bufferLength;
+    SerialCharResponseHandler::Loop();
+    if (isWaitingConfirm) {
+        if (eventBufferTimeout != 0) {
+            Timer::Stop(eventBufferTimeout);
+        }
+    } else if (prevBuffAmount != bufferLength) {
+        Timer::Stop(eventBufferTimeout);
+        if (bufferLength > 0) {
+            if (debugPrint != NULL) {
+                debugPrint->println("Start GSM_EVENT_BUFFER_TIMEOUT");
+            }
+            eventBufferTimeout = Timer::Start(this, GSM_EVENT_BUFFER_TIMEOUT);
+        }
+    } else if (eventBufferTimeout != 0) {
+        if (bufferLength == 0) {
+            Timer::Stop(eventBufferTimeout);
+        }
     }
 }
 
@@ -69,6 +94,7 @@ bool GSMSerialModem::Send(char *data, unsigned long timeout)
     if (IsBusy()) return false;
     if (data == NULL || data[0] == 0) return false;
     ResetBuffer();
+    this->timeout = timeout;
     isWaitingConfirm = true;
 	StartTimeoutTimer(timeout);
     serial->println(data);
@@ -81,6 +107,7 @@ bool GSMSerialModem::Sendf(const char * cmd, unsigned long timeout, bool isCheck
     if (data == NULL || data[0] == 0) return false;
 
     ResetBuffer();
+    this->timeout = timeout;
     isWaitingConfirm = true;
 	if (serial) {
 		serial->write(GSM_PREFIX_CMD);
@@ -126,4 +153,27 @@ void GSMSerialModem::FlushIncoming()
         serial->read();
     }
     ResetBuffer();
+}
+
+void GSMSerialModem::OnTimerComplete(TimerID timerId, uint8_t data)
+{
+    if (timerId == eventBufferTimeout) {
+        eventBufferTimeout = 0;
+        if (debugPrint != NULL) {
+            debugPrint->println("OnTimerComplete GSM_EVENT_BUFFER_TIMEOUT");
+        }
+        OnModemResponse(buffer, MODEM_RESPONSE_EVENT);
+        ResetBuffer();
+    } else {
+        SerialCharResponseHandler::OnTimerComplete(timerId, data);
+    }
+}
+
+void GSMSerialModem::OnTimerStop(TimerID timerId, uint8_t data)
+{
+    if (timerId == eventBufferTimeout) {
+        eventBufferTimeout = 0;
+    } else {
+        SerialCharResponseHandler::OnTimerStop(timerId, data);
+    }
 }

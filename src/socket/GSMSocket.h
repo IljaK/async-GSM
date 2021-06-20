@@ -6,11 +6,14 @@
 #include "array/ByteStackArray.h"
 #include "SocketMessageBuffer.h"
 
+constexpr unsigned long SOCKET_CLOSE_CONNECT_FAIL_TIMEOUT = 1000000ul;
+
 enum GSM_SOCKET_STATE: uint8_t {
     GSM_SOCKET_STATE_DISCONNECTED,
     GSM_SOCKET_STATE_CONNECTING,
     GSM_SOCKET_STATE_READY,
-    GSM_SOCKET_STATE_CLOSING
+    GSM_SOCKET_STATE_CLOSING,
+    GSM_SOCKET_STATE_CLOSING_DELAY
 };
 
 enum GSM_SOCKET_SSL: uint8_t {
@@ -24,8 +27,10 @@ enum GSM_SOCKET_SSL: uint8_t {
 
 class GSMSocketHandler;
 
-class GSMSocket {
+class GSMSocket: public ITimerCallback {
 private:
+    TimerID closeTimer = 0;
+
     uint8_t socketId;
     GSM_SOCKET_STATE state = GSM_SOCKET_STATE_DISCONNECTED;
     bool keepAlive = false;
@@ -45,7 +50,10 @@ protected:
     friend class GSMSocketHandler;
 public:
     GSMSocket(GSMSocketHandler * socketHandler, uint8_t socketId);
-    ~GSMSocket();
+    virtual ~GSMSocket();
+
+	void OnTimerComplete(TimerID timerId, uint8_t data) override;
+	void OnTimerStop(TimerID timerId, uint8_t data) override;
 
     uint8_t GetId();
     IPAddr GetIp();
