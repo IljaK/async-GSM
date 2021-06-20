@@ -11,10 +11,10 @@ GSMSocket::~GSMSocket()
 {
     if (domain != NULL) {
         free(domain);
+        domain = NULL;
     }
     outgoingMessageStack.Clear();
 }
-
 
 void GSMSocket::OnKeepAliveConfirm(bool isSuccess)
 {
@@ -34,15 +34,21 @@ void GSMSocket::OnSSLConfirm(bool isSuccess)
 
 void GSMSocket::OnConnectionConfirm(int error)
 {
+    Serial.print("OnConnectionConfirm: ");
+    Serial.println(error);
     if (error == 0) {
         state = GSM_SOCKET_STATE_READY;
     } else {
-        // TODO: reconnect?
+        state = GSM_SOCKET_STATE_CLOSING_DELAY;
+        closeTimer = Timer::Start(this, SOCKET_CLOSE_CONNECT_FAIL_TIMEOUT);
     }
 }
 
 bool GSMSocket::Connect(char *ip, uint16_t port, bool keepAlive, GSM_SOCKET_SSL sslType)
 {
+    if (state != GSM_SOCKET_STATE_DISCONNECTED) {
+        return false;
+    }
     state = GSM_SOCKET_STATE_CONNECTING;
     this->keepAlive = keepAlive;
     this->sslType = sslType;
@@ -62,7 +68,7 @@ bool GSMSocket::Connect(char *ip, uint16_t port, bool keepAlive, GSM_SOCKET_SSL 
 
 bool GSMSocket::Close()
 {
-    if (state == GSM_SOCKET_STATE_CLOSING) {
+    if (state == GSM_SOCKET_STATE_CLOSING || state == GSM_SOCKET_STATE_CLOSING_DELAY) {
         return false;
     }
     state = GSM_SOCKET_STATE_CLOSING;
@@ -114,4 +120,19 @@ GSM_SOCKET_SSL GSMSocket::SSLType()
 
 bool GSMSocket::IsConnected() {
     return state == GSM_SOCKET_STATE_READY;
+}
+
+void GSMSocket::OnTimerComplete(TimerID timerId, uint8_t data)
+{
+    if (timerId == closeTimer) {
+        closeTimer = 0;
+        socketHandler->DestroySocket(socketId);
+    }
+}
+
+void GSMSocket::OnTimerStop(TimerID timerId, uint8_t data)
+{
+    if (timerId == closeTimer) {
+        closeTimer = 0;
+    }
 }

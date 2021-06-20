@@ -7,6 +7,7 @@ constexpr char GSM_PREFIX_CMD[] = "AT";
 constexpr char GSM_OK_RESPONSE[] = "OK";
 constexpr char GSM_ERROR_RESPONSE[] = "ERROR";
 constexpr char GSM_ABORTED_RESPONSE[] = "ABORTED";
+constexpr unsigned long GSM_EVENT_BUFFER_TIMEOUT = 100000ul;
 
 enum MODEM_RESPONSE_TYPE {
     MODEM_RESPONSE_EVENT,
@@ -23,6 +24,8 @@ class GSMSerialModem : public SerialCharResponseHandler
 private:
     bool isWaitingConfirm = false;
 protected:
+    TimerID eventBufferTimeout = 0;
+    unsigned long timeout = 0;
     Print *debugPrint = NULL;
 	void OnResponseReceived(bool IsTimeOut, bool isOverFlow = false) override;
 	virtual void OnModemResponse(char *data, MODEM_RESPONSE_TYPE type) = 0;
@@ -30,6 +33,11 @@ protected:
 public:
     GSMSerialModem();
     virtual ~GSMSerialModem();
+
+    void Loop() override;
+
+	void OnTimerComplete(TimerID timerId, uint8_t data) override;
+	void OnTimerStop(TimerID timerId, uint8_t data) override;
 
 	//void FlushData() override;
 	bool IsBusy() override;
