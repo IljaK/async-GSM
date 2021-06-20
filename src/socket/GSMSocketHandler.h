@@ -73,4 +73,6 @@ public:
 
     bool CreateServer();
     void OnModemReboot();
+
+    GSMSocket * GetSocket(uint8_t socketId);
 };

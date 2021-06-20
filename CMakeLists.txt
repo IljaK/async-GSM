@@ -12,6 +12,7 @@ add_source("${temp_src_code_list}")
 
 # Add recursive .h and .cpp files to test build
 file(GLOB temp_src_test_list 
-"${CMAKE_CURRENT_LIST_DIR}/gtest/*.h" "${CMAKE_CURRENT_LIST_DIR}/gtest/*.cpp")
+"${CMAKE_CURRENT_LIST_DIR}/gtest/*.h" "${CMAKE_CURRENT_LIST_DIR}/gtest/*.cpp"
+"${CMAKE_CURRENT_LIST_DIR}/gtest/mock/*.h" "${CMAKE_CURRENT_LIST_DIR}/gtest/mock/*.cpp")
 
 add_source("${temp_src_test_list}")

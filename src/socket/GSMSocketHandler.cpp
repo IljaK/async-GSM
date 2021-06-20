@@ -54,7 +54,7 @@ bool GSMSocketHandler::OnGSMResponse(char *request, char * response, MODEM_RESPO
         if (strncmp(request, GSM_SOCKET_OPEN_CMD, strlen(GSM_SOCKET_OPEN_CMD)) == 0) {
 
             // There mustn't be any data response
-            if (type > MODEM_RESPONSE_OK) {
+            if (type >= MODEM_RESPONSE_OK) {
                 char *socoArgs[3];
                 SplitString(request + strlen(GSM_SOCKET_OPEN_CMD) + 1, ',', socoArgs, 4, false);
 
@@ -85,7 +85,6 @@ bool GSMSocketHandler::OnGSMResponse(char *request, char * response, MODEM_RESPO
                 GSMSocket *sock = socketArray->PeekSocket(atoi(sosoArgs[0]));
                 if (type == MODEM_RESPONSE_OK) {
                     // AT+USOSO=0,6,2,30000
-                    // +USOSO: (0-6),(0,6,65535)
                     if (sock != NULL) {
                         sock->OnKeepAliveConfirm(true);
                     }
@@ -402,4 +401,9 @@ void GSMSocketHandler::OnModemReboot()
     while(socketArray->Size() > 0) {
         DestroySocket(socketArray->Peek(0)->GetId());
     }
+}
+
+GSMSocket * GSMSocketHandler::GetSocket(uint8_t socketId)
+{
+    return socketArray->PeekSocket(socketId);
 }
