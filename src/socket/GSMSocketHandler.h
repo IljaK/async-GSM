@@ -8,8 +8,10 @@ constexpr unsigned long SOCKET_CONNECTION_TIMEOUT = 60000000ul;
 constexpr unsigned long SOCKET_CMD_TIMEOUT = 1000000ul;
 
 constexpr char GSM_SOCKET_CREATE_CMD[] = "+USOCR"; // AT+USOCR=6  6 - TCP; 16 - UDP;
-constexpr char GSM_SOCKET_OPEN_CMD[] = "+USOCO"; // "AT+USOCO=%d,\"%s\",%d", _socket, _host, _port);
-constexpr char GSM_SOCKET_OPEN_EVENT[] = "+UUSOCO"; //
+constexpr char GSM_SOCKET_CONNECT_CMD[] = "+USOCO"; // "AT+USOCO=%d,\"%s\",%d", _socket, _host, _port);
+constexpr char GSM_SOCKET_CONNECT_EVENT[] = "+UUSOCO"; //
+
+constexpr char GSM_SOCKET_RESOLVE_DNS_CMD[] = "+UDNSRN"; // Get IP of dns name
 
 constexpr char GSM_SOCKET_CONFIG_CMD[] = "+USOSO"; // +USOSO: (0-6),(0,6,65535)
 constexpr char GSM_SOCKET_TYPE_CMD[] = "+USOSEC"; // AT+USOSEC=0,1,1

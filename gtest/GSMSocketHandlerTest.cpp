@@ -8,15 +8,14 @@
 
 TEST(GSMSocketHandlerTest, SocketConnectionTest)
 {
-    timeOffset = 0;
+	timeOffset = 0;
+	TimerMock::Reset();
+
     GSMHandlerMock gsmHandler;
     GSMSocketHandler *socketHandler;
     socketHandler = gsmHandler.GetSocketHandler();
 
-    Stream *stream = gsmHandler.GetModemStream();
-
     gsmHandler.SetReady();
-
 
     ASSERT_FALSE(gsmHandler.IsBusy());
     socketHandler->CreateSocket();
@@ -47,19 +46,17 @@ TEST(GSMSocketHandlerTest, SocketConnectionTest)
 
 TEST(GSMSocketHandlerTest, SocketConnectionFailTest)
 {
-    timeOffset = 0;
+	timeOffset = 0;
+	TimerMock::Reset();
 
     GSMHandlerMock gsmHandler;
     GSMSocketHandler *socketHandler;
     socketHandler = gsmHandler.GetSocketHandler();
 
-    Stream *stream = gsmHandler.GetModemStream();
-
     gsmHandler.SetReady();
     socketHandler->CreateSocket();
     // AT+USOCR=6
     gsmHandler.Loop();
-
     EXPECT_TRUE(gsmHandler.IsBusy());
 
     gsmHandler.ReadResponse((char*)"\r\n+USOCR: 0\r\n");
@@ -67,7 +64,6 @@ TEST(GSMSocketHandlerTest, SocketConnectionFailTest)
 
     GSMSocket *socket = socketHandler->GetSocket(0);
     ASSERT_FALSE(socket == NULL);
-
     EXPECT_EQ(socket->GetId(), 0);
 
     socket->Connect((char*)"127.0.0.1", 2234, true);
@@ -78,11 +74,97 @@ TEST(GSMSocketHandlerTest, SocketConnectionFailTest)
     // AT+USOSO=0,6,2,30000
     gsmHandler.ReadResponse((char*)"\r\nERROR\r\n");
 
-    timeOffset += SOCKET_CLOSE_CONNECT_FAIL_TIMEOUT;
-    Timer::Loop();
+    gsmHandler.ReadResponse((char*)"\r\n+UUSOCL: 0\r\n");
+
+    //timeOffset += SOCKET_CLOSE_CONNECT_FAIL_TIMEOUT;
+    //Timer::Loop();
     
     socket = socketHandler->GetSocket(0);
 
     EXPECT_TRUE(socket == NULL);
+}
 
+TEST(GSMSocketHandlerTest, SocketConnectionCorruptionFailTest)
+{
+	timeOffset = 0;
+	TimerMock::Reset();
+
+    GSMHandlerMock gsmHandler;
+    GSMSocketHandler *socketHandler;
+    socketHandler = gsmHandler.GetSocketHandler();
+
+    gsmHandler.SetReady();
+    socketHandler->CreateSocket();
+    // AT+USOCR=6
+    gsmHandler.Loop();
+    EXPECT_TRUE(gsmHandler.IsBusy());
+
+    gsmHandler.ReadResponse((char*)"\r\n+USOCR: 0\r\n");
+    gsmHandler.ReadResponse((char*)"\r\nOK\r\n");
+
+    GSMSocket *socket = socketHandler->GetSocket(0);
+    ASSERT_FALSE(socket == NULL);
+    EXPECT_EQ(socket->GetId(), 0);
+
+    socket->Connect((char*)"127.0.0.1", 2234, true);
+
+    // AT+USOSEC=0,1,1
+    gsmHandler.ReadResponse((char*)"\r\nOK\r\n");
+
+    // Corrupted response
+    gsmHandler.ReadResponse((char*)"\r\nER\r\n");
+
+    // Corrupted response
+    gsmHandler.ReadResponse((char*)"\r\n+UUSOCL: \r\n");
+
+    timeOffset += SOCKET_CLOSE_CONNECT_FAIL_TIMEOUT;
+    Timer::Loop();
+    gsmHandler.Loop();
+    
+    socket = socketHandler->GetSocket(0);
+
+    EXPECT_TRUE(socket == NULL);
+}
+
+TEST(GSMSocketHandlerTest, SocketConnectionCorruptionFailTest2)
+{
+	timeOffset = 0;
+	TimerMock::Reset();
+
+    GSMHandlerMock gsmHandler;
+    GSMSocketHandler *socketHandler;
+    socketHandler = gsmHandler.GetSocketHandler();
+
+    gsmHandler.SetReady();
+    socketHandler->CreateSocket();
+    // AT+USOCR=6
+    gsmHandler.Loop();
+    EXPECT_TRUE(gsmHandler.IsBusy());
+
+    gsmHandler.ReadResponse((char*)"\r\n+USOCR: 0\r\n");
+    gsmHandler.ReadResponse((char*)"\r\nOK\r\n");
+
+    GSMSocket *socket = socketHandler->GetSocket(0);
+    ASSERT_FALSE(socket == NULL);
+    EXPECT_EQ(socket->GetId(), 0);
+
+    socket->Connect((char*)"127.0.0.1", 2234, true);
+
+    // AT+USOSEC=0,1,1
+    gsmHandler.ReadResponse((char*)"\r\nOK\r\n");
+
+    // Corrupted response
+    gsmHandler.ReadResponse((char*)"\r\n+UUSOCL: \r\n");
+
+    // Socket must be in list before timeout
+    socket = socketHandler->GetSocket(0);
+    EXPECT_FALSE(socket == NULL);
+
+    timeOffset += SOCKET_CLOSE_CONNECT_FAIL_TIMEOUT;
+    Timer::Loop();
+    gsmHandler.Loop();
+    
+    socket = socketHandler->GetSocket(0);
+
+    EXPECT_TRUE(socket == NULL);
 }

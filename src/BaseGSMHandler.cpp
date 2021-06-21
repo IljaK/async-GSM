@@ -119,16 +119,8 @@ void BaseGSMHandler::OnModemResponse(char *data, MODEM_RESPONSE_TYPE type)
             OnGSMEvent(data);
             break;
         }
-    case MODEM_RESPONSE_DATA:
-    case MODEM_RESPONSE_OK:
-    case MODEM_RESPONSE_ERROR:
-    case MODEM_RESPONSE_ABORTED:
-    case MODEM_RESPONSE_TIMEOUT:
-    case MODEM_RESPONSE_OVERFLOW:
-        OnGSMResponseInternal(data, type);
-        break;
-    
     default:
+        OnGSMResponseInternal(data, type);
         break;
     }
 }
