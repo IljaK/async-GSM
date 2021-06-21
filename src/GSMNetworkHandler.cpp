@@ -402,6 +402,7 @@ unsigned long GSMNetworkHandler::GetUTCTime()
 }
 unsigned long GSMNetworkHandler::GetLocalTime()
 {
+    if (currentTime == 0) return 0;
     unsigned long syncDelta = (millis() - syncTS) / 1000ul;
     return currentTime + syncDelta;
 }
