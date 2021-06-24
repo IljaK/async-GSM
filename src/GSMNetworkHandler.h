@@ -1,5 +1,6 @@
 #pragma once
 #include "GSMCallHandler.h"
+#include "command/PinModemCMD.h"
 
 constexpr unsigned long REQUEST_DELAY_DURATION = 100000ul;
 constexpr unsigned long QUALITY_CHECK_DURATION = 20000000ul;
@@ -22,14 +23,16 @@ constexpr char GSM_TEMP_THRESOLD_EVENT[] = "+UUSTS";
 constexpr char GSM_TEMP_CMD[] = "+UTEMP";
 
 // Reports the network or the device PS (Packet Switched) radio capabilities.
-constexpr char GSM_NETWORK_TYPE_STATUS[] = "+UREG";
-constexpr char GSM_CMD_NETWORK_REG[] = "+CREG"; // "AT+CREG=1"
+constexpr char GSM_NETWORK_TYPE_STATUS[] = "+UREG"; // AT+UCREG=1
+constexpr char GSM_CMD_NETWORK_REG[] = "+CREG"; // AT+CREG=1
+constexpr char GSM_CMD_CALL_STATUS[] = "+UCALLSTAT"; // AT+UCALLSTAT=1
+constexpr char GSM_CMD_HEX_MODE[] = "+UDCONF"; // AT+UDCONF=1,1
+constexpr char GSM_CMD_DTFM[] = "+UDTMFD"; // AT+UDTMFD=1,2
+
 constexpr char GSM_CMD_SMS_FROMAT[] = "+CMGF"; // "AT+CMGF=1" // Incomming message format: 0 - PDU, 1 - text
 constexpr char GSM_CMD_SMS_INDICATION[] = "+CNMI"; // AT+CNMI=2,2,0,0,0 // Message event format
-constexpr char GSM_CMD_HEX_MODE[] = "+UDCONF"; // "AT+UDCONF=1,1"
+
 constexpr char GSM_CMD_TIME_ZONE[] = "+CTZU"; // "AT+CTZU=1"
-constexpr char GSM_CMD_DTFM[] = "+UDTMFD"; // "AT+UDTMFD=1,2"
-constexpr char GSM_CMD_CALL_STATUS[] = "+UCALLSTAT"; // "AT+UCALLSTAT=1"
 
 constexpr char GSM_SMS_EVENT[] = "+CMT"; // Data event
 constexpr char GSM_CMD_SMS_SEND[] = "+CMGS"; // "Send sms"
@@ -78,21 +81,13 @@ enum GSM_NETWORK_TYPE {
 };
 
 enum GSM_INIT_STATE {
-    GSM_STATE_ERROR,
-
-    GSM_STATE_CHECK_SIM,
-    GSM_STATE_ENTER_SIM,
-    GSM_STATE_AUTO_NETWOR_STATE,
-    GSM_STATE_TEMP_THRESOLD,
-    GSM_STATE_PREFERRED_MESSAGE_FORMAT,
-    GSM_STATE_MESSAGE_INDICATION,
-    GSM_STATE_HEX_MODE,
-    GSM_STATE_AUTOMATIC_TIME_ZONE,
-    GSM_STATE_DTMF_DETECTION,
-    GSM_STATE_WAIT_REG_NETWORK,
-    GSM_STATE_NETWORK_TYPE,
-    GSM_STATE_CALL_STATUS,
-    GSM_STATE_DONE
+    GSM_STATE_NONE,
+    GSM_STATE_PRE_CONFIG,
+    GSM_STATE_PIN,
+    GSM_STATE_POST_CONFIG,
+    GSM_STATE_WAIT_CREG,
+    GSM_STATE_READY,
+    GSM_STATE_ERROR
 };
 
 struct IncomingSMSData {
@@ -113,7 +108,7 @@ struct GSMNetworkStats {
 class IGSMNetworkHandler {
 public:
     virtual void OnGSMSimUnlocked() = 0;
-    virtual void OnGSMFailed(bool isPinError) = 0;
+    virtual void OnGSMFailed(GSM_PIN_STATE_CMD pinState) = 0;
     virtual void OnGSMConnected() = 0;
     virtual void OnGSMStatus(GSM_REG_STATE state) = 0;
     virtual void OnGSMQuality(uint8_t strength, uint8_t quality) = 0;
@@ -131,7 +126,7 @@ private:
     int timeZone = 0;
 
     const char *simPin;
-    GSM_INIT_STATE initState = GSM_STATE_CHECK_SIM;
+    GSM_INIT_STATE initState = GSM_STATE_NONE;
     GSMNetworkStats gsmStats;
 
     bool isSimUnlocked = false;
@@ -148,10 +143,10 @@ public:
     GSMNetworkHandler(BaseGSMHandler *gsmHandler);
     virtual ~GSMNetworkHandler();
 
-    bool SMSSendBegin(char *phone);
+    bool SendSMS(char *phone);
 
-    bool OnGSMResponse(char *request, char * response, MODEM_RESPONSE_TYPE type) override;
-    bool OnGSMEvent(char * data) override;
+    bool OnGSMResponse(BaseModemCMD *request, char * response, size_t respLen, MODEM_RESPONSE_TYPE type) override;
+    bool OnGSMEvent(char * data, size_t dataLen) override;
 
 	void OnTimerComplete(TimerID timerId, uint8_t data) override;
 	void OnTimerStop(TimerID timerId, uint8_t data) override;

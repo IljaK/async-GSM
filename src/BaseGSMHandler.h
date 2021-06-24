@@ -1,15 +1,16 @@
 #pragma once
 #include <Arduino.h>
-#include "common/ModemCommandStack.h"
+#include "command/ModemCommandStack.h"
 #include "common/Timer.h"
 #include "GSMSerialModem.h"
+#include "command/BaseModemCMD.h"
+#include "command/ULongModemCMD.h"
 
 #define OUT_MESSAGE_STACK_SIZE 12
 
-constexpr char GSM_MODEM_SPEED_CMD[] = "+IPR";
+constexpr char GSM_MODEM_SPEED_CMD[] = "+IPR"; // AT+IPR=9600
 
 constexpr unsigned long GSM_MODEM_CONNECTION_TIME = 30000000ul;
-constexpr unsigned long MODEM_COMMAND_TIMEOUT = 500000ul;
 constexpr unsigned long MODEM_BOOT_COMMAND_TIMEOUT = 100000ul;
 
 constexpr unsigned long MODEM_MAX_AUTO_BAUD_RATE = 115200ul;
@@ -26,24 +27,8 @@ public:
 class IBaseGSMHandler
 {
 public:
-    virtual bool OnGSMResponse(char *request, char * response, MODEM_RESPONSE_TYPE type) = 0;
-    virtual bool OnGSMEvent(char * data) = 0;
-    bool IsRequestCMD(char *request, const char *cmd, const size_t cmdLen) {
-        if (strncmp(request, cmd, cmdLen) != 0) {
-            return false;
-        }
-        switch (cmd[cmdLen])
-        {
-        case 0:
-        case ' ':
-        case '=':
-        case '?':
-            return true;
-        default:
-            break;
-        }
-        return false;
-    }
+    virtual bool OnGSMResponse(BaseModemCMD *request, char * response, size_t respLen, MODEM_RESPONSE_TYPE type) = 0;
+    virtual bool OnGSMEvent(char * data, size_t dataLen) = 0;
 };
 
 enum MODEM_BOOT_STATE {
@@ -62,13 +47,12 @@ class BaseGSMHandler: public IModemBootHandler, public IBaseGSMHandler, public G
 protected:
     MODEM_BOOT_STATE modemBootState = MODEM_BOOT_IDLE;
 
-    void OnModemResponse(char *data, MODEM_RESPONSE_TYPE type) override;
-    void OnGSMResponseInternal(char * response, MODEM_RESPONSE_TYPE type);
+    void OnModemResponse(BaseModemCMD *cmd, char *data, size_t dataLen, MODEM_RESPONSE_TYPE type) override;
+    void OnGSMResponseInternal(BaseModemCMD *cmd, char * response, size_t respLen, MODEM_RESPONSE_TYPE type);
 
 private:
     unsigned long baudRate = 0;
     TimerID connectionTimer = 0;
-    ModemCommand *pendingCommand = NULL;
     ModemCommandStack commandStack;
 public:
     BaseGSMHandler();
@@ -81,9 +65,9 @@ public:
     //void handleUrc(const String& urc) override;
 
     // Append command to request stack
-    bool AddCommand(const char *command, unsigned long timeout = MODEM_COMMAND_TIMEOUT);
+    bool AddCommand(BaseModemCMD *cmd);
     // Insert command to begin of request stack
-    bool ForceCommand(const char *command, unsigned long timeout = MODEM_COMMAND_TIMEOUT);
+    bool ForceCommand(BaseModemCMD *cmd);
 
     Stream *GetModemStream();
 

@@ -23,29 +23,29 @@ void GSMHandler::OnModemReboot()
     gsmHandler.OnModemReboot();
 }
 
-bool GSMHandler::OnGSMResponse(char *request, char * response, MODEM_RESPONSE_TYPE type)
+bool GSMHandler::OnGSMResponse(BaseModemCMD *request, char * response, size_t respLen, MODEM_RESPONSE_TYPE type)
 {
-    if (gsmHandler.OnGSMResponse(request, response, type)) {
+    if (gsmHandler.OnGSMResponse(request, response, respLen, type)) {
         return true;
     }
-    if (socketHandler.OnGSMResponse(request, response, type)) {
+    if (socketHandler.OnGSMResponse(request, response, respLen, type)) {
         return true;
     }
-    if (gprsHandler.OnGSMResponse(request, response, type)) {
+    if (gprsHandler.OnGSMResponse(request, response, respLen, type)) {
         return true;
     }
     return false;
 }
 
-bool GSMHandler::OnGSMEvent(char * data)
+bool GSMHandler::OnGSMEvent(char * data, size_t dataLen)
 {
-    if (gsmHandler.OnGSMEvent(data)) {
+    if (gsmHandler.OnGSMEvent(data, dataLen)) {
         return true;
     }
-    if (socketHandler.OnGSMEvent(data)) {
+    if (socketHandler.OnGSMEvent(data, dataLen)) {
         return true;
     }
-    if (gprsHandler.OnGSMEvent(data)) {
+    if (gprsHandler.OnGSMEvent(data, dataLen)) {
         return true;
     }
     return false;

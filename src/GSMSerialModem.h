@@ -1,5 +1,6 @@
 #pragma once
 #include "serial/SerialCharResponseHandler.h"
+#include "command/BaseModemCMD.h"
 
 #define MODEM_SERIAL_BUFFER_SIZE 1024
 
@@ -22,14 +23,13 @@ enum MODEM_RESPONSE_TYPE {
 
 class GSMSerialModem : public SerialCharResponseHandler
 {
-private:
-    bool isWaitingConfirm = false;
 protected:
+    BaseModemCMD *pendingCMD = NULL;
     TimerID eventBufferTimeout = 0;
-    unsigned long timeout = 0;
     Print *debugPrint = NULL;
+    
 	void OnResponseReceived(bool IsTimeOut, bool isOverFlow = false) override;
-	virtual void OnModemResponse(char *data, MODEM_RESPONSE_TYPE type) = 0;
+	virtual void OnModemResponse(BaseModemCMD *cmd, char *data, size_t dataLen, MODEM_RESPONSE_TYPE type) = 0;
     void FlushIncoming();
 public:
     GSMSerialModem();
@@ -44,6 +44,5 @@ public:
 	bool IsBusy() override;
     void SetDebugPrint(Print *debugPrint);
 
-    bool Sendf(const char * cmd, unsigned long timeout, bool isCheck = false, bool isSet = false, char *data = NULL, bool dataQuotations = false, bool semicolon = false);
-    bool Send(char *data, unsigned long timeout);
+    bool Send(BaseModemCMD *modemCMD);
 };

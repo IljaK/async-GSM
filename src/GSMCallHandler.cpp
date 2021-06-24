@@ -9,7 +9,7 @@ GSMCallHandler::~GSMCallHandler()
 
 }
 
-bool GSMCallHandler::OnGSMEvent(char * data)
+bool GSMCallHandler::OnGSMEvent(char * data, size_t dataLen)
 {
     if (strncmp(data, GSM_CALL_DTMF_CMD, strlen(GSM_CALL_DTMF_CMD)) == 0) {
         if (callStateHandler != NULL) {
@@ -32,7 +32,8 @@ bool GSMCallHandler::OnGSMEvent(char * data)
         callState = (VOICE_CALLSTATE)status;
         if (callState == VOICE_CALL_STATE_INCOMING) {
             // Request number
-            if (!gsmHandler->ForceCommand("AT+CLCC")) {
+            //if (!gsmHandler->ForceCommand("AT+CLCC")) {
+            if (!gsmHandler->ForceCommand(new BaseModemCMD(GSM_CALL_STATE_CMD))) {
                 callStateHandler->HandleCallState(callState);
             }
 
@@ -52,7 +53,7 @@ bool GSMCallHandler::OnGSMEvent(char * data)
     return false;
 }
 
-bool GSMCallHandler::OnGSMResponse(char *request, char * response, MODEM_RESPONSE_TYPE type)
+bool GSMCallHandler::OnGSMResponse(BaseModemCMD *request, char * response, size_t respLen, MODEM_RESPONSE_TYPE type)
 {
     if (strncmp(response, GSM_CALL_STATE_CMD, strlen(GSM_CALL_STATE_CMD)) == 0) {
         // +CLCC: 1,1,4,0,0,"+37211111",145,""
@@ -89,7 +90,8 @@ void GSMCallHandler::SetCallStateHandler(IGSMCallHandler* callStateHandler)
 
 void GSMCallHandler::HangCall()
 {
-    gsmHandler->ForceCommand("ATH");
+    //gsmHandler->ForceCommand("ATH");
+    gsmHandler->ForceCommand(new BaseModemCMD(GSM_CALL_HANGUP_CMD));
 }
 
 char * GSMCallHandler::GetCallingNumber() {

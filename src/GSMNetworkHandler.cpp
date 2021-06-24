@@ -1,6 +1,9 @@
 #define _XOPEN_SOURCE
 #include <time.h>
 #include "GSMNetworkHandler.h"
+#include "command/CharModemCMD.h"
+#include "command/ByteModemCMD.h"
+#include "command/ULong2ModemCMD.h"
 
 GSMNetworkHandler::GSMNetworkHandler(BaseGSMHandler *gsmHandler):GSMCallHandler(gsmHandler)
 {
@@ -24,11 +27,12 @@ void GSMNetworkHandler::Connect(const char *simPin)
 {
     this->simPin = simPin;
     gsmStats.regState = GSM_REG_STATE_UNKNOWN;
-    initState = GSM_STATE_CHECK_SIM;
-    TriggerCommand();
+    initState = GSM_STATE_PRE_CONFIG;
+    //gsmHandler->ForceCommand(new ByteModemCMD(1, GSM_CMD_NETWORK_REG));
+    gsmHandler->ForceCommand(new BaseModemCMD(GSM_SIM_PIN_CMD, MODEM_COMMAND_TIMEOUT, true));
 }
 
-bool GSMNetworkHandler::OnGSMEvent(char * data)
+bool GSMNetworkHandler::OnGSMEvent(char * data, size_t dataLen)
 {
     if (incomingSms != NULL) {
         incomingSms->message = data;
@@ -96,11 +100,11 @@ bool GSMNetworkHandler::OnGSMEvent(char * data)
             case GSM_REG_STATE_CONNECTED_EMERGENSY_ONLY:
             case GSM_REG_STATE_CONNECTED_CSFB_NOT_HOME:
             case GSM_REG_STATE_CONNECTED_CSFB_NOT_ROAMING:
-                if (initState == GSM_STATE_WAIT_REG_NETWORK) {
-                    IncreaseState();
-                    TriggerCommand();
+                if (initState < GSM_STATE_READY && initState > GSM_STATE_NONE) {
+                    FetchTime();
+                    initState = GSM_STATE_READY;
+                    listener->OnGSMConnected();
                 }
-
                 if (listener != NULL) {
                     listener->OnGSMStatus(gsmStats.regState);
                 }
@@ -108,7 +112,7 @@ bool GSMNetworkHandler::OnGSMEvent(char * data)
             case GSM_REG_STATE_DENIED:
             case GSM_REG_STATE_UNKNOWN:
                 if (listener != NULL) {
-                    listener->OnGSMFailed(false);
+                    listener->OnGSMFailed(GSM_PIN_STATE_SIM_PIN);
                 }
                 break;
         }
@@ -134,10 +138,10 @@ bool GSMNetworkHandler::OnGSMEvent(char * data)
         return true;
     }
     
-    return GSMCallHandler::OnGSMEvent(data);
+    return GSMCallHandler::OnGSMEvent(data, dataLen);
 }
 
-bool GSMNetworkHandler::OnGSMResponse(char *request, char *response, MODEM_RESPONSE_TYPE type)
+bool GSMNetworkHandler::OnGSMResponse(BaseModemCMD *request, char *response, size_t respLen, MODEM_RESPONSE_TYPE type)
 {
 
     //Serial.print("GSMNetworkHandler::OnGSMResponse [");
@@ -145,94 +149,131 @@ bool GSMNetworkHandler::OnGSMResponse(char *request, char *response, MODEM_RESPO
     //Serial.print("] ");
     //Serial.println(result);
 
-    // Reponse contains only OK/ERROR/... status
-    if (type >= MODEM_RESPONSE_OK)
-    {
-        // Length must be greater than AT.. command
-        if (strlen(request) > 2) {
-
-            request+=2; // Skip "AT"
-
-            if (strncmp(request, GSM_SIM_PIN_CMD, strlen(GSM_SIM_PIN_CMD)) == 0) {
-
-                if (request[strlen(GSM_SIM_PIN_CMD)] == '?') {
-                    // AT+CPIN? confirmation
-                    // State should be changed on data read
-                    TriggerCommand();
-                    return true;
-                } else {
-                    // AT+CPIN="" confirmation on pin insert
-                    if (type == MODEM_RESPONSE_OK) {
-                        isSimUnlocked = true;
-                        initState = GSM_STATE_AUTO_NETWOR_STATE;
-                        TriggerCommand();
-                        if (listener != NULL) {
-                            listener->OnGSMSimUnlocked();
-                        }
-                    } else {
-                        initState = GSM_STATE_ERROR;
-                        if (listener != NULL) {
-                            listener->OnGSMFailed(true);
-                        }
-                    }
+    if (strcmp(request->cmd, GSM_SIM_PIN_CMD) == 0) {
+        if (request->IsCheck()) {
+            PinModemCMD *pinCMD = (PinModemCMD *)request;
+            // AT+CPIN? confirmation
+            // State should be changed on data read
+            if (type == MODEM_RESPONSE_OK) {
+                if (pinCMD->pinState == GSM_PIN_STATE_SIM_PIN) {
+                    gsmHandler->ForceCommand(new CharModemCMD(simPin, GSM_SIM_PIN_CMD, MODEM_COMMAND_TIMEOUT, true));
+                } else if (listener != NULL) {
+                    listener->OnGSMFailed(pinCMD->pinState);
                 }
-
-                
-                return true;
+            } else if (type == MODEM_RESPONSE_DATA) {
+                pinCMD->HandleDataContent(response);
+            } else if (type > MODEM_RESPONSE_OK && type < MODEM_RESPONSE_TIMEOUT) {
+                // Resend cmd, pin module not ready
+                gsmHandler->ForceCommand(new BaseModemCMD(GSM_SIM_PIN_CMD, MODEM_COMMAND_TIMEOUT, true));
+            } else if (type > MODEM_RESPONSE_TIMEOUT) {
+                if (listener != NULL) {
+                    listener->OnGSMFailed(pinCMD->pinState);
+                }
             }
-
-            if (strncmp(request, GSM_CMD_NETWORK_REG, strlen(GSM_CMD_NETWORK_REG)) == 0 ||
-                strncmp(request, GSM_NETWORK_TYPE_STATUS, strlen(GSM_NETWORK_TYPE_STATUS)) == 0 ||
-                strncmp(request, GSM_TEMP_THRESOLD_CMD, strlen(GSM_TEMP_THRESOLD_CMD)) == 0 ||
-                strncmp(request, GSM_CMD_SMS_FROMAT, strlen(GSM_CMD_SMS_FROMAT)) == 0 ||
-                strncmp(request, GSM_CMD_SMS_INDICATION, strlen(GSM_CMD_SMS_INDICATION)) == 0 ||
-                strncmp(request, GSM_CMD_HEX_MODE, strlen(GSM_CMD_HEX_MODE)) == 0 ||
-                strncmp(request, GSM_CMD_TIME_ZONE, strlen(GSM_CMD_TIME_ZONE)) == 0 ||
-                strncmp(request, GSM_CMD_DTFM, strlen(GSM_CMD_DTFM)) == 0 ||
-                strncmp(request, GSM_CMD_CALL_STATUS, strlen(GSM_CMD_CALL_STATUS)) == 0)
-            {
-                if (type == MODEM_RESPONSE_OK) {
-                    IncreaseState();
-                    TriggerCommand();
-                } else {
-                    Timer::Stop(delayedRequest);
-                    delayedRequest = Timer::Start(this, REQUEST_DELAY_DURATION);
+            return true;
+        } else {
+            // AT+CPIN="" confirmation on pin insert
+            if (type == MODEM_RESPONSE_OK) {
+                isSimUnlocked = true;
+                initState = GSM_STATE_POST_CONFIG;
+                //gsmHandler->ForceCommand(new ByteModemCMD(2, GSM_TEMP_THRESOLD_CMD));
+                gsmHandler->ForceCommand(new ByteModemCMD(1, GSM_CMD_NETWORK_REG));
+                if (listener != NULL) {
+                    listener->OnGSMSimUnlocked();
                 }
-                return true;
+            } else {
+                isSimUnlocked = false;
+                if (listener != NULL) {
+                    listener->OnGSMFailed(GSM_PIN_STATE_SIM_PIN);
+                }
             }
         }
-        return false;
-    }
-
-    if (strncmp(response, GSM_SIM_PIN_CMD, strlen(GSM_SIM_PIN_CMD)) == 0) {
-
-        // SIM PIN
-        char *simState = response + strlen(GSM_SIM_PIN_CMD) + 2;
-
-		if (strncmp(GSM_SIM_PIN_READY, simState, strlen(GSM_SIM_PIN_READY)) == 0) {
-			// NO PIN REQUIRED
-            initState = GSM_STATE_AUTO_NETWOR_STATE;
-            //TriggerCommand();
-		}
-		else if (strncmp(GSM_SIM_PIN_REQUIRE, simState, strlen(GSM_SIM_PIN_REQUIRE)) == 0) {
-			// PIN REQUIRE
-            initState = GSM_STATE_ENTER_SIM;
-            //TriggerCommand();
-		}
-		else {
-            if (initState == GSM_STATE_ENTER_SIM) {
-                initState = GSM_STATE_ERROR;
-                if (listener != NULL) {
-                    listener->OnGSMFailed(true);
-                }
-            }
-            // else {
-            //    TriggerCommand();
-            //}
-		}
-
         return true;
     }
+
+    if (strcmp(request->cmd, GSM_CMD_NETWORK_REG) == 0) {
+        if (request->IsCheck()) {
+            // TODO:
+        } else {
+            if (type == MODEM_RESPONSE_OK) {
+                initState = GSM_STATE_PIN;
+                //gsmHandler->ForceCommand(new BaseModemCMD(GSM_SIM_PIN_CMD, MODEM_COMMAND_TIMEOUT, true));
+                gsmHandler->ForceCommand(new ByteModemCMD(2, GSM_TEMP_THRESOLD_CMD));
+            } else {
+                // Check again or return failed to load?
+                //gsmHandler->ForceCommand(new BaseModemCMD(GSM_CMD_NETWORK_REG, MODEM_COMMAND_TIMEOUT, true));
+            }
+        }
+        return true;
+    }
+
+    if (strcmp(request->cmd, GSM_TEMP_THRESOLD_CMD) == 0) {
+        if (type == MODEM_RESPONSE_OK) {
+            gsmHandler->ForceCommand(new ByteModemCMD(1, GSM_CMD_SMS_FROMAT));
+        } else {
+            // TODO: resend?
+        }
+        return true;
+    }
+
+    if (strcmp(request->cmd, GSM_CMD_SMS_FROMAT) == 0) {
+        if (type == MODEM_RESPONSE_OK) {
+            gsmHandler->ForceCommand(new CharModemCMD("2,2,0,0,0", GSM_CMD_SMS_INDICATION));
+        } else {
+            // TODO: resend?
+        }
+        return true;
+    }
+    if (strcmp(request->cmd, GSM_CMD_SMS_INDICATION) == 0) {
+        if (type == MODEM_RESPONSE_OK) {
+            gsmHandler->ForceCommand(new ULong2ModemCMD(1,1, GSM_CMD_HEX_MODE));
+        } else {
+            // TODO: resend?
+        }
+        return true;
+    }
+    if (strcmp(request->cmd, GSM_CMD_HEX_MODE) == 0) {
+        if (type == MODEM_RESPONSE_OK) {
+            gsmHandler->ForceCommand(new ByteModemCMD(1, GSM_CMD_TIME_ZONE));
+        } else {
+            // TODO: resend?
+        }
+        return true;
+    }
+    if (strcmp(request->cmd, GSM_CMD_TIME_ZONE) == 0) {
+        if (type == MODEM_RESPONSE_OK) {
+            gsmHandler->ForceCommand(new ULong2ModemCMD(1,2, GSM_CMD_DTFM));
+        } else {
+            // TODO: resend?
+        }
+        return true;
+    }
+    if (strcmp(request->cmd, GSM_CMD_DTFM) == 0) {
+        if (type == MODEM_RESPONSE_OK) {
+            gsmHandler->ForceCommand(new ByteModemCMD(1, GSM_NETWORK_TYPE_STATUS));
+        } else {
+            // TODO: resend?
+        }
+        return true;
+    }
+    if (strcmp(request->cmd, GSM_NETWORK_TYPE_STATUS) == 0) {
+        if (type == MODEM_RESPONSE_OK) {
+            gsmHandler->ForceCommand(new ByteModemCMD(1, GSM_CMD_CALL_STATUS));
+        } else {
+            // TODO: resend?
+        }
+        return true;
+    }
+    if (strcmp(request->cmd, GSM_CMD_CALL_STATUS) == 0) {
+        if (type == MODEM_RESPONSE_OK) {
+            initState = GSM_STATE_WAIT_CREG;
+            // TODO: Wait network redistration
+        } else {
+            // TODO: resend?
+        }
+        return true;
+    }
+
     if (strncmp(GSM_CMD_NETWORK_QUALITY, response, strlen(GSM_CMD_NETWORK_QUALITY)) == 0) {
         char* csq = response + strlen(GSM_CMD_NETWORK_QUALITY) + 2;
         char* csqArgs[2];
@@ -276,7 +317,8 @@ bool GSMNetworkHandler::OnGSMResponse(char *request, char *response, MODEM_RESPO
         }
         return true;
     }
-    if (strncmp(GSM_CMD_SMS_SEND, request + 2, strlen(GSM_CMD_SMS_SEND)) == 0) {
+    // TODO: 
+    if (strcmp(request->cmd, GSM_CMD_SMS_SEND) == 0) {
         if (type == MODEM_RESPONSE_DATA) {
             if (strncmp("> ", response, 2) == 0) {
                 Stream *modemStream = gsmHandler->GetModemStream();
@@ -291,27 +333,14 @@ bool GSMNetworkHandler::OnGSMResponse(char *request, char *response, MODEM_RESPO
         }        
         return true;
     }
-    return GSMCallHandler::OnGSMResponse(request, response, type);
-}
-
-void GSMNetworkHandler::IncreaseState()
-{
-    int val = (int)initState;
-    if (initState < GSM_STATE_DONE) {
-        val++;
-        initState = (GSM_INIT_STATE)val;
-    }
+    return GSMCallHandler::OnGSMResponse(request, response, respLen, type);
 }
 
 void GSMNetworkHandler::OnTimerComplete(TimerID timerId, uint8_t data)
 {
     if (timerId == delayedRequest) {
         delayedRequest = 0;
-        if (data == 0) {
-            TriggerCommand();
-        } else if (data == 1u) {
-            FetchTime();
-        }
+        FetchTime();
     }
 }
 void GSMNetworkHandler::OnTimerStop(TimerID timerId, uint8_t data)
@@ -321,74 +350,19 @@ void GSMNetworkHandler::OnTimerStop(TimerID timerId, uint8_t data)
     }
 }
 
-void GSMNetworkHandler::TriggerCommand()
-{
-    Timer::Stop(delayedRequest);
-    const size_t cmdSize = 128;
-    char cmd[cmdSize];
-    switch (initState)
-    {
-    case GSM_STATE_CHECK_SIM:
-        snprintf(cmd, cmdSize, "%s%s?", GSM_PREFIX_CMD, GSM_SIM_PIN_CMD);
-        break;
-    case GSM_STATE_ENTER_SIM:
-        snprintf(cmd, cmdSize, "%s%s=\"%s\"", GSM_PREFIX_CMD, GSM_SIM_PIN_CMD, simPin);
-        break;
-    case GSM_STATE_AUTO_NETWOR_STATE:
-        snprintf(cmd, cmdSize, "%s%s=1", GSM_PREFIX_CMD, GSM_CMD_NETWORK_REG);
-        break;
-    case GSM_STATE_TEMP_THRESOLD:
-        snprintf(cmd, cmdSize, "%s%s=2", GSM_PREFIX_CMD, GSM_TEMP_THRESOLD_CMD);
-        break;
-    case GSM_STATE_PREFERRED_MESSAGE_FORMAT:
-        snprintf(cmd, cmdSize, "%s%s=1", GSM_PREFIX_CMD, GSM_CMD_SMS_FROMAT);
-        break;
-    case GSM_STATE_MESSAGE_INDICATION:
-        snprintf(cmd, cmdSize, "%s%s=2,2,0,0,0", GSM_PREFIX_CMD, GSM_CMD_SMS_INDICATION);
-        break;
-    case GSM_STATE_HEX_MODE:
-        snprintf(cmd, cmdSize, "%s%s=1,1", GSM_PREFIX_CMD, GSM_CMD_HEX_MODE);
-        break;
-    case GSM_STATE_AUTOMATIC_TIME_ZONE:
-        snprintf(cmd, cmdSize, "%s%s=1", GSM_PREFIX_CMD, GSM_CMD_TIME_ZONE);
-        break;
-    case GSM_STATE_DTMF_DETECTION:
-        snprintf(cmd, cmdSize, "%s%s=1,2", GSM_PREFIX_CMD, GSM_CMD_DTFM);
-        break;
-    case GSM_STATE_WAIT_REG_NETWORK:
-        // Nothing to do here, wait for connection
-        return;
-    case GSM_STATE_NETWORK_TYPE:
-        snprintf(cmd, cmdSize, "%s%s=1", GSM_PREFIX_CMD, GSM_NETWORK_TYPE_STATUS);
-        break;
-    case GSM_STATE_CALL_STATUS:
-        snprintf(cmd, cmdSize, "%s%s=1", GSM_PREFIX_CMD, GSM_CMD_CALL_STATUS);
-        break;
-    case GSM_STATE_DONE:
-        if (currentTime == 0) {
-            FetchTime();
-        }
-        if (listener != NULL) {
-            listener->OnGSMConnected();
-        }
-        return;
-    case GSM_STATE_ERROR:
-        return;
-    }
-    gsmHandler->ForceCommand(cmd);
-}
-
 void GSMNetworkHandler::FetchTime() {
     Timer::Stop(delayedRequest);
     delayedRequest = Timer::Start(this, QUALITY_CHECK_DURATION, 1u);
-    gsmHandler->AddCommand("AT+CCLK?");  // Sync time
-    gsmHandler->AddCommand("AT+CSQ");    // Get signal quality
+    //gsmHandler->AddCommand("AT+CCLK?");  // Sync time
+    //gsmHandler->AddCommand("AT+CSQ");    // Get signal quality
     //gsmHandler->AddCommand("AT+UTEMP?", 5000000ul);  // Get temperature;
+    gsmHandler->AddCommand(new BaseModemCMD(GSM_CMD_TIME, MODEM_COMMAND_TIMEOUT, true));
+    gsmHandler->AddCommand(new BaseModemCMD(GSM_CMD_NETWORK_QUALITY));
 }
 
 bool GSMNetworkHandler::IsInitialized()
 {
-    return initState == GSM_STATE_DONE;
+    return initState == GSM_STATE_READY;
 }
 
 bool GSMNetworkHandler::IsSimUnlocked()
@@ -411,16 +385,18 @@ GSMNetworkStats *GSMNetworkHandler::GetGSMStats() {
     return &gsmStats;
 }
 
-bool GSMNetworkHandler::SMSSendBegin(char *phone)
+bool GSMNetworkHandler::SendSMS(char *phone)
 {
-    char cmd[64];
-    snprintf(cmd, 64, "%s%s=\"%s\"", GSM_PREFIX_CMD, GSM_CMD_SMS_SEND, phone);
-    return gsmHandler->AddCommand(cmd);
+    // TODO:
+    //char cmd[64];
+    //snprintf(cmd, 64, "%s%s=\"%s\"", GSM_PREFIX_CMD, GSM_CMD_SMS_SEND, phone);
+    //return gsmHandler->AddCommand(cmd);
+    return false;
 }
 
 void GSMNetworkHandler::OnModemReboot()
 {
-    initState = GSM_STATE_CHECK_SIM;
+    initState = GSM_STATE_NONE;
     gsmStats.regState = GSM_REG_STATE_UNKNOWN;
     gsmStats.networkType = GSM_NETWORK_UNKNOWN;
     gsmStats.thresoldState = GSM_THRESOLD_T;

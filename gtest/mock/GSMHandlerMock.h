@@ -22,8 +22,8 @@ public:
     void OnSocketData(GSMSocket * socket, uint8_t *data, size_t len) override;
     void OnSocketStartListen(GSMSocket * socket) override;
 
-    bool OnGSMResponse(char *request, char * response, MODEM_RESPONSE_TYPE type) override;
-    bool OnGSMEvent(char * data) override;
+    bool OnGSMResponse(BaseModemCMD *request, char * response, size_t respLen, MODEM_RESPONSE_TYPE type) override;
+    bool OnGSMEvent(char * data, size_t dataLen) override;
 
     void ReadResponse(char * response);
     void SetReady();

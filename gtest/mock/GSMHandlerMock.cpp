@@ -24,9 +24,9 @@ void GSMHandlerMock::OnModemReboot()
     GSMHandler::OnModemReboot();
 }
 
-bool GSMHandlerMock::OnGSMResponse(char *request, char * response, MODEM_RESPONSE_TYPE type)
+bool GSMHandlerMock::OnGSMResponse(BaseModemCMD *request, char * response, size_t respLen, MODEM_RESPONSE_TYPE type)
 {
-    return GSMHandler::OnGSMResponse(request, response, type);
+    return GSMHandler::OnGSMResponse(request, response, respLen, type);
 }
 
 bool GSMHandlerMock::OnGSMEvent(char * data)

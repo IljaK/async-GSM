@@ -57,28 +57,30 @@ void BaseGSMHandler::StartModem(bool restart, unsigned long baudRate)
     Timer::Stop(connectionTimer);
     connectionTimer = Timer::Start(this, GSM_MODEM_CONNECTION_TIME);
     FlushIncoming();
-    Send((char *)GSM_PREFIX_CMD, MODEM_BOOT_COMMAND_TIMEOUT);
+    Send(new BaseModemCMD(NULL, MODEM_BOOT_COMMAND_TIMEOUT));
 }
 
-bool BaseGSMHandler::AddCommand(const char *command, unsigned long timeout)
+bool BaseGSMHandler::AddCommand(BaseModemCMD *cmd)
 {
-    if (!commandStack.Append((char *)command, timeout)) {
+    if (!commandStack.Append(cmd)) {
         if (debugPrint != NULL) {
             debugPrint->print(F("AddCommand FAIL! "));
-            debugPrint->println(command);
+            debugPrint->println(cmd->cmd);
         }
+        delete cmd;
         return false;
     }
     return true;
 }
 
-bool BaseGSMHandler::ForceCommand(const char *command, unsigned long timeout)
+bool BaseGSMHandler::ForceCommand(BaseModemCMD *cmd)
 {
-    if (!commandStack.Insert((char *)command, timeout, 0)) {
+    if (!commandStack.Insert(cmd, 0)) {
         if (debugPrint != NULL) {
             debugPrint->print(F("ForceCommand FAIL! "));
-            debugPrint->println(command);
+            debugPrint->println(cmd->cmd);
         }
+        delete cmd;
         return false;
     }
     /*
@@ -98,45 +100,37 @@ bool BaseGSMHandler::ForceCommand(const char *command, unsigned long timeout)
 void BaseGSMHandler::Loop()
 {
     GSMSerialModem::Loop();
-    if (!IsBusy() && modemBootState == MODEM_BOOT_COMPLETED && pendingCommand == NULL) {
+    if (!IsBusy() && modemBootState == MODEM_BOOT_COMPLETED) {
         if (commandStack.Size() > 0) {
-            pendingCommand = commandStack.UnshiftFirst();
-            if (debugPrint != NULL) {
-                debugPrint->print("> ");
-                debugPrint->println(pendingCommand->command);
-            }
-            Send(pendingCommand->command, pendingCommand->timeout);
+            Send(commandStack.UnshiftFirst());
         }
     }
 }
 
-void BaseGSMHandler::OnModemResponse(char *data, MODEM_RESPONSE_TYPE type)
+void BaseGSMHandler::OnModemResponse(BaseModemCMD *cmd, char *data, size_t dataLen, MODEM_RESPONSE_TYPE type)
 {
     switch (type)
     {
     case MODEM_RESPONSE_EVENT:
         if (modemBootState == MODEM_BOOT_COMPLETED) {
-            OnGSMEvent(data);
+            OnGSMEvent(data, dataLen);
             break;
         }
     default:
-        OnGSMResponseInternal(data, type);
+        OnGSMResponseInternal(cmd, data, dataLen, type);
         break;
     }
 }
 
-void BaseGSMHandler::OnGSMResponseInternal(char * response, MODEM_RESPONSE_TYPE type)
+void BaseGSMHandler::OnGSMResponseInternal(BaseModemCMD *cmd, char * response, size_t respLen, MODEM_RESPONSE_TYPE type)
 {
     switch (modemBootState)
     {
     case MODEM_BOOT_COMPLETED:
-        if (pendingCommand != NULL) {
-            OnGSMResponse(pendingCommand->command, response, type);
+        if (cmd != NULL) {
+            OnGSMResponse(cmd, response, respLen, type);
             if (type >= MODEM_RESPONSE_OK) {
-                if (pendingCommand != NULL) {
-                    commandStack.FreeItem(pendingCommand);
-                    pendingCommand = NULL;
-                }
+                delete cmd;
             }
         }
         break;
@@ -153,9 +147,10 @@ void BaseGSMHandler::OnGSMResponseInternal(char * response, MODEM_RESPONSE_TYPE 
                     debugPrint->println(F("MODEM_BOOT_SPEED_CHAGE"));
                 }
                 modemBootState = MODEM_BOOT_SPEED_CHAGE;
-                char baud[32];
-                snprintf(baud, 32, "%ld", baudRate);
-                Sendf(GSM_MODEM_SPEED_CMD, MODEM_COMMAND_TIMEOUT, false, true, baud, false, false);
+                Send(new ULongModemCMD(baudRate, GSM_MODEM_SPEED_CMD, MODEM_COMMAND_TIMEOUT));
+                //char baud[32];
+                //snprintf(baud, 32, "%ld", baudRate);
+                //Sendf(GSM_MODEM_SPEED_CMD, MODEM_COMMAND_TIMEOUT, false, true, baud, false, false);
             } else {
 
                 if (debugPrint != NULL) {
@@ -167,7 +162,7 @@ void BaseGSMHandler::OnGSMResponseInternal(char * response, MODEM_RESPONSE_TYPE 
         } else {
             // TODO: Resend AT?
             FlushIncoming();
-            Send((char *)GSM_PREFIX_CMD, MODEM_BOOT_COMMAND_TIMEOUT);
+            Send(new BaseModemCMD(NULL, MODEM_BOOT_COMMAND_TIMEOUT));
         }
         break;
     case MODEM_BOOT_SPEED_CHAGE:
@@ -182,7 +177,7 @@ void BaseGSMHandler::OnGSMResponseInternal(char * response, MODEM_RESPONSE_TYPE 
             ((Uart *)serial)->begin(baudRate);
             Timer::Stop(connectionTimer);
             connectionTimer = Timer::Start(this, GSM_MODEM_CONNECTION_TIME);
-            Send((char *)GSM_PREFIX_CMD, MODEM_BOOT_COMMAND_TIMEOUT);
+            Send(new BaseModemCMD(NULL, MODEM_BOOT_COMMAND_TIMEOUT));
         } else {
             // TODO: ?
         }
@@ -199,7 +194,7 @@ void BaseGSMHandler::OnGSMResponseInternal(char * response, MODEM_RESPONSE_TYPE 
             OnModemBooted();
         } else {
             FlushIncoming();
-            Send((char *)GSM_PREFIX_CMD, MODEM_BOOT_COMMAND_TIMEOUT);
+            Send(new BaseModemCMD(NULL, MODEM_BOOT_COMMAND_TIMEOUT));
         }
         break;
     default:
@@ -229,9 +224,9 @@ void BaseGSMHandler::OnTimerStop(TimerID timerId, uint8_t data)
 
 void BaseGSMHandler::Flush()
 {
-    if (pendingCommand != NULL) {
-        commandStack.FreeItem(pendingCommand);
-        pendingCommand = NULL;
+    if (pendingCMD != NULL) {
+        delete pendingCMD;
+        pendingCMD = NULL;
     }
     commandStack.Clear();
     ResetBuffer();

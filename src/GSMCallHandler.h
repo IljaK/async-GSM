@@ -8,6 +8,8 @@ constexpr char GSM_CALL_STATE_CMD[] = "+CLCC"; // Call state
 constexpr char GSM_CALL_STATE_TRIGGER[] = "+UCALLSTAT"; // Call state
 constexpr char GSM_CALL_DTMF_CMD[] = "+UUDTMFD"; // Call state
 
+constexpr char GSM_CALL_HANGUP_CMD[] = "H"; // Call state
+
 enum VOICE_CALLSTATE : uint8_t
 {
 	VOICE_CALL_STATE_ACTIVE,
@@ -43,8 +45,8 @@ public:
     GSMCallHandler(BaseGSMHandler *gsmHandler);
     virtual ~GSMCallHandler();
 
-    virtual bool OnGSMResponse(char *request, char * response, MODEM_RESPONSE_TYPE type) override;
-    virtual bool OnGSMEvent(char * data) override;
+    virtual bool OnGSMResponse(BaseModemCMD *request, char * response, size_t respLen, MODEM_RESPONSE_TYPE type) override;
+    virtual bool OnGSMEvent(char * data, size_t dataLen) override;
     
     void SetCallStateHandler(IGSMCallHandler *callStateHandler);
     void HangCall();

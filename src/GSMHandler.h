@@ -17,8 +17,8 @@ public:
 
     void OnModemReboot() override;
 
-    bool OnGSMResponse(char *request, char * response, MODEM_RESPONSE_TYPE type) override;
-    bool OnGSMEvent(char * data) override;
+    bool OnGSMResponse(BaseModemCMD *request, char * response, size_t respLen, MODEM_RESPONSE_TYPE type) override;
+    bool OnGSMEvent(char * data, size_t dataLen) override;
 
     //void OnModemBooted() override;
     //void OnModemFailedBoot() override;
