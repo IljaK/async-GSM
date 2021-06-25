@@ -1,4 +1,5 @@
 #include "BaseModemCMD.h"
+#include <cstring>
 
 enum GSM_PIN_STATE_CMD {
     GSM_PIN_STATE_UNKNOWN,
@@ -24,7 +25,11 @@ struct PinModemCMD: public BaseModemCMD
 
     virtual ~PinModemCMD() {}
 
-    void HandleDataContent(char *response) {
+    void HandleDataContent(char *response, size_t respLen) {
+        size_t cmdLen = strlen(cmd);
+        if (respLen <= cmdLen + 2) {
+            return;
+        }
         response += strlen(cmd) + 2;
 
         if (String(F("READY")).equals(response)) {
@@ -47,7 +52,7 @@ struct PinModemCMD: public BaseModemCMD
             pinState = GSM_PIN_STATE_PH_CORP_PIN;
         } else if (String(F("PH-SIM PIN")).equals(response)) {
             pinState = GSM_PIN_STATE_PH_SIM_PIN;
-        } 
+        }
     }
 
     void WriteStream(Print *stream) override {
