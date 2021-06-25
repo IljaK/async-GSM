@@ -237,7 +237,7 @@ bool GSMSocketHandler::CreateSocket()
 bool GSMSocketHandler::Connect(GSMSocket *sock)
 {
     if (sock == NULL) return false;
-    return gsmHandler->AddCommand(new SocketConnectCMD(sock->GetId(), sock->GetIp(), sock->GetPort(), GSM_SOCKET_CONNECT_CMD));
+    return gsmHandler->AddCommand(new SocketConnectCMD(sock->GetId(), sock->GetIp(), sock->GetPort(), GSM_SOCKET_CONNECT_CMD, SOCKET_CONNECTION_TIMEOUT));
 }
 
 bool GSMSocketHandler::SetKeepAlive(GSMSocket *sock)

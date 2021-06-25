@@ -114,7 +114,7 @@ public:
     virtual void OnGSMQuality(uint8_t strength, uint8_t quality) = 0;
     virtual void OnGSMNetworkType(GSM_NETWORK_TYPE type) = 0;
     virtual void OnGSMThresold(GSM_THRESOLD_STATE type) = 0;
-    virtual bool OnSMSSendStream(Stream *smsStream) = 0;
+    virtual bool OnSMSSendStream(Print *smsStream) = 0;
     virtual void OnSMSReceive(IncomingSMSData *smsData) = 0;
 };
 
