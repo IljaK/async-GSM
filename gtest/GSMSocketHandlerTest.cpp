@@ -37,6 +37,9 @@ TEST(GSMSocketHandlerTest, SocketConnectionTest)
     // AT+USOSEC=0,1,1
     gsmHandler.ReadResponse((char*)"\r\nOK\r\n");
 
+    // AT+USOSO=0,65535,8,1
+    gsmHandler.ReadResponse((char*)"\r\nOK\r\n");
+
     // AT+USOSO=0,6,2,30000
     gsmHandler.ReadResponse((char*)"\r\nOK\r\n");
     
@@ -71,6 +74,9 @@ TEST(GSMSocketHandlerTest, SocketConnectionFailTest)
     // AT+USOSEC=0,1,1
     gsmHandler.ReadResponse((char*)"\r\nOK\r\n");
 
+    // AT+USOSO=0,65535,8,1
+    gsmHandler.ReadResponse((char*)"\r\nOK\r\n");
+    
     // AT+USOSO=0,6,2,30000
     gsmHandler.ReadResponse((char*)"\r\nERROR\r\n");
 
@@ -108,6 +114,9 @@ TEST(GSMSocketHandlerTest, SocketConnectionCorruptionFailTest)
 
     socket->Connect((char*)"127.0.0.1", 2234, true);
 
+    // AT+USOSO=0,65535,8,1
+    gsmHandler.ReadResponse((char*)"\r\nOK\r\n");
+    
     // AT+USOSEC=0,1,1
     gsmHandler.ReadResponse((char*)"\r\nOK\r\n");
 
@@ -150,6 +159,9 @@ TEST(GSMSocketHandlerTest, SocketConnectionCorruptionFailTest2)
 
     socket->Connect((char*)"127.0.0.1", 2234, true);
 
+    // AT+USOSO=0,65535,8,1
+    gsmHandler.ReadResponse((char*)"\r\nOK\r\n");
+    
     // AT+USOSEC=0,1,1
     gsmHandler.ReadResponse((char*)"\r\nOK\r\n");
 
@@ -185,6 +197,9 @@ TEST(GSMSocketHandlerTest, SocketConnectionCorruptionFailTest3)
 
     socket->Connect((char*)"127.0.0.1", 2234, true);
 
+    // AT+USOSO=0,65535,8,1
+    gsmHandler.ReadResponse((char*)"\r\nOK\r\n");
+    
     // AT+USOSEC=0,1,1
     gsmHandler.ReadResponse((char*)"\r\nOK\r\n");
 

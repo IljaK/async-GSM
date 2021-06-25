@@ -29,9 +29,9 @@ bool GSMHandlerMock::OnGSMResponse(BaseModemCMD *request, char * response, size_
     return GSMHandler::OnGSMResponse(request, response, respLen, type);
 }
 
-bool GSMHandlerMock::OnGSMEvent(char * data)
+bool GSMHandlerMock::OnGSMEvent(char * data, size_t dataLen)
 {
-    return GSMHandler::OnGSMEvent(data);
+    return GSMHandler::OnGSMEvent(data, dataLen);
 }
 
 void GSMHandlerMock::OnSocketCreateError()
