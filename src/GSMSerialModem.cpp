@@ -30,7 +30,9 @@ void GSMSerialModem::OnResponseReceived(bool IsTimeOut, bool isOverFlow)
         debugPrint->print(" isOverFlow: ");
         debugPrint->print(isOverFlow);
         debugPrint->print(" isWaitingConfirm: ");
-        debugPrint->println(pendingCMD != NULL);
+        debugPrint->print(pendingCMD != NULL);
+        debugPrint->print(" RAM: ");
+        debugPrint->println(remainRam());
     }
 
 
@@ -54,6 +56,9 @@ void GSMSerialModem::OnResponseReceived(bool IsTimeOut, bool isOverFlow)
             StartTimeoutTimer(pendingCMD->timeout);
         }
         OnModemResponse(cmd, buffer, bufferLength, type);
+        if (type >= MODEM_RESPONSE_OK) {
+            delete cmd;
+        }
     } else {
         OnModemResponse(NULL, buffer, bufferLength, MODEM_RESPONSE_EVENT);
     }
@@ -66,6 +71,15 @@ void GSMSerialModem::Loop()
     if (pendingCMD != NULL) {
         if (eventBufferTimeout != 0) {
             Timer::Stop(eventBufferTimeout);
+        }
+        if (pendingCMD->ExtraTrigger()) {
+            size_t extraLen = strlen(pendingCMD->ExtraTriggerValue());
+            if (bufferLength >= extraLen) {
+                if (strncmp(buffer, pendingCMD->ExtraTriggerValue(), extraLen) == 0) {
+                    OnResponseReceived(false, false);
+                    ResetBuffer();
+                }
+            }
         }
     } else if (prevBuffAmount != bufferLength) {
         Timer::Stop(eventBufferTimeout);
@@ -137,58 +151,6 @@ bool GSMSerialModem::Send(BaseModemCMD *modemCMD)
     return true;
 }
 
-/*
-bool GSMSerialModem::Send(char *data, unsigned long timeout)
-{
-    if (IsBusy()) return false;
-    if (data == NULL || data[0] == 0) return false;
-    ResetBuffer();
-    this->timeout = timeout;
-    isWaitingConfirm = true;
-	StartTimeoutTimer(timeout);
-    serial->println(data);
-    return true;
-}
-
-bool GSMSerialModem::Sendf(const char * cmd, unsigned long timeout, bool isCheck, bool isSet, char *data, bool dataQuotations, bool semicolon)
-{
-    if (IsBusy()) return false;
-    if (data == NULL || data[0] == 0) return false;
-
-    ResetBuffer();
-    this->timeout = timeout;
-    isWaitingConfirm = true;
-	if (serial) {
-		serial->write(GSM_PREFIX_CMD);
-		
-		if (cmd != NULL) {
-			serial->write(cmd);
-		}
-		if (isCheck) {
-			serial->write('?');
-		}
-		else if (isSet) {
-			serial->write('=');
-		}
-		if (data != NULL) {
-			if (dataQuotations) {
-				serial->write('\"');
-			}
-			serial->write(data);
-			if (dataQuotations) {
-				serial->write('\"');
-			}
-		}
-		if (semicolon) {
-			serial->write(';');
-		}
-		serial->write(CR_ASCII_SYMBOL);
-	}
-	StartTimeoutTimer(timeout);
-    return true;
-}
-*/
-
 void GSMSerialModem::SetDebugPrint(Print *debugPrint)
 {
     this->debugPrint = debugPrint;
@@ -199,8 +161,7 @@ void GSMSerialModem::FlushIncoming()
         delete pendingCMD;
         pendingCMD = NULL;
     }
-    while (serial->available()>0)
-    {
+    while (serial->available()>0) {
         serial->read();
     }
     ResetBuffer();

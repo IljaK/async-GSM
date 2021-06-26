@@ -6,7 +6,9 @@ class ModemCommandStack: public StackArray<BaseModemCMD *>
 {
 public:
     void FreeItem(BaseModemCMD * item) override {
-        delete item;
+        if (item != NULL) {
+            delete item;
+        }
     }
     ModemCommandStack(const size_t maxSize):StackArray(maxSize) {}
 
