@@ -4,6 +4,7 @@
 #include "command/CharModemCMD.h"
 #include "command/ByteModemCMD.h"
 #include "command/ULong2ModemCMD.h"
+#include "command/SMSSendModemCMD.h"
 
 GSMNetworkHandler::GSMNetworkHandler(BaseGSMHandler *gsmHandler):GSMCallHandler(gsmHandler)
 {
@@ -27,7 +28,7 @@ void GSMNetworkHandler::Connect(const char *simPin)
 {
     this->simPin = simPin;
     gsmStats.regState = GSM_REG_STATE_UNKNOWN;
-    initState = GSM_STATE_PRE_CONFIG;
+    initState = GSM_STATE_PIN;
     //gsmHandler->ForceCommand(new ByteModemCMD(1, GSM_CMD_NETWORK_REG));
     gsmHandler->ForceCommand(new BaseModemCMD(GSM_SIM_PIN_CMD, MODEM_COMMAND_TIMEOUT, true));
 }
@@ -175,7 +176,7 @@ bool GSMNetworkHandler::OnGSMResponse(BaseModemCMD *request, char *response, siz
             // AT+CPIN="" confirmation on pin insert
             if (type == MODEM_RESPONSE_OK) {
                 isSimUnlocked = true;
-                initState = GSM_STATE_POST_CONFIG;
+                initState = GSM_STATE_CONFIG;
                 //gsmHandler->ForceCommand(new ByteModemCMD(2, GSM_TEMP_THRESOLD_CMD));
                 gsmHandler->ForceCommand(new ByteModemCMD(1, GSM_CMD_NETWORK_REG));
                 if (listener != NULL) {
@@ -196,7 +197,6 @@ bool GSMNetworkHandler::OnGSMResponse(BaseModemCMD *request, char *response, siz
             // TODO:
         } else {
             if (type == MODEM_RESPONSE_OK) {
-                initState = GSM_STATE_PIN;
                 //gsmHandler->ForceCommand(new BaseModemCMD(GSM_SIM_PIN_CMD, MODEM_COMMAND_TIMEOUT, true));
                 gsmHandler->ForceCommand(new ByteModemCMD(2, GSM_TEMP_THRESOLD_CMD));
             } else {
@@ -319,8 +319,10 @@ bool GSMNetworkHandler::OnGSMResponse(BaseModemCMD *request, char *response, siz
     }
     // TODO: 
     if (strcmp(request->cmd, GSM_CMD_SMS_SEND) == 0) {
+        // TODO: Filter out sended sms
         if (type == MODEM_RESPONSE_DATA) {
-            if (strncmp("> ", response, 2) == 0) {
+            if (strcmp("> ", response) == 0) {
+                request->ExtraTrigger(false);
                 Stream *modemStream = gsmHandler->GetModemStream();
                 if (listener != NULL && listener->OnSMSSendStream(modemStream)) {
                     //Send message end
@@ -330,7 +332,7 @@ bool GSMNetworkHandler::OnGSMResponse(BaseModemCMD *request, char *response, siz
                     modemStream->write(ESC_ASCII_SYMBOL);
                 }
             }
-        }        
+        }
         return true;
     }
     return GSMCallHandler::OnGSMResponse(request, response, respLen, type);
@@ -387,11 +389,7 @@ GSMNetworkStats *GSMNetworkHandler::GetGSMStats() {
 
 bool GSMNetworkHandler::SendSMS(char *phone)
 {
-    // TODO:
-    //char cmd[64];
-    //snprintf(cmd, 64, "%s%s=\"%s\"", GSM_PREFIX_CMD, GSM_CMD_SMS_SEND, phone);
-    //return gsmHandler->AddCommand(cmd);
-    return false;
+    return gsmHandler->AddCommand(new SMSSendModemCMD(phone, GSM_CMD_SMS_SEND));
 }
 
 void GSMNetworkHandler::OnModemReboot()

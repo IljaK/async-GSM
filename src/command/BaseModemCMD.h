@@ -8,7 +8,8 @@ enum BaseModemCMDBit {
     CMD_BIT_IS_CHECK = 0,
     CMD_BIT_IS_SET,
     CMD_BIT_QUOTATIONS,
-    CMD_BIT_SEMICOLON
+    CMD_BIT_SEMICOLON,
+    CMD_BIT_EXTRA_TRIGGER
 };
 
 struct BaseModemCMD
@@ -50,8 +51,19 @@ public:
         return getBitFromByte(descriptorByte, CMD_BIT_SEMICOLON);
     }
     void EndSemicolon(bool value) {
-        setBitsValue(&descriptorByte, value, 1, CMD_BIT_SEMICOLON);
+        setBitsValue(&descriptorByte, value, 1, CMD_BIT_EXTRA_TRIGGER);
+    }
+    bool ExtraTrigger() {
+        return getBitFromByte(descriptorByte, CMD_BIT_EXTRA_TRIGGER);
+    }
+    void ExtraTrigger(bool value) {
+        setBitsValue(&descriptorByte, value, 1, CMD_BIT_EXTRA_TRIGGER);
     }
 
     virtual void WriteStream(Print *stream) { };
+
+    virtual char * ExtraTriggerValue()
+    { 
+        return NULL;
+    };
 };

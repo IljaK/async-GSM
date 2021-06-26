@@ -82,9 +82,8 @@ enum GSM_NETWORK_TYPE {
 
 enum GSM_INIT_STATE {
     GSM_STATE_NONE,
-    GSM_STATE_PRE_CONFIG,
     GSM_STATE_PIN,
-    GSM_STATE_POST_CONFIG,
+    GSM_STATE_CONFIG,
     GSM_STATE_WAIT_CREG,
     GSM_STATE_READY,
     GSM_STATE_ERROR
@@ -114,7 +113,7 @@ public:
     virtual void OnGSMQuality(uint8_t strength, uint8_t quality) = 0;
     virtual void OnGSMNetworkType(GSM_NETWORK_TYPE type) = 0;
     virtual void OnGSMThresold(GSM_THRESOLD_STATE type) = 0;
-    virtual bool OnSMSSendStream(Stream *smsStream) = 0;
+    virtual bool OnSMSSendStream(Print *smsStream) = 0;
     virtual void OnSMSReceive(IncomingSMSData *smsData) = 0;
 };
 

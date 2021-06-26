@@ -15,11 +15,12 @@ void BaseGSMHandler::StartModem(bool restart, unsigned long baudRate)
         debugPrint->println(F("StartModem"));
     }
     OnModemReboot();
-    Flush();
     this->baudRate = baudRate;
     modemBootState = MODEM_BOOT_RESET;
 
     ((Uart *)serial)->end();
+    delay(10);
+    Flush();
     ((Uart *)serial)->begin(baudRate > MODEM_MAX_AUTO_BAUD_RATE ? MODEM_MAX_AUTO_BAUD_RATE : baudRate);
 
 #ifdef GSM_RESETN
@@ -83,17 +84,6 @@ bool BaseGSMHandler::ForceCommand(BaseModemCMD *cmd)
         delete cmd;
         return false;
     }
-    /*
-    debugPrint->print("Stack: ");
-    for (size_t i = 0; i < commandStack.Size(); i++) {
-        ModemCommand *cmd = commandStack.Peek(i);
-        if (cmd != NULL) {
-            debugPrint->print(cmd->command);
-            debugPrint->print(" ");
-        }
-    }
-    debugPrint->println("");
-    */
     return true;
 }
 
@@ -129,11 +119,8 @@ void BaseGSMHandler::OnGSMResponseInternal(BaseModemCMD *cmd, char * response, s
     case MODEM_BOOT_COMPLETED:
         if (cmd != NULL) {
             OnGSMResponse(cmd, response, respLen, type);
-            if (type >= MODEM_RESPONSE_OK) {
-                delete cmd;
-            }
         }
-        break;
+        return;
     case MODEM_BOOT_CONNECTING:
         if (type == MODEM_RESPONSE_OK) {
             if (debugPrint != NULL) {
@@ -148,19 +135,14 @@ void BaseGSMHandler::OnGSMResponseInternal(BaseModemCMD *cmd, char * response, s
                 }
                 modemBootState = MODEM_BOOT_SPEED_CHAGE;
                 Send(new ULongModemCMD(baudRate, GSM_MODEM_SPEED_CMD, MODEM_COMMAND_TIMEOUT));
-                //char baud[32];
-                //snprintf(baud, 32, "%ld", baudRate);
-                //Sendf(GSM_MODEM_SPEED_CMD, MODEM_COMMAND_TIMEOUT, false, true, baud, false, false);
             } else {
-
                 if (debugPrint != NULL) {
                     debugPrint->println(F("MODEM_BOOT_COMPLETED"));
                 }
                 modemBootState = MODEM_BOOT_COMPLETED;
                 OnModemBooted();
             }
-        } else {
-            // TODO: Resend AT?
+        } else if (type == MODEM_RESPONSE_TIMEOUT) {
             FlushIncoming();
             Send(new BaseModemCMD(NULL, MODEM_BOOT_COMMAND_TIMEOUT));
         }
@@ -173,6 +155,7 @@ void BaseGSMHandler::OnGSMResponseInternal(BaseModemCMD *cmd, char * response, s
             }
             modemBootState = MODEM_BOOT_RECONNECTING;
             ((Uart *)serial)->end();
+            delay(10);
             ResetBuffer();
             ((Uart *)serial)->begin(baudRate);
             Timer::Stop(connectionTimer);
@@ -181,7 +164,6 @@ void BaseGSMHandler::OnGSMResponseInternal(BaseModemCMD *cmd, char * response, s
         } else {
             // TODO: ?
         }
-
         break;
     case MODEM_BOOT_RECONNECTING:
         if (type == MODEM_RESPONSE_OK) {
@@ -192,7 +174,7 @@ void BaseGSMHandler::OnGSMResponseInternal(BaseModemCMD *cmd, char * response, s
             Timer::Stop(connectionTimer);
             modemBootState = MODEM_BOOT_COMPLETED;
             OnModemBooted();
-        } else {
+        } else if (type == MODEM_RESPONSE_TIMEOUT) {
             FlushIncoming();
             Send(new BaseModemCMD(NULL, MODEM_BOOT_COMMAND_TIMEOUT));
         }
@@ -224,6 +206,9 @@ void BaseGSMHandler::OnTimerStop(TimerID timerId, uint8_t data)
 
 void BaseGSMHandler::Flush()
 {
+    if (eventBufferTimeout != 0) {
+        Timer::Stop(eventBufferTimeout);
+    }
     if (pendingCMD != NULL) {
         delete pendingCMD;
         pendingCMD = NULL;
