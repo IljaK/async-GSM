@@ -31,4 +31,6 @@ public:
     GPRSHandler *GetGprsHandler();
     GSMNetworkHandler *GetGsmHandler();
     GSMSocketHandler * GetSocketHandler();
+
+    BaseModemCMD *GetPendingCMD();
 };
