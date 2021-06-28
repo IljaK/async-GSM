@@ -32,7 +32,6 @@ bool GSMCallHandler::OnGSMEvent(char * data, size_t dataLen)
         callState = (VOICE_CALLSTATE)status;
         if (callState == VOICE_CALL_STATE_INCOMING) {
             // Request number
-            //if (!gsmHandler->ForceCommand("AT+CLCC")) {
             if (!gsmHandler->ForceCommand(new BaseModemCMD(GSM_CALL_STATE_CMD))) {
                 callStateHandler->HandleCallState(callState);
             }
@@ -90,7 +89,6 @@ void GSMCallHandler::SetCallStateHandler(IGSMCallHandler* callStateHandler)
 
 void GSMCallHandler::HangCall()
 {
-    //gsmHandler->ForceCommand("ATH");
     gsmHandler->ForceCommand(new BaseModemCMD(GSM_CALL_HANGUP_CMD));
 }
 

@@ -26,6 +26,6 @@ struct SMSSendModemCMD: public BaseModemCMD
     }
 
     char *ExtraTriggerValue() override {
-        return "> ";
+        return (char*)"> ";
     }
 };

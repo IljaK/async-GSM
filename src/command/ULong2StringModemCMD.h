@@ -3,12 +3,14 @@
 
 struct ULong2StringModemCMD: public ULong2ModemCMD
 {
-    char *valueData3;
+    char *valueData3 = NULL;
 
     ULong2StringModemCMD(unsigned long valueData, unsigned long valueData2, char *valueData3, const char *cmd, unsigned long timeout = MODEM_COMMAND_TIMEOUT):
         ULong2ModemCMD(valueData, valueData2, cmd, timeout) {
-            this->valueData3 = (char *)malloc(strlen(valueData3) + 1);
-            strcpy(this->valueData3, valueData3);
+            if (valueData3 != NULL && valueData3[0] != 0) {
+                this->valueData3 = (char *)malloc(strlen(valueData3) + 1);
+                strcpy(this->valueData3, valueData3);
+            }
     }
 
     virtual ~ULong2StringModemCMD() {

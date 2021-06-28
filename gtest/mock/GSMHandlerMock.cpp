@@ -89,3 +89,8 @@ GSMSocketHandler * GSMHandlerMock::GetSocketHandler()
 {
     return &socketHandler;
 }
+
+BaseModemCMD *GSMHandlerMock::GetPendingCMD()
+{
+    return pendingCMD;
+}
