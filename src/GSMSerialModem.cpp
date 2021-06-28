@@ -35,7 +35,6 @@ void GSMSerialModem::OnResponseReceived(bool IsTimeOut, bool isOverFlow)
         debugPrint->println(remainRam());
     }
 
-
     if (pendingCMD != NULL) {
         MODEM_RESPONSE_TYPE type = MODEM_RESPONSE_DATA;
         BaseModemCMD *cmd = pendingCMD;

@@ -29,7 +29,6 @@ void GSMNetworkHandler::Connect(const char *simPin)
     this->simPin = simPin;
     gsmStats.regState = GSM_REG_STATE_UNKNOWN;
     initState = GSM_STATE_PIN;
-    //gsmHandler->ForceCommand(new ByteModemCMD(1, GSM_CMD_NETWORK_REG));
     gsmHandler->ForceCommand(new BaseModemCMD(GSM_SIM_PIN_CMD, MODEM_COMMAND_TIMEOUT, true));
 }
 
@@ -88,9 +87,6 @@ bool GSMNetworkHandler::OnGSMEvent(char * data, size_t dataLen)
 		    gsmStats.regState = (GSM_REG_STATE)atoi(cregArgs[1]);
         }
 
-        //Serial.print("regState: ");
-        //Serial.println((int)gsmStats.regState);
-        
         switch (gsmStats.regState) {
             case GSM_REG_STATE_CONNECTING_HOME:
             case GSM_REG_CONNECTED_HOME:
@@ -144,12 +140,6 @@ bool GSMNetworkHandler::OnGSMEvent(char * data, size_t dataLen)
 
 bool GSMNetworkHandler::OnGSMResponse(BaseModemCMD *request, char *response, size_t respLen, MODEM_RESPONSE_TYPE type)
 {
-
-    //Serial.print("GSMNetworkHandler::OnGSMResponse [");
-    //Serial.print(response);
-    //Serial.print("] ");
-    //Serial.println(result);
-
     if (strcmp(request->cmd, GSM_SIM_PIN_CMD) == 0) {
         if (request->IsCheck()) {
             PinModemCMD *pinCMD = (PinModemCMD *)request;
@@ -197,7 +187,6 @@ bool GSMNetworkHandler::OnGSMResponse(BaseModemCMD *request, char *response, siz
             // TODO:
         } else {
             if (type == MODEM_RESPONSE_OK) {
-                //gsmHandler->ForceCommand(new BaseModemCMD(GSM_SIM_PIN_CMD, MODEM_COMMAND_TIMEOUT, true));
                 gsmHandler->ForceCommand(new ByteModemCMD(2, GSM_TEMP_THRESOLD_CMD));
             } else {
                 // Check again or return failed to load?
