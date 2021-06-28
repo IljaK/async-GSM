@@ -35,17 +35,10 @@ private:
                 msz.data[i] = data2[i - length];
             }
         }
-
-        Serial.print("GetLength: ");
-        Serial.println((uint32_t)msz.l);
         return msz.l;
     }
 
     size_t AppendToItem(SocketMessage *item , uint8_t * data, size_t length) {
-
-        Serial.print("SocketMessageBuffer::AppendToItem ");
-        Serial.println(length);
-
         // TODO: fetch item size from buffer
         if (item->size == 0) {
             // We havent received enough data for length

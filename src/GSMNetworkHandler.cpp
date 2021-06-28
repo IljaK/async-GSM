@@ -368,11 +368,11 @@ bool GSMNetworkHandler::IsSimUnlocked()
     return isSimUnlocked;
 }
 
-unsigned long GSMNetworkHandler::GetUTCTime()
+time_t GSMNetworkHandler::GetUTCTime()
 {
     return GetLocalTime() - timeZone;
 }
-unsigned long GSMNetworkHandler::GetLocalTime()
+time_t GSMNetworkHandler::GetLocalTime()
 {
     if (currentTime == 0) return 0;
     unsigned long syncDelta = (millis() - syncTS) / 1000ul;

@@ -91,8 +91,8 @@ enum GSM_INIT_STATE {
 
 struct IncomingSMSData {
     char *sender = NULL;
-    uint32_t utcTime = 0;
-    uint32_t timeZone = 0;
+    time_t utcTime = 0;
+    time_t timeZone = 0;
     char *message = NULL;
 };
 
@@ -156,8 +156,8 @@ public:
     bool IsInitialized();
     bool IsSimUnlocked();
 
-    unsigned long GetUTCTime();
-    unsigned long GetLocalTime();
+    time_t GetUTCTime();
+    time_t GetLocalTime();
 
     GSMNetworkStats *GetGSMStats();
 
