@@ -63,7 +63,7 @@ void BaseGSMHandler::StartModem(bool restart, unsigned long baudRate)
 
 bool BaseGSMHandler::AddCommand(BaseModemCMD *cmd)
 {
-    if (!commandStack.Append(cmd)) {
+    if (!IsBooted() || !commandStack.Append(cmd)) {
         if (debugPrint != NULL) {
             debugPrint->print(F("AddCommand FAIL! "));
             debugPrint->println(cmd->cmd);
@@ -76,7 +76,7 @@ bool BaseGSMHandler::AddCommand(BaseModemCMD *cmd)
 
 bool BaseGSMHandler::ForceCommand(BaseModemCMD *cmd)
 {
-    if (!commandStack.Insert(cmd, 0)) {
+    if (!IsBooted() || !commandStack.Insert(cmd, 0)) {
         if (debugPrint != NULL) {
             debugPrint->print(F("ForceCommand FAIL! "));
             debugPrint->println(cmd->cmd);
@@ -220,4 +220,9 @@ void BaseGSMHandler::Flush()
 Stream *BaseGSMHandler::GetModemStream()
 {
     return serial;
+}
+
+bool BaseGSMHandler::IsBooted()
+{
+    return modemBootState == MODEM_BOOT_COMPLETED;
 }

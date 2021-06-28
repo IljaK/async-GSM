@@ -89,11 +89,10 @@ enum GSM_INIT_STATE {
     GSM_STATE_ERROR
 };
 
-struct IncomingSMSData {
+struct IncomingSMSInfo {
     char *sender = NULL;
     time_t utcTime = 0;
     time_t timeZone = 0;
-    char *message = NULL;
 };
 
 struct GSMNetworkStats {
@@ -114,7 +113,7 @@ public:
     virtual void OnGSMNetworkType(GSM_NETWORK_TYPE type) = 0;
     virtual void OnGSMThresold(GSM_THRESOLD_STATE type) = 0;
     virtual bool OnSMSSendStream(Print *smsStream) = 0;
-    virtual void OnSMSReceive(IncomingSMSData *smsData) = 0;
+    virtual void OnSMSReceive(IncomingSMSInfo *smsInfo, char *message, size_t messageLen) = 0;
 };
 
 class GSMNetworkHandler: public GSMCallHandler
@@ -132,11 +131,12 @@ private:
     TimerID gsmTimer = 0;
 
     IGSMNetworkHandler *listener = NULL;
-    IncomingSMSData *incomingSms = NULL;
+    IncomingSMSInfo *incomingSms = NULL;
 
     void TriggerCommand();
     void IncreaseState();
     void FetchTime();
+    inline void FlushIncomingSMS();
 
 public:
     GSMNetworkHandler(BaseGSMHandler *gsmHandler);

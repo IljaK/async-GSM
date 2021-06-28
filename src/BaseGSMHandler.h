@@ -73,4 +73,6 @@ public:
 
     void Loop() override;
     void Flush();
+
+    bool IsBooted();
 };

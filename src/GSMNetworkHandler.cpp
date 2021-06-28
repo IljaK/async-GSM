@@ -36,16 +36,10 @@ void GSMNetworkHandler::Connect(const char *simPin)
 bool GSMNetworkHandler::OnGSMEvent(char * data, size_t dataLen)
 {
     if (incomingSms != NULL) {
-        incomingSms->message = data;
         if (listener != NULL) {
-            listener->OnSMSReceive(incomingSms);
+            listener->OnSMSReceive(incomingSms, data, dataLen);
         }
-        if (incomingSms->sender != NULL) {
-            free(incomingSms->sender);
-            incomingSms->sender = NULL;
-        }
-        delete incomingSms;
-        incomingSms = NULL;
+        FlushIncomingSMS();
         // We got sms data?
         return true;
     }
@@ -58,7 +52,7 @@ bool GSMNetworkHandler::OnGSMEvent(char * data, size_t dataLen)
         SplitString(cmt, ',', cmtArgs, 2, false);
         ShiftQuotations(cmtArgs, 3);
 
-        incomingSms = new IncomingSMSData();
+        incomingSms = new IncomingSMSInfo();
         incomingSms->sender = (char *)malloc(strlen(cmtArgs[0]) + 1);
         strcpy(incomingSms->sender, cmtArgs[0]);
         tm smsTime;
@@ -398,6 +392,12 @@ void GSMNetworkHandler::OnModemReboot()
     gsmStats.signalQuality = 0;
     Timer::Stop(gsmTimer);
 
+    FlushIncomingSMS();
+    GSMCallHandler::OnModemReboot();
+}
+
+void GSMNetworkHandler::FlushIncomingSMS()
+{
     if (incomingSms != NULL) {
         if (incomingSms->sender != NULL) {
             free(incomingSms->sender);
@@ -405,5 +405,4 @@ void GSMNetworkHandler::OnModemReboot()
         delete incomingSms;
         incomingSms = NULL;
     }
-    GSMCallHandler::OnModemReboot();
 }
