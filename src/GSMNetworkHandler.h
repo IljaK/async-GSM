@@ -129,7 +129,7 @@ private:
     GSMNetworkStats gsmStats;
 
     bool isSimUnlocked = false;
-    TimerID delayedRequest = 0;
+    TimerID gsmTimer = 0;
 
     IGSMNetworkHandler *listener = NULL;
     IncomingSMSData *incomingSms = NULL;

@@ -29,6 +29,7 @@ void GSMNetworkHandler::Connect(const char *simPin)
     this->simPin = simPin;
     gsmStats.regState = GSM_REG_STATE_UNKNOWN;
     initState = GSM_STATE_PIN;
+    gsmTimer = Timer::Start(this, GSM_MODEM_CONNECTION_TIME, 0);
     //gsmHandler->ForceCommand(new ByteModemCMD(1, GSM_CMD_NETWORK_REG));
     gsmHandler->ForceCommand(new BaseModemCMD(GSM_SIM_PIN_CMD, MODEM_COMMAND_TIMEOUT, true));
 }
@@ -340,21 +341,27 @@ bool GSMNetworkHandler::OnGSMResponse(BaseModemCMD *request, char *response, siz
 
 void GSMNetworkHandler::OnTimerComplete(TimerID timerId, uint8_t data)
 {
-    if (timerId == delayedRequest) {
-        delayedRequest = 0;
-        FetchTime();
+    if (timerId == gsmTimer) {
+        gsmTimer = 0;
+        if (data == 0) {
+            if (listener != NULL) {
+                listener->OnGSMFailed(GSM_PIN_STATE_UNKNOWN);
+            }
+        } else {
+            FetchTime();
+        }
     }
 }
 void GSMNetworkHandler::OnTimerStop(TimerID timerId, uint8_t data)
 {
-    if (timerId == delayedRequest) {
-        delayedRequest = 0;
+    if (timerId == gsmTimer) {
+        gsmTimer = 0;
     }
 }
 
 void GSMNetworkHandler::FetchTime() {
-    Timer::Stop(delayedRequest);
-    delayedRequest = Timer::Start(this, QUALITY_CHECK_DURATION, 1u);
+    Timer::Stop(gsmTimer);
+    gsmTimer = Timer::Start(this, QUALITY_CHECK_DURATION, 1u);
     //gsmHandler->AddCommand("AT+CCLK?");  // Sync time
     //gsmHandler->AddCommand("AT+CSQ");    // Get signal quality
     //gsmHandler->AddCommand("AT+UTEMP?", 5000000ul);  // Get temperature;
@@ -400,7 +407,7 @@ void GSMNetworkHandler::OnModemReboot()
     gsmStats.thresoldState = GSM_THRESOLD_T;
     gsmStats.signalStrength = 0;
     gsmStats.signalQuality = 0;
-    Timer::Stop(delayedRequest);
+    Timer::Stop(gsmTimer);
 
     if (incomingSms != NULL) {
         if (incomingSms->sender != NULL) {

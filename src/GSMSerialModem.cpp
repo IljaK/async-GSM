@@ -157,11 +157,12 @@ void GSMSerialModem::SetDebugPrint(Print *debugPrint)
 }
 void GSMSerialModem::FlushIncoming()
 {
+    StopTimeoutTimer();
     if (pendingCMD != NULL) {
         delete pendingCMD;
         pendingCMD = NULL;
     }
-    while (serial->available()>0) {
+    while (serial->available() > 0) {
         serial->read();
     }
     ResetBuffer();
