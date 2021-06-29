@@ -1,4 +1,5 @@
 #include "GSMUtils.h"
+#include <Arduino.h>
 
 
 bool GetAddr(char *addr, IPAddr * ip) {
@@ -21,6 +22,10 @@ bool GetAddr(char *addr, IPAddr * ip) {
             ip->octet[octetIndex] = atoi(octet);
             octetIndex++;
         } else if (octetCharIndex >= 4) {
+            ip->dword = 0;
+            return false;
+        } else if (!isDigit(addr[i])) {
+            ip->dword = 0;
             return false;
         } else {
             octet[octetCharIndex] = addr[i];

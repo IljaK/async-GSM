@@ -1,4 +1,5 @@
 #include "GSMCallHandler.h"
+#include "common/GSMUtils.h"
 
 GSMCallHandler::GSMCallHandler(BaseGSMHandler *gsmHandler)
 {
@@ -11,14 +12,14 @@ GSMCallHandler::~GSMCallHandler()
 
 bool GSMCallHandler::OnGSMEvent(char * data, size_t dataLen)
 {
-    if (strncmp(data, GSM_CALL_DTMF_CMD, strlen(GSM_CALL_DTMF_CMD)) == 0) {
+    if (IsEvent(GSM_CALL_DTMF_CMD, data, dataLen)) {
         if (callStateHandler != NULL) {
             char *pCode = data + strlen(GSM_CALL_DTMF_CMD) + 2;
             callStateHandler->OnDTMF(pCode[0]);
         }
         return true;
     }
-    if (strncmp(data, GSM_CALL_STATE_TRIGGER, strlen(GSM_CALL_STATE_TRIGGER)) == 0) {
+    if (IsEvent(GSM_CALL_STATE_TRIGGER, data, dataLen)) {
         // Outgoing: 2->3->0->6
         // 0 = accepted ongoing call
         // Incoming:

@@ -66,6 +66,7 @@ public:
     GSM_SOCKET_SSL SSLType();
 
     bool Connect(char *ip, uint16_t port, bool keepAlive = false, GSM_SOCKET_SSL sslType = GSM_SOCKET_SSL_DISABLE);
+    bool Connect(IPAddr ip, uint16_t port, bool keepAlive = false, GSM_SOCKET_SSL sslType = GSM_SOCKET_SSL_DISABLE);
     bool Close();
 
     bool StartListen(uint16_t port);

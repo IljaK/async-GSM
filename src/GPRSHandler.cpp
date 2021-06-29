@@ -135,7 +135,7 @@ bool GPRSHandler::OnGSMResponse(BaseModemCMD *request, char * response, size_t r
                     checkTimer = Timer::Start(this, APN_STATUS_CHECK_DELAY);
                 }
             } else if (upsnd->valueData2 == UPSDN_SETTING_IP) { // ADDR
-                GetAddr(upsndRespArgs[2], &deviceAddr);
+                GetAddr(ShiftQuotations(upsndRespArgs[2]), &deviceAddr);
             }
         }
         else if (type > MODEM_RESPONSE_OK) {
@@ -193,7 +193,7 @@ bool GPRSHandler::OnGSMResponse(BaseModemCMD *request, char * response, size_t r
 }
 bool GPRSHandler::OnGSMEvent(char * data, size_t dataLen)
 {
-    if (strncmp(data, GSM_APN_DEACTIVATED_EVENT, strlen(GSM_APN_DEACTIVATED_EVENT)) == 0) {
+    if (IsEvent(GSM_APN_DEACTIVATED_EVENT, data, dataLen)) {
         apnState = GSM_APN_DEACTIVATING;
         gsmHandler->ForceCommand(new ByteModemCMD(0, GSM_GPRS_CMD, APN_CONNECT_CMD_TIMEOUT));
         return true;
@@ -250,7 +250,7 @@ bool GPRSHandler::IsActive()
 
 IPAddr GPRSHandler::GetDeviceAddr()
 {
-    return IPAddr(deviceAddr);
+    return deviceAddr;
 }
 void GPRSHandler::OnModemReboot()
 {

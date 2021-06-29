@@ -49,12 +49,22 @@ bool GSMSocket::Connect(char *ip, uint16_t port, bool keepAlive, GSM_SOCKET_SSL 
     if (state != GSM_SOCKET_STATE_DISCONNECTED) {
         return false;
     }
+    
+    GetAddr(ip, &this->ip);
+
+    return Connect(this->ip, port, keepAlive, sslType);
+}
+
+bool GSMSocket::Connect(IPAddr ip, uint16_t port, bool keepAlive, GSM_SOCKET_SSL sslType)
+{
+    if (state != GSM_SOCKET_STATE_DISCONNECTED) {
+        return false;
+    }
     state = GSM_SOCKET_STATE_CONNECTING;
     this->keepAlive = keepAlive;
     this->sslType = sslType;
     this->port = port;
-
-    GetAddr(ip, &this->ip);
+    this->ip = ip;
 
     if (keepAlive) {
         return socketHandler->SetKeepAlive(this);

@@ -9,3 +9,12 @@ union IPAddr {
 };
 
 extern bool GetAddr(char *addr, IPAddr * ip);
+
+inline bool IsEvent(const char *evName, char *data, size_t dataLen)
+{
+    const size_t evLen = strlen(evName);
+    if (evLen >= dataLen) {
+        return false;
+    }
+    return strncmp(data, evName, evLen) == 0 && data[evLen] == ':';
+}

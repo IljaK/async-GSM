@@ -1,3 +1,4 @@
+#pragma once
 #include "BaseModemCMD.h"
 #include <cstring>
 

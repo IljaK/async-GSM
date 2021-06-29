@@ -5,6 +5,8 @@
 #include "command/ByteModemCMD.h"
 #include "command/ULong2ModemCMD.h"
 #include "command/SMSSendModemCMD.h"
+#include "command/PinModemCMD.h"
+#include "common/GSMUtils.h"
 
 GSMNetworkHandler::GSMNetworkHandler(BaseGSMHandler *gsmHandler):GSMCallHandler(gsmHandler)
 {
@@ -45,7 +47,7 @@ bool GSMNetworkHandler::OnGSMEvent(char * data, size_t dataLen)
     }
     // Handle +CREG?
 
-    if (strncmp(data, GSM_SMS_EVENT, strlen(GSM_SMS_EVENT)) == 0 && data[strlen(GSM_SMS_EVENT)] == ':') {
+    if (IsEvent(GSM_SMS_EVENT, data, dataLen)) {
         // +CMT: "+393475234652",,"14/11/21,11:58:23+01"
         char *cmt = data + strlen(GSM_SMS_EVENT) + 2;
 		char *cmtArgs[3];
@@ -69,7 +71,7 @@ bool GSMNetworkHandler::OnGSMEvent(char * data, size_t dataLen)
         }
         return true;
     }
-    if (strncmp(data, GSM_CMD_NETWORK_REG, strlen(GSM_CMD_NETWORK_REG)) == 0) {
+    if (IsEvent(GSM_CMD_NETWORK_REG, data, dataLen)) {
 
         char *creg = data + strlen(GSM_CMD_NETWORK_REG) + 2;
 		char *cregArgs[2];
@@ -95,7 +97,9 @@ bool GSMNetworkHandler::OnGSMEvent(char * data, size_t dataLen)
                 if (initState < GSM_STATE_READY && initState > GSM_STATE_NONE) {
                     FetchTime();
                     initState = GSM_STATE_READY;
-                    listener->OnGSMConnected();
+                    if (listener != NULL) {
+                        listener->OnGSMConnected();
+                    }
                 }
                 if (listener != NULL) {
                     listener->OnGSMStatus(gsmStats.regState);
@@ -110,15 +114,15 @@ bool GSMNetworkHandler::OnGSMEvent(char * data, size_t dataLen)
         }
         return true;
     }
-    if (strncmp(data, GSM_NETWORK_TYPE_STATUS, strlen(GSM_NETWORK_TYPE_STATUS)) == 0) {
-        char *ureg = data + strlen(GSM_CMD_NETWORK_REG) + 2;
+    if (IsEvent(GSM_NETWORK_TYPE_STATUS, data, dataLen)) {
+        char *ureg = data + strlen(GSM_NETWORK_TYPE_STATUS) + 2;
         gsmStats.networkType = (GSM_NETWORK_TYPE)atoi(ureg);
         if (listener != NULL) {
             listener->OnGSMNetworkType(gsmStats.networkType);
         }
         return true;
     }
-    if (strncmp(data, GSM_TEMP_THRESOLD_EVENT, strlen(GSM_TEMP_THRESOLD_EVENT)) == 0) {
+    if (IsEvent(GSM_TEMP_THRESOLD_EVENT, data, dataLen)) {
         // GSM_TEMP_THRESOLD_EVENT
         char *uusts = data + strlen(GSM_TEMP_THRESOLD_EVENT) + 2;
 		char *uustsArgs[2];

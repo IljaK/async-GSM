@@ -16,6 +16,8 @@ struct ByteCharModemCMD: public CharModemCMD
     void WriteStream(Print *stream) override {
         stream->print(data);
         stream->print(',');
+        stream->write('"');
         CharModemCMD::WriteStream(stream);
+        stream->write('"');
     }
 };

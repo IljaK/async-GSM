@@ -14,14 +14,14 @@ void BaseGSMHandler::StartModem(bool restart, unsigned long baudRate)
     if (debugPrint != NULL) {
         debugPrint->println(F("StartModem"));
     }
+    modemBootState = MODEM_BOOT_RESET;
     OnModemReboot();
     this->baudRate = baudRate;
-    modemBootState = MODEM_BOOT_RESET;
 
     ((Uart *)serial)->end();
     delay(10);
-    Flush();
     ((Uart *)serial)->begin(baudRate > MODEM_MAX_AUTO_BAUD_RATE ? MODEM_MAX_AUTO_BAUD_RATE : baudRate);
+    Flush();
 
 #ifdef GSM_RESETN
     pinMode(GSM_RESETN, OUTPUT);
