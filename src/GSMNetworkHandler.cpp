@@ -295,9 +295,9 @@ bool GSMNetworkHandler::OnGSMResponse(BaseModemCMD *request, char *response, siz
             currentTime = mktime(&now);
             syncTS = millis();
 
-            char *zPointer = strchr(response, '+');
+            char *zPointer = strchr(response + strlen(GSM_CMD_TIME) + 2, '+');
             if (zPointer == NULL) {
-                zPointer = strchr(response, '-');
+                zPointer = strchr(response + strlen(GSM_CMD_TIME) + 2, '-');
             }
             if (zPointer != NULL) {
                 timeZone = atoi(zPointer) * (15 * 60);
