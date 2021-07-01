@@ -31,6 +31,7 @@ void GSMNetworkHandler::Connect(const char *simPin)
     this->simPin = simPin;
     gsmStats.regState = GSM_REG_STATE_UNKNOWN;
     initState = GSM_STATE_PIN;
+    Timer::Stop(gsmTimer);
     gsmTimer = Timer::Start(this, GSM_MODEM_CONNECTION_TIME, 0);
     gsmHandler->ForceCommand(new BaseModemCMD(GSM_SIM_PIN_CMD, MODEM_COMMAND_TIMEOUT, true));
 }
