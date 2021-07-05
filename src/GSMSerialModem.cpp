@@ -83,9 +83,6 @@ void GSMSerialModem::Loop()
     } else if (prevBuffAmount != bufferLength) {
         Timer::Stop(eventBufferTimeout);
         if (bufferLength > 0) {
-            if (debugPrint != NULL) {
-                debugPrint->println("Start GSM_EVENT_BUFFER_TIMEOUT");
-            }
             eventBufferTimeout = Timer::Start(this, GSM_EVENT_BUFFER_TIMEOUT);
         }
     } else if (eventBufferTimeout != 0) {
@@ -171,9 +168,6 @@ void GSMSerialModem::OnTimerComplete(TimerID timerId, uint8_t data)
 {
     if (timerId == eventBufferTimeout) {
         eventBufferTimeout = 0;
-        if (debugPrint != NULL) {
-            debugPrint->println("OnTimerComplete GSM_EVENT_BUFFER_TIMEOUT");
-        }
         OnModemResponse(NULL, buffer, bufferLength, MODEM_RESPONSE_EVENT);
         ResetBuffer();
     } else {

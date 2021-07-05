@@ -2,7 +2,7 @@
 #include "stdint.h"
 #include <common/Util.h>
 
-constexpr unsigned long MODEM_COMMAND_TIMEOUT = 500000ul;
+constexpr unsigned long MODEM_COMMAND_TIMEOUT = 1000000ul;
 
 enum BaseModemCMDBit {
     CMD_BIT_IS_CHECK = 0,
@@ -15,10 +15,11 @@ enum BaseModemCMDBit {
 struct BaseModemCMD
 {
 protected:
+    const size_t cmdLen;
     uint8_t descriptorByte = 0;
 public:
     BaseModemCMD(const char *cmd, unsigned long timeout = MODEM_COMMAND_TIMEOUT, bool isCheck = false, bool isSet = false,
-        bool dataQuotations = false, bool semicolon = false):cmd(cmd) {
+        bool dataQuotations = false, bool semicolon = false):cmdLen(strlen(cmd)),cmd(cmd) {
             this->timeout = timeout;
             IsCheck(isCheck);
             IsSet(isSet);

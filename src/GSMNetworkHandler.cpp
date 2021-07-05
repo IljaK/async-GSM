@@ -33,7 +33,7 @@ void GSMNetworkHandler::Connect(const char *simPin)
     initState = GSM_STATE_PIN;
     Timer::Stop(gsmTimer);
     gsmTimer = Timer::Start(this, GSM_MODEM_CONNECTION_TIME, 0);
-    gsmHandler->ForceCommand(new BaseModemCMD(GSM_SIM_PIN_CMD, MODEM_COMMAND_TIMEOUT, true));
+    gsmHandler->ForceCommand(new PinStatusModemCMD(GSM_SIM_PIN_CMD, MODEM_COMMAND_TIMEOUT));
 }
 
 bool GSMNetworkHandler::OnGSMEvent(char * data, size_t dataLen)
@@ -142,23 +142,23 @@ bool GSMNetworkHandler::OnGSMResponse(BaseModemCMD *request, char *response, siz
 {
     if (strcmp(request->cmd, GSM_SIM_PIN_CMD) == 0) {
         if (request->IsCheck()) {
-            PinModemCMD *pinCMD = (PinModemCMD *)request;
+            PinStatusModemCMD *pinStatusCMD = (PinStatusModemCMD *)request;
             // AT+CPIN? confirmation
             // State should be changed on data read
             if (type == MODEM_RESPONSE_OK) {
-                if (pinCMD->pinState == GSM_PIN_STATE_SIM_PIN) {
+                if (pinStatusCMD->pinState == GSM_PIN_STATE_SIM_PIN) {
                     gsmHandler->ForceCommand(new CharModemCMD(simPin, GSM_SIM_PIN_CMD, MODEM_COMMAND_TIMEOUT, true));
                 } else if (listener != NULL) {
-                    listener->OnGSMFailed(pinCMD->pinState);
+                    listener->OnGSMFailed(pinStatusCMD->pinState);
                 }
             } else if (type == MODEM_RESPONSE_DATA) {
-                pinCMD->HandleDataContent(response, respLen);
+                pinStatusCMD->HandleDataContent(response, respLen);
             } else if (type > MODEM_RESPONSE_OK && type < MODEM_RESPONSE_TIMEOUT) {
                 // Resend cmd, pin module not ready
-                gsmHandler->ForceCommand(new BaseModemCMD(GSM_SIM_PIN_CMD, MODEM_COMMAND_TIMEOUT, true));
+                gsmHandler->ForceCommand(new PinStatusModemCMD(GSM_SIM_PIN_CMD, MODEM_COMMAND_TIMEOUT));
             } else if (type > MODEM_RESPONSE_TIMEOUT) {
                 if (listener != NULL) {
-                    listener->OnGSMFailed(pinCMD->pinState);
+                    listener->OnGSMFailed(pinStatusCMD->pinState);
                 }
             }
             return true;
