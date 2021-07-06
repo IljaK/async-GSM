@@ -137,6 +137,9 @@ private:
     void IncreaseState();
     void FetchTime();
     inline void FlushIncomingSMS();
+    inline void HandleSimUnlocked();
+    inline void UpdateCregResult();
+    inline GSM_REG_STATE GetCregState(char * data, size_t dataLen);
 
 public:
     GSMNetworkHandler(BaseGSMHandler *gsmHandler);

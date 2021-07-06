@@ -42,10 +42,7 @@ bool GSMCallHandler::OnGSMEvent(char * data, size_t dataLen)
                 callStateHandler->HandleCallState(callState);
             }
             if (callState == VOICE_CALL_STATE_DISCONNECTED || callState == VOICE_CALL_STATE_DISCONNECTED) {
-                if (callingNumber != NULL) {
-                    free(callingNumber);
-                    callingNumber = NULL;
-                }
+                callingNumber[0] = 0;
             }
         }
         return true;
@@ -63,12 +60,7 @@ bool GSMCallHandler::OnGSMResponse(BaseModemCMD *request, char * response, size_
 		// remove quotations
 		ShiftQuotations(clccArgs, len);
 
-        if (callingNumber != NULL) {
-            free(callingNumber);
-            callingNumber = NULL;
-        }
-
-        callingNumber = (char *)malloc(strlen(clccArgs[5]) + 1);
+        callingNumber[0] = 0;
         strcpy(callingNumber, clccArgs[5]);
 
         //bool isIncoming = atoi(clccArgs[1]) == 1;
@@ -99,8 +91,5 @@ char * GSMCallHandler::GetCallingNumber() {
 
 void GSMCallHandler::OnModemReboot()
 {
-    if (callingNumber != NULL) {
-        free(callingNumber);
-    }
     callState = VOICE_CALL_STATE_DISCONNECTED;
 }

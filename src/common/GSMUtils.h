@@ -5,7 +5,7 @@
 
 union IPAddr {
 	uint8_t octet[4];  // IPv4 address
-	uint32_t dword;
+	uint32_t dword = 0;
 };
 
 extern bool GetAddr(char *addr, IPAddr * ip);
