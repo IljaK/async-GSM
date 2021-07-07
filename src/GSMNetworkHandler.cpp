@@ -56,7 +56,6 @@ bool GSMNetworkHandler::OnGSMEvent(char * data, size_t dataLen)
         ShiftQuotations(cmtArgs, 3);
 
         incomingSms = new IncomingSMSInfo();
-        incomingSms->sender = (char *)malloc(strlen(cmtArgs[0]) + 1);
         strcpy(incomingSms->sender, cmtArgs[0]);
         tm smsTime;
         if (strptime(cmtArgs[2], "%y/%m/%d,%H:%M:%S", &smsTime) != NULL) {
@@ -130,10 +129,14 @@ bool GSMNetworkHandler::OnGSMResponse(BaseModemCMD *request, char *response, siz
             // AT+CPIN="" confirmation on pin insert
             if (type == MODEM_RESPONSE_OK) {
                 HandleSimUnlocked();
-            } else {
+            } else if (type == MODEM_RESPONSE_ERROR) {
                 isSimUnlocked = false;
                 if (listener != NULL) {
-                    listener->OnGSMFailed(GSM_PIN_STATE_SIM_PIN);
+                    isSimUnlocked = false;
+                }
+            } else if (type > MODEM_RESPONSE_ERROR) {
+                if (listener != NULL) {
+                    listener->OnGSMFailed(GSM_PIN_STATE_UNKNOWN);
                 }
             }
         }
@@ -149,7 +152,7 @@ bool GSMNetworkHandler::OnGSMResponse(BaseModemCMD *request, char *response, siz
                 switch (gsmStats.regState) {
                     case GSM_REG_STATE_CONNECTING_HOME:
                     case GSM_REG_STATE_CONNECTING_OTHER:
-                        // Connection in progress
+                        // Connection in progress, do nothing
                         break;
                     default:
                         UpdateCregResult();
@@ -350,7 +353,7 @@ void GSMNetworkHandler::UpdateCregResult()
         case GSM_REG_STATE_DENIED:
         case GSM_REG_STATE_UNKNOWN:
             if (listener != NULL) {
-                listener->OnGSMFailed(GSM_PIN_STATE_SIM_PIN);
+                listener->OnGSMFailed(GSM_PIN_STATE_READY);
             }
             break;
     }
@@ -433,9 +436,6 @@ void GSMNetworkHandler::OnModemReboot()
 void GSMNetworkHandler::FlushIncomingSMS()
 {
     if (incomingSms != NULL) {
-        if (incomingSms->sender != NULL) {
-            free(incomingSms->sender);
-        }
         delete incomingSms;
         incomingSms = NULL;
     }

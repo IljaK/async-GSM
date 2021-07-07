@@ -36,7 +36,7 @@ public:
 class GSMCallHandler: public IBaseGSMHandler, public ITimerCallback
 {
 private:
-    char callingNumber[20];
+    char callingNumber[MAX_PHONE_LENGTH];
     IGSMCallHandler *callStateHandler;
     VOICE_CALLSTATE callState = VOICE_CALL_STATE_DISCONNECTED;
 protected:

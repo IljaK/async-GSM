@@ -7,6 +7,7 @@
 #include "command/ULongModemCMD.h"
 
 #define OUT_MESSAGE_STACK_SIZE 12
+#define MAX_PHONE_LENGTH 20
 
 constexpr char GSM_MODEM_SPEED_CMD[] = "+IPR"; // AT+IPR=9600
 

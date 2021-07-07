@@ -90,7 +90,7 @@ enum GSM_INIT_STATE {
 };
 
 struct IncomingSMSInfo {
-    char *sender = NULL;
+    char sender[MAX_PHONE_LENGTH] = { 0 };
     time_t utcTime = 0;
     time_t timeZone = 0;
 };

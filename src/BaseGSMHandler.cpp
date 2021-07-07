@@ -11,6 +11,10 @@ BaseGSMHandler::~BaseGSMHandler()
 
 void BaseGSMHandler::StartModem(bool restart, unsigned long baudRate)
 {
+    if (modemBootState == MODEM_BOOT_RESET) {
+        return;
+    }
+
     if (debugPrint != NULL) {
         debugPrint->println(F("StartModem"));
     }

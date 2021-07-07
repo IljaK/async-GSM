@@ -19,6 +19,7 @@ struct SocketMessage{
 class SocketMessageBuffer: public StackArray<SocketMessage *> {
 
 private:
+    const size_t maxMessageSize;
     const uint8_t lengthBytes;
 
     uint64_t GetLength(uint8_t * data, size_t length, uint8_t * data2 = NULL, size_t length2 = 0) {
@@ -35,6 +36,10 @@ private:
                 msz.data[i] = data2[i - length];
             }
         }
+
+        //Serial.print("Message Length: ");
+        //Serial.println((uint32_t)msz.l);
+
         return msz.l;
     }
 
@@ -58,6 +63,9 @@ private:
                 }
                 return length;
             } else {
+                if (item->size >= maxMessageSize) {
+                    return 0;
+                }
                 if (item->data == NULL) {
                     // No data has been stored for length, but content has full of it
                     item->data = (uint8_t *)malloc(item->size);
@@ -141,8 +149,9 @@ public:
             free(item);
         }
     }
-    SocketMessageBuffer(const uint8_t lengthBytes, const size_t maxSize):
-        StackArray(maxSize),
+    SocketMessageBuffer(const uint8_t lengthBytes, const size_t maxArraySize, const size_t maxMessageSize = 256u):
+        StackArray(maxArraySize),
+        maxMessageSize(maxMessageSize),
         lengthBytes(lengthBytes) {
     }
 
