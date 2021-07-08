@@ -12,7 +12,7 @@ GSMNetworkHandler::GSMNetworkHandler(BaseGSMHandler *gsmHandler):GSMCallHandler(
 {
     gsmStats.regState = GSM_REG_STATE_UNKNOWN;
     gsmStats.networkType = GSM_NETWORK_UNKNOWN;
-    gsmStats.thresoldState = GSM_THRESOLD_T;
+    gsmStats.thresholdState = GSM_THRESHOLD_T;
     gsmStats.signalStrength = 0;
     gsmStats.signalQuality = 0;
 }
@@ -84,14 +84,18 @@ bool GSMNetworkHandler::OnGSMEvent(char * data, size_t dataLen)
         }
         return true;
     }
-    if (IsEvent(GSM_TEMP_THRESOLD_EVENT, data, dataLen)) {
-        // GSM_TEMP_THRESOLD_EVENT
-        char *uusts = data + strlen(GSM_TEMP_THRESOLD_EVENT) + 2;
+    if (IsEvent(GSM_TEMP_THRESHOLD_EVENT, data, dataLen)) {
+        // GSM_TEMP_THRESHOLD_EVENT
+        char *uusts = data + strlen(GSM_TEMP_THRESHOLD_EVENT) + 2;
 		char *uustsArgs[2];
         SplitString(uusts, ',', uustsArgs, 2, false);
-        gsmStats.thresoldState = (GSM_THRESOLD_STATE)atoi(uustsArgs[1]);
+        gsmStats.thresholdState = (GSM_THRESHOLD_STATE)atoi(uustsArgs[1]);
+
+        //Serial.print("Threshold state: ");
+        //Serial.println((int)gsmStats.thresholdState);
+
         if (listener != NULL) {
-            listener->OnGSMThresold(gsmStats.thresoldState);
+            listener->OnGSMThreshold(gsmStats.thresholdState);
         }
         return true;
     }
@@ -161,7 +165,7 @@ bool GSMNetworkHandler::OnGSMResponse(BaseModemCMD *request, char *response, siz
             }
         } else {
             if (type == MODEM_RESPONSE_OK) {
-                gsmHandler->ForceCommand(new ByteModemCMD(2, GSM_TEMP_THRESOLD_CMD));
+                gsmHandler->ForceCommand(new ByteModemCMD(2, GSM_TEMP_THRESHOLD_CMD));
             } else {
                 // Check again or return failed to load?
                 //gsmHandler->ForceCommand(new BaseModemCMD(GSM_CMD_NETWORK_REG, MODEM_COMMAND_TIMEOUT, true));
@@ -170,11 +174,31 @@ bool GSMNetworkHandler::OnGSMResponse(BaseModemCMD *request, char *response, siz
         return true;
     }
 
-    if (strcmp(request->cmd, GSM_TEMP_THRESOLD_CMD) == 0) {
+    if (strcmp(request->cmd, GSM_TEMP_THRESHOLD_CMD) == 0) {
         if (type == MODEM_RESPONSE_OK) {
-            gsmHandler->ForceCommand(new ByteModemCMD(1, GSM_CMD_SMS_FROMAT));
+            gsmHandler->ForceCommand(new ByteModemCMD(0, GSM_CMD_UTEMP));
         } else {
             // TODO: resend?
+        }
+        return true;
+    }
+
+    if (strcmp(request->cmd, GSM_CMD_UTEMP) == 0) {
+        if (request->IsCheck()) {
+            if (type == MODEM_RESPONSE_DATA) {
+                char* temp = response + strlen(GSM_CMD_UTEMP) + 2;
+                gsmStats.temperature = atoi(temp);
+                gsmStats.temperature /= 10;
+                //Serial.print("Temperature: ");
+                //Serial.print(gsmStats.temperature);
+                //Serial.println("C");
+            }
+        } else {
+            if (type == MODEM_RESPONSE_OK) {
+                gsmHandler->ForceCommand(new ByteModemCMD(1, GSM_CMD_SMS_FROMAT));
+            } else {
+                // TODO: resend?
+            }
         }
         return true;
     }
@@ -340,7 +364,7 @@ void GSMNetworkHandler::UpdateCregResult()
         case GSM_REG_STATE_CONNECTED_CSFB_NOT_HOME:
         case GSM_REG_STATE_CONNECTED_CSFB_NOT_ROAMING:
             if (initState < GSM_STATE_READY && initState > GSM_STATE_NONE) {
-                FetchTime();
+                FetchModemStats();
                 initState = GSM_STATE_READY;
                 if (listener != NULL) {
                     listener->OnGSMConnected();
@@ -368,7 +392,7 @@ void GSMNetworkHandler::OnTimerComplete(TimerID timerId, uint8_t data)
                 listener->OnGSMFailed(GSM_PIN_STATE_UNKNOWN);
             }
         } else {
-            FetchTime();
+            FetchModemStats();
         }
     }
 }
@@ -379,13 +403,11 @@ void GSMNetworkHandler::OnTimerStop(TimerID timerId, uint8_t data)
     }
 }
 
-void GSMNetworkHandler::FetchTime() {
+void GSMNetworkHandler::FetchModemStats() {
     Timer::Stop(gsmTimer);
     gsmTimer = Timer::Start(this, QUALITY_CHECK_DURATION, 1u);
-    //gsmHandler->AddCommand("AT+CCLK?");  // Sync time
-    //gsmHandler->AddCommand("AT+CSQ");    // Get signal quality
-    //gsmHandler->AddCommand("AT+UTEMP?", 5000000ul);  // Get temperature;
     gsmHandler->AddCommand(new BaseModemCMD(GSM_CMD_TIME, MODEM_COMMAND_TIMEOUT, true));
+    gsmHandler->AddCommand(new BaseModemCMD(GSM_CMD_UTEMP, MODEM_COMMAND_TIMEOUT, true));
     gsmHandler->AddCommand(new BaseModemCMD(GSM_CMD_NETWORK_QUALITY));
 }
 
@@ -424,7 +446,7 @@ void GSMNetworkHandler::OnModemReboot()
     initState = GSM_STATE_NONE;
     gsmStats.regState = GSM_REG_STATE_UNKNOWN;
     gsmStats.networkType = GSM_NETWORK_UNKNOWN;
-    gsmStats.thresoldState = GSM_THRESOLD_T;
+    gsmStats.thresholdState = GSM_THRESHOLD_T;
     gsmStats.signalStrength = 0;
     gsmStats.signalQuality = 0;
     Timer::Stop(gsmTimer);
