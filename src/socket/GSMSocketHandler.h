@@ -76,4 +76,5 @@ public:
     void OnModemReboot();
 
     GSMSocket * GetSocket(uint8_t socketId);
+    void PrintDebug(Print *stream);
 };

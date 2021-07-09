@@ -7,6 +7,7 @@
 #include "command/ULong4ModemCMD.h"
 #include "command/ByteShortModemCMD.h"
 #include "command/SocketWriteModemCMD.h"
+#include "command/SockeCreateModemCMD.h"
 
 GSMSocketHandler::GSMSocketHandler(BaseGSMHandler *gsmHandler)
 {
@@ -38,21 +39,34 @@ bool GSMSocketHandler::OnGSMResponse(BaseModemCMD *request, char * response, siz
 {
     // Create socket
     if (strcmp(request->cmd, GSM_SOCKET_CREATE_CMD) == 0) {
+        SockeCreateModemCMD *createSockSMD = (SockeCreateModemCMD *)request;
+
         if (type == MODEM_RESPONSE_DATA) {
             // +USOCR: 2
-            if (strncmp(response, GSM_SOCKET_CREATE_CMD, strlen(GSM_SOCKET_CREATE_CMD)) == 0) {
-                uint8_t sockeId = atoi(response + strlen(GSM_SOCKET_CREATE_CMD) + 2);
-                GSMSocket *sock = new GSMSocket(this, sockeId);
-                socketArray->Append(sock);
-                if (socketHandler != NULL) {
-                    socketHandler->OnSocketOpen(sock);
-                }
+            size_t minLen = strlen(GSM_SOCKET_CREATE_CMD) + 2;
+            if (respLen <= minLen) {
+                return true;
             }
-        } else if (type == MODEM_RESPONSE_OK) {
-            // Nothing to do here?
+            char *sockId = response + minLen;
+            size_t idLen = strlen(sockId);
+
+            if (idLen > 0 && idLen <= 2) {
+                createSockSMD->socketId = atoi(sockId);
+                GSMSocket *sock = new GSMSocket(this, createSockSMD->socketId);
+                socketArray->Append(sock);
+            }
         } else {
             if (socketHandler != NULL) {
-                socketHandler->OnSocketCreateError();
+                if (createSockSMD->socketId == 255) {
+                    socketHandler->OnSocketCreateError();
+                } else {
+                    GSMSocket *sock = GetSocket(createSockSMD->socketId);
+                    if (sock == NULL) {
+                        socketHandler->OnSocketCreateError();
+                    } else {
+                        socketHandler->OnSocketOpen(sock);
+                    }
+                }
             }
         }
         return true;
@@ -91,12 +105,13 @@ bool GSMSocketHandler::OnGSMResponse(BaseModemCMD *request, char * response, siz
                     return gsmHandler->AddCommand(new ULong4ModemCMD(sock->GetId(), 6u, 2u, 30000ul, GSM_SOCKET_CONFIG_CMD));
                 } else { // keepalive option
                     if (sock != NULL) {
-                        sock->OnKeepAliveConfirm(true);
+                        sock->OnKeepAliveConfirm();
                     }
                 }
             } else {
                 if (sock != NULL) {
-                    sock->OnKeepAliveConfirm(false);
+                    sock->Close();
+                    //sock->OnKeepAliveConfirm(false);
                 }
             }
         }
@@ -109,11 +124,12 @@ bool GSMSocketHandler::OnGSMResponse(BaseModemCMD *request, char * response, siz
             GSMSocket *sock = socketArray->PeekSocket(usosec->byteData);
             if (type == MODEM_RESPONSE_OK) {
                 if (sock != NULL) {
-                    sock->OnSSLConfirm(true);
+                    sock->OnSSLConfirm();
                 }
             } else {
                 if (sock != NULL) {
-                    sock->OnSSLConfirm(false);
+                    sock->Close();
+                    //sock->OnSSLConfirm(false);
                 }
             }
         }
@@ -138,7 +154,9 @@ bool GSMSocketHandler::OnGSMResponse(BaseModemCMD *request, char * response, siz
         } else if (type == MODEM_RESPONSE_OK) {
             // TODO: No need to handle next read, event +UUSORD will be triggered again if there is something left
         } else {
-            // TODO: Handle error?
+            if (sock != NULL) {
+                sock->Close();
+            }
         }
         return true;
     }
@@ -146,7 +164,9 @@ bool GSMSocketHandler::OnGSMResponse(BaseModemCMD *request, char * response, siz
         if (type == MODEM_RESPONSE_OK) {
             SendNextAvailableData();
         } else if (type > MODEM_RESPONSE_OK) {
-            // TODO: Error ?
+            SocketWriteModemCMD *writeCMD = (SocketWriteModemCMD *)request;
+            CloseSocket(writeCMD->socketId);
+            SendNextAvailableData();
         }
         return true;
     }
@@ -174,7 +194,7 @@ bool GSMSocketHandler::OnGSMResponse(BaseModemCMD *request, char * response, siz
 
 bool GSMSocketHandler::OnGSMEvent(char * data, size_t dataLen)
 {
-    if (strncmp(data, GSM_SOCKET_CONNECT_EVENT, strlen(GSM_SOCKET_CONNECT_EVENT)) == 0) {
+    if (IsEvent(GSM_SOCKET_CONNECT_EVENT, data, dataLen)) {
         char *uusoco = data + strlen(GSM_SOCKET_CONNECT_EVENT) + 2;
         char *uusocoData[2];
         SplitString(uusoco, ',', uusocoData, 2, false);
@@ -191,7 +211,7 @@ bool GSMSocketHandler::OnGSMEvent(char * data, size_t dataLen)
         // TODO: Error?
         return true;
     }
-    if (strncmp(data, GSM_SOCKET_CLOSE_EVENT, strlen(GSM_SOCKET_CLOSE_EVENT)) == 0) {
+    if (IsEvent(GSM_SOCKET_CLOSE_EVENT, data, dataLen)) {
         size_t pLen = strlen(GSM_SOCKET_CLOSE_EVENT) + 2;
         if (pLen >= dataLen) {
             return true;
@@ -207,7 +227,7 @@ bool GSMSocketHandler::OnGSMEvent(char * data, size_t dataLen)
         DestroySocket(socketId);
         return true;
     }
-    if (strncmp(data, GSM_SOCKET_READ_EVENT, strlen(GSM_SOCKET_READ_EVENT)) == 0) {
+    if (IsEvent(GSM_SOCKET_READ_EVENT, data, dataLen)) {
 
         char* uusord = data + strlen(GSM_SOCKET_READ_EVENT) + 2;
         char* uusordArgs[2];
@@ -231,7 +251,7 @@ bool GSMSocketHandler::CreateSocket()
     if (socketArray->Size() >= MAX_SOCKET_AMOUNT) {
         return false;
     }
-    return gsmHandler->AddCommand(new ByteModemCMD(6, GSM_SOCKET_CREATE_CMD, SOCKET_CMD_TIMEOUT));
+    return gsmHandler->AddCommand(new SockeCreateModemCMD(6, GSM_SOCKET_CREATE_CMD, SOCKET_CMD_TIMEOUT));
 }
 
 bool GSMSocketHandler::Connect(GSMSocket *sock)
@@ -363,4 +383,25 @@ void GSMSocketHandler::OnModemReboot()
 GSMSocket * GSMSocketHandler::GetSocket(uint8_t socketId)
 {
     return socketArray->PeekSocket(socketId);
+}
+
+
+void GSMSocketHandler::PrintDebug(Print *stream)
+{
+    stream->print(F("SH pendTR: "));
+    stream->print(pendingSockTransmission);
+    stream->print('\n');
+
+    stream->print(F("SH sock amount: "));
+    stream->print(socketArray->Size());
+
+    for (size_t i = 0; i < socketArray->Size(); i++)
+    {
+        stream->print('\n');
+        GSMSocket *sock = socketArray->Peek(i);
+        stream->print(F("SH sock: "));
+        stream->print(sock->GetId());
+        stream->print("->");
+        stream->print((int)sock->GetState());
+    }
 }

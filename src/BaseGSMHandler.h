@@ -76,4 +76,6 @@ public:
     void Flush();
 
     bool IsBooted();
+
+    unsigned long GetBaudRate();
 };

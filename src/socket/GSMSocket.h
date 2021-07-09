@@ -43,8 +43,8 @@ private:
     GSMSocketHandler * socketHandler = NULL;
 protected:
     ByteStackArray outgoingMessageStack;
-    void OnKeepAliveConfirm(bool isSuccess);
-    void OnSSLConfirm(bool isSuccess);
+    void OnKeepAliveConfirm();
+    void OnSSLConfirm();
     void OnConnectionConfirm(int error);
 
     friend class GSMSocketHandler;

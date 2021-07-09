@@ -114,7 +114,7 @@ public:
     virtual void OnGSMQuality(uint8_t strength, uint8_t quality) = 0;
     virtual void OnGSMNetworkType(GSM_NETWORK_TYPE type) = 0;
     virtual void OnGSMThreshold(GSM_THRESHOLD_STATE type) = 0;
-    virtual bool OnSMSSendStream(Print *smsStream) = 0;
+    virtual bool OnSMSSendStream(Print *smsStream, char *phoneNumber, uint8_t customData) = 0;
     virtual void OnSMSReceive(IncomingSMSInfo *smsInfo, char *message, size_t messageLen) = 0;
 };
 
@@ -147,7 +147,7 @@ public:
     GSMNetworkHandler(BaseGSMHandler *gsmHandler);
     virtual ~GSMNetworkHandler();
 
-    bool SendSMS(char *phone);
+    bool InitSendSMS(char *phone, uint8_t customData = 0);
 
     bool OnGSMResponse(BaseModemCMD *request, char * response, size_t respLen, MODEM_RESPONSE_TYPE type) override;
     bool OnGSMEvent(char * data, size_t dataLen) override;

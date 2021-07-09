@@ -166,9 +166,8 @@ bool GSMNetworkHandler::OnGSMResponse(BaseModemCMD *request, char *response, siz
         } else {
             if (type == MODEM_RESPONSE_OK) {
                 gsmHandler->ForceCommand(new ByteModemCMD(2, GSM_TEMP_THRESHOLD_CMD));
-            } else {
-                // Check again or return failed to load?
-                //gsmHandler->ForceCommand(new BaseModemCMD(GSM_CMD_NETWORK_REG, MODEM_COMMAND_TIMEOUT, true));
+            } else if (type >= MODEM_RESPONSE_ERROR) {
+                gsmHandler->StartModem(true, gsmHandler->GetBaudRate());
             }
         }
         return true;
@@ -177,8 +176,8 @@ bool GSMNetworkHandler::OnGSMResponse(BaseModemCMD *request, char *response, siz
     if (strcmp(request->cmd, GSM_TEMP_THRESHOLD_CMD) == 0) {
         if (type == MODEM_RESPONSE_OK) {
             gsmHandler->ForceCommand(new ByteModemCMD(0, GSM_CMD_UTEMP));
-        } else {
-            // TODO: resend?
+        } else if (type >= MODEM_RESPONSE_ERROR) {
+            gsmHandler->StartModem(true, gsmHandler->GetBaudRate());
         }
         return true;
     }
@@ -192,134 +191,146 @@ bool GSMNetworkHandler::OnGSMResponse(BaseModemCMD *request, char *response, siz
                 //Serial.print("Temperature: ");
                 //Serial.print(gsmStats.temperature);
                 //Serial.println("C");
+            } else if (type >= MODEM_RESPONSE_ERROR) {
+                gsmHandler->StartModem(true, gsmHandler->GetBaudRate());
             }
         } else {
             if (type == MODEM_RESPONSE_OK) {
                 gsmHandler->ForceCommand(new ByteModemCMD(1, GSM_CMD_SMS_FROMAT));
-            } else {
-                // TODO: resend?
+            } else if (type >= MODEM_RESPONSE_ERROR) {
+                gsmHandler->StartModem(true, gsmHandler->GetBaudRate());
             }
         }
         return true;
     }
-
     if (strcmp(request->cmd, GSM_CMD_SMS_FROMAT) == 0) {
         if (type == MODEM_RESPONSE_OK) {
             gsmHandler->ForceCommand(new CharModemCMD("2,2,0,0,0", GSM_CMD_SMS_INDICATION));
-        } else {
-            // TODO: resend?
+        } else if (type >= MODEM_RESPONSE_ERROR) {
+            gsmHandler->StartModem(true, gsmHandler->GetBaudRate());
         }
         return true;
     }
     if (strcmp(request->cmd, GSM_CMD_SMS_INDICATION) == 0) {
         if (type == MODEM_RESPONSE_OK) {
             gsmHandler->ForceCommand(new ULong2ModemCMD(1,1, GSM_CMD_HEX_MODE));
-        } else {
-            // TODO: resend?
+        } else if (type >= MODEM_RESPONSE_ERROR) {
+            gsmHandler->StartModem(true, gsmHandler->GetBaudRate());
         }
         return true;
     }
     if (strcmp(request->cmd, GSM_CMD_HEX_MODE) == 0) {
         if (type == MODEM_RESPONSE_OK) {
             gsmHandler->ForceCommand(new ByteModemCMD(1, GSM_CMD_TIME_ZONE));
-        } else {
-            // TODO: resend?
+        } else if (type >= MODEM_RESPONSE_ERROR) {
+            gsmHandler->StartModem(true, gsmHandler->GetBaudRate());
         }
         return true;
     }
     if (strcmp(request->cmd, GSM_CMD_TIME_ZONE) == 0) {
         if (type == MODEM_RESPONSE_OK) {
             gsmHandler->ForceCommand(new ULong2ModemCMD(1,2, GSM_CMD_DTFM));
-        } else {
-            // TODO: resend?
+        } else if (type >= MODEM_RESPONSE_ERROR) {
+            gsmHandler->StartModem(true, gsmHandler->GetBaudRate());
         }
         return true;
     }
     if (strcmp(request->cmd, GSM_CMD_DTFM) == 0) {
         if (type == MODEM_RESPONSE_OK) {
             gsmHandler->ForceCommand(new ByteModemCMD(1, GSM_NETWORK_TYPE_STATUS));
-        } else {
-            // TODO: resend?
+        }  else if (type >= MODEM_RESPONSE_ERROR) {
+            gsmHandler->StartModem(true, gsmHandler->GetBaudRate());
         }
         return true;
     }
     if (strcmp(request->cmd, GSM_NETWORK_TYPE_STATUS) == 0) {
         if (type == MODEM_RESPONSE_OK) {
             gsmHandler->ForceCommand(new ByteModemCMD(1, GSM_CMD_CALL_STATUS));
-        } else {
-            // TODO: resend?
+        }  else if (type >= MODEM_RESPONSE_ERROR) {
+            gsmHandler->StartModem(true, gsmHandler->GetBaudRate());
         }
         return true;
     }
     if (strcmp(request->cmd, GSM_CMD_CALL_STATUS) == 0) {
         if (type == MODEM_RESPONSE_OK) {
             initState = GSM_STATE_WAIT_CREG;
-            // TODO: Wait network redistration
+            // TODO: Wait network registration
             gsmHandler->ForceCommand(new BaseModemCMD(GSM_CMD_NETWORK_REG, MODEM_COMMAND_TIMEOUT, true));
-        } else {
-            // TODO: resend?
+        } else if (type >= MODEM_RESPONSE_ERROR) {
+            gsmHandler->StartModem(true, gsmHandler->GetBaudRate());
         }
         return true;
     }
 
-    if (strncmp(GSM_CMD_NETWORK_QUALITY, response, strlen(GSM_CMD_NETWORK_QUALITY)) == 0) {
-        char* csq = response + strlen(GSM_CMD_NETWORK_QUALITY) + 2;
-        char* csqArgs[2];
-
-        SplitString(csq, ',', csqArgs, 2, false);
-
-        gsmStats.signalStrength = atoi(csqArgs[0]); // 0 - 31, 99
-        if (gsmStats.signalStrength > 31) {
-            gsmStats.signalStrength = 0;
-        }
-        gsmStats.signalStrength = ((double)gsmStats.signalStrength / 31.0) * 100.0;
-
-        gsmStats.signalQuality = atoi(csqArgs[1]); // 0 - 7, 99
-        if (gsmStats.signalQuality > 7) {
-            gsmStats.signalQuality = 0;
-        }
-        gsmStats.signalQuality = ((7.0 - (double)gsmStats.signalQuality) / 7.0) * 100.0;
-
-        if (listener != NULL) {
-            listener->OnGSMQuality(gsmStats.signalStrength, gsmStats.signalQuality);
-        }
-        return true;
-    }
-    if (strncmp(GSM_CMD_TIME, response, strlen(GSM_CMD_TIME)) == 0) {
-
-        tm now;
-
-        if (strptime(response, "+CCLK: \"%y/%m/%d,%H:%M:%S", &now) != NULL) {
-            // adjust for timezone offset which is +/- in 15 minute increments
-
-            currentTime = mktime(&now);
-            syncTS = millis();
-
-            char *zPointer = strchr(response + strlen(GSM_CMD_TIME) + 2, '+');
-            if (zPointer == NULL) {
-                zPointer = strchr(response + strlen(GSM_CMD_TIME) + 2, '-');
-            }
-            if (zPointer != NULL) {
-                timeZone = atoi(zPointer) * (15 * 60);
-            }
-        }
-        return true;
-    }
-    // TODO: 
-    if (strcmp(request->cmd, GSM_CMD_SMS_SEND) == 0) {
-        // TODO: Filter out sended sms
+    if (strcmp(request->cmd, GSM_CMD_NETWORK_QUALITY) == 0) {
         if (type == MODEM_RESPONSE_DATA) {
-            if (strcmp("> ", response) == 0) {
+            char* csq = response + strlen(GSM_CMD_NETWORK_QUALITY) + 2;
+            char* csqArgs[2];
+
+            SplitString(csq, ',', csqArgs, 2, false);
+
+            gsmStats.signalStrength = atoi(csqArgs[0]); // 0 - 31, 99
+            if (gsmStats.signalStrength > 31) {
+                gsmStats.signalStrength = 0;
+            }
+            gsmStats.signalStrength = ((double)gsmStats.signalStrength / 31.0) * 100.0;
+
+            gsmStats.signalQuality = atoi(csqArgs[1]); // 0 - 7, 99
+            if (gsmStats.signalQuality > 7) {
+                gsmStats.signalQuality = 0;
+            }
+            gsmStats.signalQuality = ((7.0 - (double)gsmStats.signalQuality) / 7.0) * 100.0;
+
+            if (listener != NULL) {
+                listener->OnGSMQuality(gsmStats.signalStrength, gsmStats.signalQuality);
+            }
+        } else if (type >= MODEM_RESPONSE_ERROR) {
+            gsmHandler->StartModem(true, gsmHandler->GetBaudRate());
+        }
+        return true;
+    }
+    if (strcmp(request->cmd, GSM_CMD_TIME) == 0) {
+        if (type == MODEM_RESPONSE_DATA) {
+            tm now;
+            if (strptime(response, "+CCLK: \"%y/%m/%d,%H:%M:%S", &now) != NULL) {
+                // adjust for timezone offset which is +/- in 15 minute increments
+
+                currentTime = mktime(&now);
+                syncTS = millis();
+
+                char *zPointer = strchr(response + strlen(GSM_CMD_TIME) + 2, '+');
+                if (zPointer == NULL) {
+                    zPointer = strchr(response + strlen(GSM_CMD_TIME) + 2, '-');
+                }
+                if (zPointer != NULL) {
+                    timeZone = atoi(zPointer) * (15 * 60);
+                }
+            }
+        } else if (type >= MODEM_RESPONSE_ERROR) {
+            gsmHandler->StartModem(true, gsmHandler->GetBaudRate());
+        }
+        return true;
+    }
+    if (strcmp(request->cmd, GSM_CMD_SMS_SEND) == 0) {
+        SMSSendModemCMD *sendSMSCmd = (SMSSendModemCMD *)request;
+        if (type == MODEM_RESPONSE_DATA) {
+            if (strcmp(request->ExtraTriggerValue(), response) == 0) {
                 request->ExtraTrigger(false);
                 Stream *modemStream = gsmHandler->GetModemStream();
-                if (listener != NULL && listener->OnSMSSendStream(modemStream)) {
+                if (listener != NULL && listener->OnSMSSendStream(modemStream, sendSMSCmd->phoneNumber, sendSMSCmd->customData)) {
                     //Send message end
                     modemStream->write(CRTLZ_ASCII_SYMBOL);
                 } else {
                     // Send message cancel callback
                     modemStream->write(ESC_ASCII_SYMBOL);
                 }
+            } else if (strcmp(GSM_CMD_SMS_SEND, response) == 0) {
+                // Got result message reference
+                // +CMGS: 1
+                // Have nothing to do with that
             }
+        } else {
+            // Do nothing?
         }
         return true;
     }
@@ -436,9 +447,9 @@ GSMNetworkStats *GSMNetworkHandler::GetGSMStats() {
     return &gsmStats;
 }
 
-bool GSMNetworkHandler::SendSMS(char *phone)
+bool GSMNetworkHandler::InitSendSMS(char *phone, uint8_t customData)
 {
-    return gsmHandler->AddCommand(new SMSSendModemCMD(phone, GSM_CMD_SMS_SEND));
+    return gsmHandler->AddCommand(new SMSSendModemCMD(phone, GSM_CMD_SMS_SEND, customData));
 }
 
 void GSMNetworkHandler::OnModemReboot()

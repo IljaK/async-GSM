@@ -16,7 +16,7 @@ GSMSocket::~GSMSocket()
     outgoingMessageStack.Clear();
 }
 
-void GSMSocket::OnKeepAliveConfirm(bool isSuccess)
+void GSMSocket::OnKeepAliveConfirm()
 {
     // TODO: if !isSuccess ?
     if (sslType > GSM_SOCKET_SSL_DISABLE) {
@@ -26,7 +26,7 @@ void GSMSocket::OnKeepAliveConfirm(bool isSuccess)
     }
 }
 
-void GSMSocket::OnSSLConfirm(bool isSuccess)
+void GSMSocket::OnSSLConfirm()
 {
     // TODO: if !isSuccess ?
     socketHandler->Connect(this);

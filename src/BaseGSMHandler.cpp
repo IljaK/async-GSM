@@ -230,3 +230,8 @@ bool BaseGSMHandler::IsBooted()
 {
     return modemBootState == MODEM_BOOT_COMPLETED;
 }
+
+unsigned long BaseGSMHandler::GetBaudRate()
+{
+    return baudRate;
+}
