@@ -45,6 +45,7 @@ public:
 class GSMSocketHandler: public IBaseGSMHandler, public ITimerCallback
 {
 private:
+    uint16_t closedTimeout = 0;
     SocketArray *socketArray = NULL;
     BaseGSMHandler *gsmHandler = NULL;
     IGSMSocketHandler *socketHandler = NULL;

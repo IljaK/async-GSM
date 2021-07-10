@@ -31,5 +31,4 @@ TEST(GSMModemTest, TimeoutResponseTest)
     gsmHandler.Loop();
 
     EXPECT_EQ(gsmHandler.IsBusy(), false);
-
 }

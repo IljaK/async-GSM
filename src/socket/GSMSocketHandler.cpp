@@ -164,6 +164,7 @@ bool GSMSocketHandler::OnGSMResponse(BaseModemCMD *request, char * response, siz
         if (type == MODEM_RESPONSE_OK) {
             SendNextAvailableData();
         } else if (type > MODEM_RESPONSE_OK) {
+            closedTimeout++;
             SocketWriteModemCMD *writeCMD = (SocketWriteModemCMD *)request;
             CloseSocket(writeCMD->socketId);
             if (pendingSockTransmission == writeCMD->socketId) {
@@ -340,7 +341,7 @@ size_t GSMSocketHandler::SendNextAvailableData()
     // Check next available socket
     for(uint8_t i = pendingSockTransmission; i < MAX_SOCKET_AMOUNT; i++) {
         sock = socketArray->PeekSocket(i);
-        if (sock == NULL) {
+        if (sock == NULL || !sock->IsConnected()) {
             continue;
         }
         if (sock->outgoingMessageStack.Size() > 0) {
@@ -351,7 +352,7 @@ size_t GSMSocketHandler::SendNextAvailableData()
     // Check next socket with lower ID
     for(uint8_t i = 0; i <= pendingSockTransmission; i++) {
         sock = socketArray->PeekSocket(i);
-        if (sock == NULL) {
+        if (sock == NULL || !sock->IsConnected()) {
             continue;
         }
         if (sock->outgoingMessageStack.Size() > 0) {
@@ -399,6 +400,9 @@ void GSMSocketHandler::PrintDebug(Print *stream)
 
     stream->print(F("SH sock amount: "));
     stream->print(socketArray->Size());
+
+    stream->print(F("SH closed W: "));
+    stream->print(closedTimeout);
 
     for (size_t i = 0; i < socketArray->Size(); i++)
     {

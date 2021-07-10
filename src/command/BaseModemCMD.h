@@ -18,8 +18,14 @@ protected:
     const size_t cmdLen;
     uint8_t descriptorByte = 0;
 public:
+    const char *cmd;
+    unsigned long timeout;
+
     BaseModemCMD(const char *cmd, unsigned long timeout = MODEM_COMMAND_TIMEOUT, bool isCheck = false, bool isSet = false,
-        bool dataQuotations = false, bool semicolon = false):cmdLen(strlen(cmd)),cmd(cmd) {
+        bool dataQuotations = false, bool semicolon = false):
+        cmd(cmd),
+        cmdLen(cmd == NULL ? 0 : strlen(cmd))
+    {
             this->timeout = timeout;
             IsCheck(isCheck);
             IsSet(isSet);
@@ -28,8 +34,6 @@ public:
     }
     virtual ~BaseModemCMD() {}
 
-    const char *cmd;
-    unsigned long timeout;
     bool IsCheck() {
         return getBitFromByte(descriptorByte, CMD_BIT_IS_CHECK);
     }
