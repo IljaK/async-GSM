@@ -398,11 +398,12 @@ void GSMSocketHandler::PrintDebug(Print *stream)
     stream->print(pendingSockTransmission);
     stream->print('\n');
 
-    stream->print(F("SH sock amount: "));
-    stream->print(socketArray->Size());
-
     stream->print(F("SH closed W: "));
     stream->print(closedTimeout);
+    stream->print('\n');
+
+    stream->print(F("SH sock amount: "));
+    stream->print(socketArray->Size());
 
     for (size_t i = 0; i < socketArray->Size(); i++)
     {
