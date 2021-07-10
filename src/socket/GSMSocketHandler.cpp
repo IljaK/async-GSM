@@ -166,7 +166,9 @@ bool GSMSocketHandler::OnGSMResponse(BaseModemCMD *request, char * response, siz
         } else if (type > MODEM_RESPONSE_OK) {
             SocketWriteModemCMD *writeCMD = (SocketWriteModemCMD *)request;
             CloseSocket(writeCMD->socketId);
-            SendNextAvailableData();
+            if (pendingSockTransmission == writeCMD->socketId) {
+                SendNextAvailableData();
+            }
         }
         return true;
     }
@@ -225,6 +227,9 @@ bool GSMSocketHandler::OnGSMEvent(char * data, size_t dataLen)
         uint8_t socketId = atoi(pSockID);
 
         DestroySocket(socketId);
+        if (pendingSockTransmission == socketId) {
+            SendNextAvailableData();
+        }
         return true;
     }
     if (IsEvent(GSM_SOCKET_READ_EVENT, data, dataLen)) {
