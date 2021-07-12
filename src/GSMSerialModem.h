@@ -8,7 +8,7 @@ constexpr char GSM_PREFIX_CMD[] = "AT";
 constexpr char GSM_OK_RESPONSE[] = "OK";
 constexpr char GSM_ERROR_RESPONSE[] = "ERROR";
 constexpr char GSM_ABORTED_RESPONSE[] = "ABORTED";
-constexpr unsigned long GSM_EVENT_BUFFER_TIMEOUT = 100000ul;
+constexpr unsigned long GSM_BUFFER_FILL_TIMEOUT = 100000ul;
 
 enum MODEM_RESPONSE_TYPE {
     MODEM_RESPONSE_EVENT,
