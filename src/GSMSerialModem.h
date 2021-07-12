@@ -10,6 +10,12 @@ constexpr char GSM_ERROR_RESPONSE[] = "ERROR";
 constexpr char GSM_ABORTED_RESPONSE[] = "ABORTED";
 constexpr unsigned long GSM_BUFFER_FILL_TIMEOUT = 100000ul;
 
+// The DTE shall wait some time (the recommended value is at least 20 ms) after the reception of an
+// AT command final response or URC before issuing a new AT command to give the module the
+// opportunity to transmit the buffered URCs. Otherwise the collision of the URCs with the
+// subsequent AT command is still possible
+constexpr unsigned long GSM_CMD_URC_COLLISION_DELAY = 25000ul;
+
 enum MODEM_RESPONSE_TYPE {
     MODEM_RESPONSE_EVENT,
     MODEM_RESPONSE_DATA,
@@ -26,6 +32,7 @@ class GSMSerialModem : public SerialCharResponseHandler
 protected:
     BaseModemCMD *pendingCMD = NULL;
     TimerID eventBufferTimeout = 0;
+    TimerID cmdReleaseTimer = 0;
     Print *debugPrint = NULL;
     
 	void OnResponseReceived(bool IsTimeOut, bool isOverFlow = false) override;

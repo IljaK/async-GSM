@@ -55,6 +55,9 @@ private:
     unsigned long baudRate = 0;
     TimerID connectionTimer = 0;
     ModemCommandStack commandStack;
+
+    bool ForceCommandInternal(BaseModemCMD *cmd);
+
 public:
     BaseGSMHandler();
     virtual ~BaseGSMHandler();

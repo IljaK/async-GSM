@@ -111,7 +111,6 @@ bool GSMSocketHandler::OnGSMResponse(BaseModemCMD *request, char * response, siz
             } else {
                 if (sock != NULL) {
                     sock->Close();
-                    //sock->OnKeepAliveConfirm(false);
                 }
             }
         }
@@ -129,7 +128,6 @@ bool GSMSocketHandler::OnGSMResponse(BaseModemCMD *request, char * response, siz
             } else {
                 if (sock != NULL) {
                     sock->Close();
-                    //sock->OnSSLConfirm(false);
                 }
             }
         }
@@ -167,7 +165,6 @@ bool GSMSocketHandler::OnGSMResponse(BaseModemCMD *request, char * response, siz
             closedTimeout++;
             SocketWriteModemCMD *writeCMD = (SocketWriteModemCMD *)request;
             CloseSocket(writeCMD->socketId);
-            SendNextAvailableData();
         }
         return true;
     }
@@ -187,6 +184,10 @@ bool GSMSocketHandler::OnGSMResponse(BaseModemCMD *request, char * response, siz
             }
             */
             DestroySocket(uusocl->byteData);
+
+            if (pendingSockTransmission == uusocl->byteData) {
+                SendNextAvailableData();
+            }
         }
         return true;
     }
@@ -226,6 +227,9 @@ bool GSMSocketHandler::OnGSMEvent(char * data, size_t dataLen)
         uint8_t socketId = atoi(pSockID);
 
         DestroySocket(socketId);
+        if (pendingSockTransmission == socketId) {
+            SendNextAvailableData();
+        }
         return true;
     }
     if (IsEvent(GSM_SOCKET_READ_EVENT, data, dataLen)) {
@@ -249,6 +253,7 @@ bool GSMSocketHandler::OnGSMEvent(char * data, size_t dataLen)
 
 bool GSMSocketHandler::CreateSocket()
 {
+    // TODO: UDP support
     if (socketArray->Size() >= MAX_SOCKET_AMOUNT) {
         return false;
     }
@@ -305,6 +310,7 @@ size_t GSMSocketHandler::Send(GSMSocket *socket)
 
     pendingSockTransmission = socket->GetId();
     if (!gsmHandler->AddCommand(new SocketWriteModemCMD(socket->GetId(), packet, GSM_SOCKET_WRITE_CMD, SOCKET_CMD_TIMEOUT))){
+        pendingSockTransmission = 255;
         return 0;
     }
     // If send added to stack, unshift packet from pending array
@@ -393,11 +399,12 @@ void GSMSocketHandler::PrintDebug(Print *stream)
     stream->print(pendingSockTransmission);
     stream->print('\n');
 
-    stream->print(F("SH sock amount: "));
-    stream->print(socketArray->Size());
-
     stream->print(F("SH closed W: "));
     stream->print(closedTimeout);
+    stream->print('\n');
+
+    stream->print(F("SH sock amount: "));
+    stream->print(socketArray->Size());
 
     for (size_t i = 0; i < socketArray->Size(); i++)
     {

@@ -23,8 +23,8 @@ public:
 
     BaseModemCMD(const char *cmd, unsigned long timeout = MODEM_COMMAND_TIMEOUT, bool isCheck = false, bool isSet = false,
         bool dataQuotations = false, bool semicolon = false):
-        cmd(cmd),
-        cmdLen(cmd == NULL ? 0 : strlen(cmd))
+        cmdLen(cmd == NULL ? 0 : strlen(cmd)),
+        cmd(cmd)
     {
             this->timeout = timeout;
             IsCheck(isCheck);
