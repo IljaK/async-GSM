@@ -31,11 +31,18 @@ TEST(GSMModemTest, TimeoutResponseTest)
 
     TimerMock::Loop();
     gsmHandler.Loop();
+    
+    EXPECT_TRUE(gsmHandler.IsBusy());
+
+    timeOffset += GSM_CMD_URC_COLLISION_DELAY;
+
+    TimerMock::Loop();
+    gsmHandler.Loop();
 
     EXPECT_FALSE(gsmHandler.IsBusy());
 }
 
-TEST(GSMModemTest, CMDTimeoutConfirmTest)
+TEST(GSMModemTest, TimeoutResponseDataTest)
 {
 	timeOffset = 0;
 	TimerMock::Reset();
@@ -67,6 +74,13 @@ TEST(GSMModemTest, CMDTimeoutConfirmTest)
     EXPECT_TRUE(gsmHandler.IsBusy());
 
     timeOffset += GSM_BUFFER_FILL_TIMEOUT;
+
+    TimerMock::Loop();
+    gsmHandler.Loop();
+
+    EXPECT_TRUE(gsmHandler.IsBusy());
+
+    timeOffset += GSM_CMD_URC_COLLISION_DELAY;
 
     TimerMock::Loop();
     gsmHandler.Loop();
