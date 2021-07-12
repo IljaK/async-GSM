@@ -6,7 +6,7 @@
 #include "command/BaseModemCMD.h"
 
 constexpr unsigned long SOCKET_CONNECTION_TIMEOUT = 60000000ul;
-constexpr unsigned long SOCKET_CMD_TIMEOUT = 1000000ul;
+constexpr unsigned long SOCKET_CMD_TIMEOUT = 10000000ul;
 
 constexpr char GSM_SOCKET_CREATE_CMD[] = "+USOCR"; // AT+USOCR=6  6 - TCP; 16 - UDP;
 constexpr char GSM_SOCKET_CONNECT_CMD[] = "+USOCO"; // "AT+USOCO=%d,\"%s\",%d", _socket, _host, _port);

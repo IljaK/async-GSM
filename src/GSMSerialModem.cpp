@@ -51,6 +51,10 @@ void GSMSerialModem::OnResponseReceived(bool IsTimeOut, bool isOverFlow)
         }
         if (type >= MODEM_RESPONSE_OK) {
             pendingCMD = NULL;
+            if (IsTimeOut) {
+                Timer::Stop(cmdReleaseTimer);
+                cmdReleaseTimer = Timer::Start(this, GSM_CMD_URC_COLLISION_DELAY);
+            }
         } else {
             StartTimeoutTimer(pendingCMD->timeout);
         }
@@ -95,6 +99,7 @@ void GSMSerialModem::Loop()
 bool GSMSerialModem::IsBusy()
 {
     return pendingCMD != NULL || 
+        cmdReleaseTimer != 0 ||
         bufferLength != 0 || 
         serial->available() != 0 || 
         SerialCharResponseHandler::IsBusy();
@@ -170,6 +175,9 @@ void GSMSerialModem::OnTimerComplete(TimerID timerId, uint8_t data)
         eventBufferTimeout = 0;
         OnModemResponse(NULL, buffer, bufferLength, MODEM_RESPONSE_EVENT);
         ResetBuffer();
+    } else if (timerId == cmdReleaseTimer) { 
+        cmdReleaseTimer = 0;
+
     } else {
         SerialCharResponseHandler::OnTimerComplete(timerId, data);
     }
@@ -179,6 +187,8 @@ void GSMSerialModem::OnTimerStop(TimerID timerId, uint8_t data)
 {
     if (timerId == eventBufferTimeout) {
         eventBufferTimeout = 0;
+    } else if (timerId == cmdReleaseTimer) { 
+        cmdReleaseTimer = 0;
     } else {
         SerialCharResponseHandler::OnTimerStop(timerId, data);
     }

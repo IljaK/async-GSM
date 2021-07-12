@@ -89,7 +89,7 @@ bool GPRSHandler::OnGSMResponse(BaseModemCMD *request, char * response, size_t r
 {
     if (strcmp(request->cmd, GSM_GPRS_CMD) == 0) {
         ByteModemCMD *cgatt = (ByteModemCMD *)request;
-        if (cgatt->byteData == 0) {
+        if (cgatt->byteData == 0) { // +CGATT=0
             if (type >= MODEM_RESPONSE_OK) {
                 // No need to deactivate Profile
                 apnState = GSM_APN_DEACTIVATED;
@@ -257,7 +257,6 @@ void GPRSHandler::OnModemReboot()
     FlushAuthData();
     apnState = GSM_APN_DEACTIVATED;
 }
-
 
 bool GPRSHandler::ResolveHostName(const char *hostName)
 {
