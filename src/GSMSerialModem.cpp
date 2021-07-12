@@ -14,6 +14,9 @@ void GSMSerialModem::OnResponseReceived(bool IsTimeOut, bool isOverFlow)
 {
     if (!IsTimeOut && !isOverFlow) {
         if (bufferLength == 0) {
+            if (pendingCMD != NULL) {
+                StartTimeoutTimer(GSM_BUFFER_FILL_TIMEOUT);
+            }
             return;
         }
         size_t sz = strlen(GSM_PREFIX_CMD);
@@ -89,7 +92,7 @@ void GSMSerialModem::Loop()
     } else if (prevBuffAmount != bufferLength) {
         Timer::Stop(eventBufferTimeout);
         if (bufferLength > 0) {
-            eventBufferTimeout = Timer::Start(this, GSM_EVENT_BUFFER_TIMEOUT);
+            eventBufferTimeout = Timer::Start(this, GSM_BUFFER_FILL_TIMEOUT);
         }
     } else if (eventBufferTimeout != 0) {
         if (bufferLength == 0) {
