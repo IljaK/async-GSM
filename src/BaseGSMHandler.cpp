@@ -70,7 +70,9 @@ bool BaseGSMHandler::AddCommand(BaseModemCMD *cmd)
     if (!IsBooted() || !commandStack.Append(cmd)) {
         if (debugPrint != NULL) {
             debugPrint->print(F("AddCommand FAIL! "));
-            debugPrint->println(cmd->cmd);
+            debugPrint->print(cmd->cmd);
+            debugPrint->println(" micros: ");
+            debugPrint->println(micros());
         }
         delete cmd;
         return false;
@@ -83,7 +85,9 @@ bool BaseGSMHandler::ForceCommand(BaseModemCMD *cmd)
     if (!IsBooted() || !commandStack.Insert(cmd, 0)) {
         if (debugPrint != NULL) {
             debugPrint->print(F("ForceCommand FAIL! "));
-            debugPrint->println(cmd->cmd);
+            debugPrint->print(cmd->cmd);
+            debugPrint->println(" micros: ");
+            debugPrint->println(micros());
         }
         delete cmd;
         return false;
@@ -96,7 +100,9 @@ bool BaseGSMHandler::ForceCommandInternal(BaseModemCMD *cmd)
     if (!commandStack.Insert(cmd, 0)) {
         if (debugPrint != NULL) {
             debugPrint->print(F("ForceCommandInternal FAIL! "));
-            debugPrint->println(cmd->cmd);
+            debugPrint->print(cmd->cmd);
+            debugPrint->println(" micros: ");
+            debugPrint->println(micros());
         }
         delete cmd;
         return false;

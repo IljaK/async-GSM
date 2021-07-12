@@ -32,7 +32,9 @@ void GSMSerialModem::OnResponseReceived(bool IsTimeOut, bool isOverFlow)
         debugPrint->print(" isWaitingConfirm: ");
         debugPrint->print(pendingCMD != NULL);
         debugPrint->print(" RAM: ");
-        debugPrint->println(remainRam());
+        debugPrint->print(remainRam());
+        debugPrint->print(" micros: ");
+        debugPrint->println(micros());
     }
 
     if (pendingCMD != NULL) {
@@ -144,7 +146,8 @@ bool GSMSerialModem::Send(BaseModemCMD *modemCMD)
 			serial->write(';');
 		}
         if (debugPrint != NULL) {
-            debugPrint->println();
+            debugPrint->print(" micros: ");
+            debugPrint->println(micros());
         }
 		serial->println();
 	}
