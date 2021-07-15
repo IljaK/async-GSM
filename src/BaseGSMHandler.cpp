@@ -266,9 +266,11 @@ unsigned long BaseGSMHandler::GetBaudRate()
 
 bool BaseGSMHandler::Send(BaseModemCMD *modemCMD)
 {
-    if (GSMSerialModem::Send(modemCMD)) {
+    bool status = GSMSerialModem::Send(modemCMD);
+    if (status) {
         if (modemStatusTimer != 0) {
             Timer::Stop(modemStatusTimer);
         }
     }
+    return status;
 }
