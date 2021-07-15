@@ -13,15 +13,33 @@ GSMSerialModem::~GSMSerialModem()
 void GSMSerialModem::OnResponseReceived(bool IsTimeOut, bool isOverFlow)
 {
     if (!IsTimeOut && !isOverFlow) {
-        if (bufferLength == 0) {
-            if (pendingCMD != NULL) {
-                StartTimeoutTimer(GSM_BUFFER_FILL_TIMEOUT);
+        if (pendingCMD != NULL) {
+            if (bufferLength == 0) {
+                if (debugPrint != NULL) {
+                    debugPrint->println("[]");
+                }
+                StartTimeoutTimer(pendingCMD->timeout);
+                return;
             }
-            return;
-        }
-        size_t sz = strlen(GSM_PREFIX_CMD);
-        if (bufferLength >= sz && strncmp(buffer, GSM_PREFIX_CMD, sz) == 0) {
-            return;
+            size_t sz = strlen(GSM_PREFIX_CMD);
+            if (bufferLength >= sz && strncmp(buffer, GSM_PREFIX_CMD, sz) == 0) {
+                if (pendingCMD->cmd == NULL) {
+                    return;
+                }
+                if (bufferLength >= sz + pendingCMD->cmdLen && strncmp(buffer+sz, pendingCMD->cmd, pendingCMD->cmdLen) == 0) {
+                    if (debugPrint != NULL) {
+                        debugPrint->print("CMD RESP: [");
+
+                        if (buffer[bufferLength - 1] == 13) {
+                            debugPrint->write(buffer, bufferLength - 1);
+                        } else {
+                            debugPrint->write(buffer, bufferLength);
+                        }
+                        debugPrint->println("]");
+                    }
+                    return;
+                }
+            }
         }
     }
 
@@ -35,9 +53,7 @@ void GSMSerialModem::OnResponseReceived(bool IsTimeOut, bool isOverFlow)
         debugPrint->print(" isWaitingConfirm: ");
         debugPrint->print(pendingCMD != NULL);
         debugPrint->print(" RAM: ");
-        debugPrint->print(remainRam());
-        debugPrint->print(" micros: ");
-        debugPrint->println(micros());
+        debugPrint->println(remainRam());
     }
 
     if (pendingCMD != NULL) {
@@ -148,10 +164,7 @@ bool GSMSerialModem::Send(BaseModemCMD *modemCMD)
             if (debugPrint != NULL) debugPrint->print(';');
 			serial->write(';');
 		}
-        if (debugPrint != NULL) {
-            debugPrint->print(" micros: ");
-            debugPrint->println(micros());
-        }
+		if (debugPrint != NULL) debugPrint->println();
 		serial->println();
 	}
 	StartTimeoutTimer(modemCMD->timeout);
