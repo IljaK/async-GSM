@@ -110,6 +110,11 @@ bool GSMSerialModem::Send(BaseModemCMD *modemCMD)
     if (IsBusy()) return false;
     if (modemCMD == NULL) return false;
 
+    if (modemStatusTimer != 0) {
+        Timer::Stop(modemStatusTimer);
+        modemStatusTimer = 0;
+    }
+
     ResetBuffer();
     this->pendingCMD = modemCMD;
 	if (serial) {
@@ -177,10 +182,18 @@ void GSMSerialModem::OnTimerComplete(TimerID timerId, uint8_t data)
         ResetBuffer();
     } else if (timerId == cmdReleaseTimer) { 
         cmdReleaseTimer = 0;
-
+        if (modemStatusTimer == 0) {
+            modemStatusTimer = Timer::Start(this, GSM_STATUS_CHECK_DELAY);
+        }
+    } else if (timerId == modemStatusTimer) {
+        modemStatusTimer = 0;
+        if (!Send(new BaseModemCMD(NULL))) {
+            modemStatusTimer = Timer::Start(this, GSM_STATUS_CHECK_DELAY);
+        }
     } else {
         SerialCharResponseHandler::OnTimerComplete(timerId, data);
     }
+
 }
 
 void GSMSerialModem::OnTimerStop(TimerID timerId, uint8_t data)
@@ -189,6 +202,8 @@ void GSMSerialModem::OnTimerStop(TimerID timerId, uint8_t data)
         eventBufferTimeout = 0;
     } else if (timerId == cmdReleaseTimer) { 
         cmdReleaseTimer = 0;
+    } else if (timerId == modemStatusTimer) {
+        modemStatusTimer = 0;
     } else {
         SerialCharResponseHandler::OnTimerStop(timerId, data);
     }

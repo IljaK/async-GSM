@@ -120,7 +120,7 @@ bool GSMNetworkHandler::OnGSMResponse(BaseModemCMD *request, char *response, siz
                 }
             } else if (type == MODEM_RESPONSE_DATA) {
                 pinStatusCMD->HandleDataContent(response, respLen);
-            } else if (type > MODEM_RESPONSE_OK && type < MODEM_RESPONSE_TIMEOUT) {
+            } else if (type >= MODEM_RESPONSE_ERROR && type <= MODEM_RESPONSE_CANCELED) {
                 // Resend cmd, pin module not ready
                 gsmHandler->ForceCommand(new PinStatusModemCMD(GSM_SIM_PIN_CMD, MODEM_COMMAND_TIMEOUT));
             } else if (type > MODEM_RESPONSE_TIMEOUT) {

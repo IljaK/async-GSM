@@ -135,7 +135,11 @@ void BaseGSMHandler::OnGSMResponseInternal(BaseModemCMD *cmd, char * response, s
     {
     case MODEM_BOOT_COMPLETED:
         if (cmd != NULL) {
-            OnGSMResponse(cmd, response, respLen, type);
+            if (type == MODEM_RESPONSE_TIMEOUT) {
+                StartModem(true, GetBaudRate());
+            } else {
+                OnGSMResponse(cmd, response, respLen, type);
+            }
         }
         return;
     case MODEM_BOOT_CONNECTING:
