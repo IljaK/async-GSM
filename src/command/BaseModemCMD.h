@@ -15,16 +15,16 @@ enum BaseModemCMDBit {
 struct BaseModemCMD
 {
 protected:
-    const size_t cmdLen;
     uint8_t descriptorByte = 0;
 public:
     const char *cmd;
+    const size_t cmdLen;
     unsigned long timeout;
 
     BaseModemCMD(const char *cmd, unsigned long timeout = MODEM_COMMAND_TIMEOUT, bool isCheck = false, bool isSet = false,
         bool dataQuotations = false, bool semicolon = false):
-        cmdLen(cmd == NULL ? 0 : strlen(cmd)),
-        cmd(cmd)
+        cmd(cmd),
+        cmdLen(cmd == NULL ? 0 : strlen(cmd))
     {
             this->timeout = timeout;
             IsCheck(isCheck);

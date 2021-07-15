@@ -191,8 +191,10 @@ bool GSMNetworkHandler::OnGSMResponse(BaseModemCMD *request, char *response, siz
                 //Serial.print("Temperature: ");
                 //Serial.print(gsmStats.temperature);
                 //Serial.println("C");
-            } else if (type >= MODEM_RESPONSE_ERROR) {
+            } else if (type == MODEM_RESPONSE_TIMEOUT) {
                 gsmHandler->StartModem(true, gsmHandler->GetBaudRate());
+            } else if (type >= MODEM_RESPONSE_ERROR) {
+                // TODO: ?
             }
         } else {
             if (type == MODEM_RESPONSE_OK) {
@@ -284,8 +286,10 @@ bool GSMNetworkHandler::OnGSMResponse(BaseModemCMD *request, char *response, siz
             if (listener != NULL) {
                 listener->OnGSMQuality(gsmStats.signalStrength, gsmStats.signalQuality);
             }
-        } else if (type >= MODEM_RESPONSE_ERROR) {
+        } else if (type == MODEM_RESPONSE_TIMEOUT) {
             gsmHandler->StartModem(true, gsmHandler->GetBaudRate());
+        } else if (type >= MODEM_RESPONSE_ERROR) {
+            // TODO: ?
         }
         return true;
     }
@@ -306,8 +310,10 @@ bool GSMNetworkHandler::OnGSMResponse(BaseModemCMD *request, char *response, siz
                     timeZone = atoi(zPointer) * (15 * 60);
                 }
             }
-        } else if (type >= MODEM_RESPONSE_ERROR) {
+        } else if (type == MODEM_RESPONSE_TIMEOUT) {
             gsmHandler->StartModem(true, gsmHandler->GetBaudRate());
+        } else if (type >= MODEM_RESPONSE_ERROR) {
+            // TODO: ?
         }
         return true;
     }
