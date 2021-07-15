@@ -2,7 +2,6 @@
 #include "GSMCallHandler.h"
 #include "command/PinModemCMD.h"
 
-constexpr unsigned long REQUEST_DELAY_DURATION = 100000ul;
 constexpr unsigned long QUALITY_CHECK_DURATION = 20000000ul;
 
 constexpr char GSM_SIM_PIN_CMD[] = "+CPIN";

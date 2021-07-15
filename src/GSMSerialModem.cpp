@@ -29,7 +29,6 @@ void GSMSerialModem::OnResponseReceived(bool IsTimeOut, bool isOverFlow)
                 if (bufferLength >= sz + pendingCMD->cmdLen && strncmp(buffer+sz, pendingCMD->cmd, pendingCMD->cmdLen) == 0) {
                     if (debugPrint != NULL) {
                         debugPrint->print("CMD RESP: [");
-
                         if (buffer[bufferLength - 1] == 13) {
                             debugPrint->write(buffer, bufferLength - 1);
                         } else {
