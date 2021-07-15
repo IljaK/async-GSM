@@ -17,6 +17,8 @@ constexpr unsigned long MODEM_BOOT_COMMAND_TIMEOUT = 100000ul;
 constexpr unsigned long MODEM_MAX_AUTO_BAUD_RATE = 115200ul;
 constexpr unsigned long MODEM_BAUD_RATE = 921600ul;
 
+constexpr unsigned long GSM_STATUS_CHECK_DELAY = 2000000ul;
+
 class IModemBootHandler
 {
 public:
@@ -42,7 +44,6 @@ enum MODEM_BOOT_STATE {
     MODEM_BOOT_ERROR,
 };
 
-
 class BaseGSMHandler: public IModemBootHandler, public IBaseGSMHandler, public GSMSerialModem
 {
 protected:
@@ -50,10 +51,12 @@ protected:
 
     void OnModemResponse(BaseModemCMD *cmd, char *data, size_t dataLen, MODEM_RESPONSE_TYPE type) override;
     void OnGSMResponseInternal(BaseModemCMD *cmd, char * response, size_t respLen, MODEM_RESPONSE_TYPE type);
+    bool Send(BaseModemCMD *modemCMD) override;
 
 private:
     unsigned long baudRate = 0;
     TimerID connectionTimer = 0;
+    TimerID modemStatusTimer = 0;
     ModemCommandStack commandStack;
 
     bool ForceCommandInternal(BaseModemCMD *cmd);
@@ -66,7 +69,6 @@ public:
 
 	void OnTimerComplete(TimerID timerId, uint8_t data) override;
 	void OnTimerStop(TimerID timerId, uint8_t data) override;
-    //void handleUrc(const String& urc) override;
 
     // Append command to request stack
     bool AddCommand(BaseModemCMD *cmd);

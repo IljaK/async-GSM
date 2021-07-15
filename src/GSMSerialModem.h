@@ -9,7 +9,6 @@ constexpr char GSM_OK_RESPONSE[] = "OK";
 constexpr char GSM_ERROR_RESPONSE[] = "ERROR";
 constexpr char GSM_ABORTED_RESPONSE[] = "ABORTED";
 constexpr unsigned long GSM_BUFFER_FILL_TIMEOUT = 100000ul;
-constexpr unsigned long GSM_STATUS_CHECK_DELAY = 2000000ul;
 
 // The DTE shall wait some time (the recommended value is at least 20 ms) after the reception of an
 // AT command final response or URC before issuing a new AT command to give the module the
@@ -34,7 +33,6 @@ protected:
     BaseModemCMD *pendingCMD = NULL;
     TimerID eventBufferTimeout = 0;
     TimerID cmdReleaseTimer = 0;
-    TimerID modemStatusTimer = 0;
     Print *debugPrint = NULL;
     
 	void OnResponseReceived(bool IsTimeOut, bool isOverFlow = false) override;
@@ -53,5 +51,5 @@ public:
 	bool IsBusy() override;
     void SetDebugPrint(Print *debugPrint);
 
-    bool Send(BaseModemCMD *modemCMD);
+    bool virtual Send(BaseModemCMD *modemCMD);
 };
