@@ -71,8 +71,8 @@ void GSMSerialModem::OnResponseReceived(bool IsTimeOut, bool isOverFlow)
         }
         if (type >= MODEM_RESPONSE_OK) {
             pendingCMD = NULL;
-            if (IsTimeOut) {
-                Timer::Stop(cmdReleaseTimer);
+            Timer::Stop(cmdReleaseTimer);
+            if (!IsTimeOut) {
                 cmdReleaseTimer = Timer::Start(this, GSM_CMD_URC_COLLISION_DELAY);
             }
         } else {
@@ -83,6 +83,8 @@ void GSMSerialModem::OnResponseReceived(bool IsTimeOut, bool isOverFlow)
             delete cmd;
         }
     } else {
+        Timer::Stop(cmdReleaseTimer);
+        cmdReleaseTimer = Timer::Start(this, GSM_CMD_URC_COLLISION_DELAY);
         OnModemResponse(NULL, buffer, bufferLength, MODEM_RESPONSE_EVENT);
     }
 }
