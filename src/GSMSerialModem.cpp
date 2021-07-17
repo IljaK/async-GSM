@@ -68,7 +68,12 @@ void GSMSerialModem::OnResponseReceived(bool IsTimeOut, bool isOverFlow)
             type = MODEM_RESPONSE_ERROR;
         } else if (strcmp(buffer, GSM_ABORTED_RESPONSE) == 0) {
             type = MODEM_RESPONSE_ABORTED;
+        } 
+    #ifdef GSM_DEBUG_ERROR_CMD
+        else if (strncmp(buffer, GSM_CME_ERROR_RESPONSE, strlen(GSM_CME_ERROR_RESPONSE)) == 0) {
+            type = MODEM_RESPONSE_ERROR;
         }
+    #endif
         if (type >= MODEM_RESPONSE_OK) {
             pendingCMD = NULL;
             if (IsTimeOut) {

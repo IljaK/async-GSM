@@ -5,11 +5,15 @@
 #include "GSMSerialModem.h"
 #include "command/BaseModemCMD.h"
 #include "command/ULongModemCMD.h"
+#include "command/ByteModemCMD.h"
 
 #define OUT_MESSAGE_STACK_SIZE 12
 #define MAX_PHONE_LENGTH 20
 
 constexpr char GSM_MODEM_SPEED_CMD[] = "+IPR"; // AT+IPR=9600
+#ifdef GSM_DEBUG_ERROR_CMD
+constexpr char GSM_MODEM_CME_ERR_CMD[] = "+CMEE"; // ERROR reporting mode
+#endif
 
 constexpr unsigned long GSM_MODEM_CONNECTION_TIME = 30000000ul;
 constexpr unsigned long MODEM_BOOT_COMMAND_TIMEOUT = 100000ul;
@@ -40,6 +44,9 @@ enum MODEM_BOOT_STATE {
     MODEM_BOOT_CONNECTING,
     MODEM_BOOT_SPEED_CHAGE,
     MODEM_BOOT_RECONNECTING,
+#ifdef GSM_DEBUG_ERROR_CMD
+    MODEM_BOOT_DEBUG_SET,
+#endif
     MODEM_BOOT_COMPLETED,
     MODEM_BOOT_ERROR,
 };
