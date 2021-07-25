@@ -83,10 +83,11 @@ bool GSMSocketHandler::OnGSMResponse(BaseModemCMD *request, char * response, siz
             }
         } else {
             // TODO: create auto close timer if +UUSOCL hasnt been triggered
-            if (sock != NULL) sock->OnConnectionConfirm(1);
-
-            if (socketHandler != NULL) {
-                socketHandler->OnSocketConnected(sock, 1);
+            if (sock != NULL) {
+                sock->OnConnectionConfirm(1);
+                if (socketHandler != NULL) {
+                    socketHandler->OnSocketConnected(sock, 1);
+                }
             }
             // There mustn't be any data event, otherwise response is corrupted
             if (type == MODEM_RESPONSE_DATA) {

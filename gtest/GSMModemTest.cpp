@@ -30,15 +30,9 @@ TEST(GSMModemTest, TimeoutResponseTest)
     timeOffset+=1;
 
     TimerMock::Loop();
-    gsmHandler.Loop();
+    // Will trigger next command
+    // gsmHandler.Loop();
     
-    EXPECT_TRUE(gsmHandler.IsBusy());
-
-    timeOffset += GSM_CMD_URC_COLLISION_DELAY;
-
-    TimerMock::Loop();
-    gsmHandler.Loop();
-
     EXPECT_FALSE(gsmHandler.IsBusy());
 }
 
@@ -50,6 +44,9 @@ TEST(GSMModemTest, TimeoutResponseDataTest)
     GSMHandlerMock gsmHandler;
     gsmHandler.SetReady();
 
+    TimerMock::Loop();
+    gsmHandler.Loop();
+
     ASSERT_FALSE(gsmHandler.IsBusy());
 
     gsmHandler.ForceCommand(new ByteModemCMD(1, "+TEST_CMD", 10));
@@ -59,7 +56,7 @@ TEST(GSMModemTest, TimeoutResponseDataTest)
 
     EXPECT_TRUE(gsmHandler.IsBusy());
 
-    gsmHandler.ReadResponse((char*)"\r\n+TEST_CMD: some data\r\n");
+    gsmHandler.ReadResponse((char*)"AT+TEST_CMD\r\r\n+TEST_CMD: some data\r\n");
 
     BaseModemCMD *cmd = gsmHandler.GetPendingCMD();
 
@@ -73,17 +70,19 @@ TEST(GSMModemTest, TimeoutResponseDataTest)
     gsmHandler.Loop();
     EXPECT_TRUE(gsmHandler.IsBusy());
 
-    timeOffset += GSM_BUFFER_FILL_TIMEOUT;
+    // CMD timer has been restarted, so +10
+    timeOffset += 10;
 
     TimerMock::Loop();
-    gsmHandler.Loop();
-
-    EXPECT_TRUE(gsmHandler.IsBusy());
-
-    timeOffset += GSM_CMD_URC_COLLISION_DELAY;
-
-    TimerMock::Loop();
-    gsmHandler.Loop();
+    // Prevent reboot modem and send AT cmd after timeout
+    // gsmHandler.Loop();
 
     EXPECT_FALSE(gsmHandler.IsBusy());
+}
+
+TEST(GSMModemTest, BaseModemCMDTest)
+{
+    BaseModemCMD *cmd = new BaseModemCMD(NULL, MODEM_BOOT_COMMAND_TIMEOUT);
+
+    EXPECT_TRUE(cmd->cmd == NULL);
 }

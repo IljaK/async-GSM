@@ -75,6 +75,7 @@ void GSMHandlerMock::ReadResponse(char * response)
 void GSMHandlerMock::SetReady()
 {
     modemBootState = MODEM_BOOT_COMPLETED;
+    Flush();
 }
 
 GPRSHandler *GSMHandlerMock::GetGprsHandler()

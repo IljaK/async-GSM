@@ -21,25 +21,27 @@ void GSMSerialModem::OnResponseReceived(bool IsTimeOut, bool isOverFlow)
                 StartTimeoutTimer(pendingCMD->timeout);
                 return;
             }
-            size_t sz = strlen(GSM_PREFIX_CMD);
-            if (bufferLength > sz && strncmp(buffer, GSM_PREFIX_CMD, sz) == 0) {
-                if (buffer[bufferLength - 1] == 13) {
-                    pendingCMD->SetIsRespStarted(true);
-                }
-                if (pendingCMD->cmd == NULL) {
-                    return;
-                }
-                if (bufferLength >= sz + pendingCMD->cmdLen && strncmp(buffer+sz, pendingCMD->cmd, pendingCMD->cmdLen) == 0) {
-                    if (debugPrint != NULL) {
-                        debugPrint->print("CMD RESP: [");
-                        if (buffer[bufferLength - 1] == 13) {
-                            debugPrint->write(buffer, bufferLength - 1);
-                        } else {
-                            debugPrint->write(buffer, bufferLength);
-                        }
-                        debugPrint->println("]");
+            if (!pendingCMD->GetIsRespStarted()) {
+                size_t sz = strlen(GSM_PREFIX_CMD);
+                if (bufferLength > sz && strncmp(buffer, GSM_PREFIX_CMD, sz) == 0) {
+                    if (buffer[bufferLength - 1] == 13) {
+                        pendingCMD->SetIsRespStarted(true);
                     }
-                    return;
+                    if (pendingCMD->cmd == NULL) {
+                        return;
+                    }
+                    if (bufferLength >= sz + pendingCMD->cmdLen && strncmp(buffer+sz, pendingCMD->cmd, pendingCMD->cmdLen) == 0) {
+                        if (debugPrint != NULL) {
+                            debugPrint->print("CMD RESP: [");
+                            if (buffer[bufferLength - 1] == 13) {
+                                debugPrint->write(buffer, bufferLength - 1);
+                            } else {
+                                debugPrint->write(buffer, bufferLength);
+                            }
+                            debugPrint->println("]");
+                        }
+                        return;
+                    }
                 }
             }
         }
