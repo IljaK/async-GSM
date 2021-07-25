@@ -10,7 +10,7 @@ struct SMSSendModemCMD: public BaseModemCMD
     SMSSendModemCMD(char *phoneNumber, const char *cmd, uint8_t customData = 0, unsigned long timeout = 5000000UL):BaseModemCMD(cmd, timeout, false, true, false, false) {
         this->customData = customData;
         strcpy(this->phoneNumber, phoneNumber);
-        ExtraTrigger(true);
+        SetHasExtraTrigger(true);
     }
 
     virtual ~SMSSendModemCMD() {

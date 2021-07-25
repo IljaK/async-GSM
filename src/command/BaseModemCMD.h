@@ -9,7 +9,8 @@ enum BaseModemCMDBit {
     CMD_BIT_IS_SET,
     CMD_BIT_QUOTATIONS,
     CMD_BIT_SEMICOLON,
-    CMD_BIT_EXTRA_TRIGGER
+    CMD_BIT_EXTRA_TRIGGER,
+    CMD_BIT_RESP_BEGIN
 };
 
 struct BaseModemCMD
@@ -27,42 +28,48 @@ public:
         cmdLen(cmd == NULL ? 0 : strlen(cmd))
     {
             this->timeout = timeout;
-            IsCheck(isCheck);
-            IsSet(isSet);
-            InQuatations(dataQuotations);
-            EndSemicolon(semicolon);
+            SetIsCheck(isCheck);
+            SetIsModifier(isSet);
+            SetInQuatations(dataQuotations);
+            SetEndSemicolon(semicolon);
     }
     virtual ~BaseModemCMD() {}
 
-    bool IsCheck() {
+    bool GetIsCheck() {
         return getBitFromByte(descriptorByte, CMD_BIT_IS_CHECK);
     }
-    void IsCheck(bool value) {
+    void SetIsCheck(bool value) {
         setBitsValue(&descriptorByte, value, 1, CMD_BIT_IS_CHECK);
     }
-    bool IsSet() {
+    bool GetIsModifier() {
         return getBitFromByte(descriptorByte, CMD_BIT_IS_SET);
     }
-    void IsSet(bool value) {
+    void SetIsModifier(bool value) {
         setBitsValue(&descriptorByte, value, 1, CMD_BIT_IS_SET);
     }
-    bool InQuatations() {
+    bool GetInQuatations() {
         return getBitFromByte(descriptorByte, CMD_BIT_QUOTATIONS);
     }
-    void InQuatations(bool value) {
+    void SetInQuatations(bool value) {
         setBitsValue(&descriptorByte, value, 1, CMD_BIT_QUOTATIONS);
     }
-    bool EndSemicolon() {
+    bool GetEndSemicolon() {
         return getBitFromByte(descriptorByte, CMD_BIT_SEMICOLON);
     }
-    void EndSemicolon(bool value) {
+    void SetEndSemicolon(bool value) {
         setBitsValue(&descriptorByte, value, 1, CMD_BIT_EXTRA_TRIGGER);
     }
-    bool ExtraTrigger() {
+    bool GetHasExtraTrigger() {
         return getBitFromByte(descriptorByte, CMD_BIT_EXTRA_TRIGGER);
     }
-    void ExtraTrigger(bool value) {
+    void SetHasExtraTrigger(bool value) {
         setBitsValue(&descriptorByte, value, 1, CMD_BIT_EXTRA_TRIGGER);
+    }
+    bool GetIsRespStarted() {
+        return getBitFromByte(descriptorByte, CMD_BIT_RESP_BEGIN);
+    }
+    void SetIsRespStarted(bool value) {
+        setBitsValue(&descriptorByte, value, 1, CMD_BIT_RESP_BEGIN);
     }
 
     virtual void WriteStream(Print *stream) { };

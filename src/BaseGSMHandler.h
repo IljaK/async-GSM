@@ -58,12 +58,10 @@ protected:
 
     void OnModemResponse(BaseModemCMD *cmd, char *data, size_t dataLen, MODEM_RESPONSE_TYPE type) override;
     void OnGSMResponseInternal(BaseModemCMD *cmd, char * response, size_t respLen, MODEM_RESPONSE_TYPE type);
-    bool Send(BaseModemCMD *modemCMD) override;
 
 private:
     unsigned long baudRate = 0;
     TimerID connectionTimer = 0;
-    TimerID modemStatusTimer = 0;
     ModemCommandStack commandStack;
 
     bool ForceCommandInternal(BaseModemCMD *cmd);

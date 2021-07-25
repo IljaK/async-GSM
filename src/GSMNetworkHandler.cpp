@@ -106,7 +106,7 @@ bool GSMNetworkHandler::OnGSMEvent(char * data, size_t dataLen)
 bool GSMNetworkHandler::OnGSMResponse(BaseModemCMD *request, char *response, size_t respLen, MODEM_RESPONSE_TYPE type)
 {
     if (strcmp(request->cmd, GSM_SIM_PIN_CMD) == 0) {
-        if (request->IsCheck()) {
+        if (request->GetIsCheck()) {
             PinStatusModemCMD *pinStatusCMD = (PinStatusModemCMD *)request;
             // AT+CPIN? confirmation
             // State should be changed on data read
@@ -148,7 +148,7 @@ bool GSMNetworkHandler::OnGSMResponse(BaseModemCMD *request, char *response, siz
     }
 
     if (strcmp(request->cmd, GSM_CMD_NETWORK_REG) == 0) {
-        if (request->IsCheck()) {
+        if (request->GetIsCheck()) {
             // TODO:
             if (type== MODEM_RESPONSE_DATA) {
                 gsmStats.regState = GetCregState(response, respLen);
@@ -183,7 +183,7 @@ bool GSMNetworkHandler::OnGSMResponse(BaseModemCMD *request, char *response, siz
     }
 
     if (strcmp(request->cmd, GSM_CMD_UTEMP) == 0) {
-        if (request->IsCheck()) {
+        if (request->GetIsCheck()) {
             if (type == MODEM_RESPONSE_DATA) {
                 char* temp = response + strlen(GSM_CMD_UTEMP) + 2;
                 gsmStats.temperature = atoi(temp);
@@ -321,7 +321,7 @@ bool GSMNetworkHandler::OnGSMResponse(BaseModemCMD *request, char *response, siz
         SMSSendModemCMD *sendSMSCmd = (SMSSendModemCMD *)request;
         if (type == MODEM_RESPONSE_DATA) {
             if (strcmp(request->ExtraTriggerValue(), response) == 0) {
-                request->ExtraTrigger(false);
+                request->SetHasExtraTrigger(false);
                 Stream *modemStream = gsmHandler->GetModemStream();
                 if (listener != NULL && listener->OnSMSSendStream(modemStream, sendSMSCmd->phoneNumber, sendSMSCmd->customData)) {
                     //Send message end

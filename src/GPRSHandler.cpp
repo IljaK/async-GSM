@@ -194,8 +194,11 @@ bool GPRSHandler::OnGSMResponse(BaseModemCMD *request, char * response, size_t r
 bool GPRSHandler::OnGSMEvent(char * data, size_t dataLen)
 {
     if (IsEvent(GSM_APN_DEACTIVATED_EVENT, data, dataLen)) {
-        apnState = GSM_APN_DEACTIVATING;
-        gsmHandler->ForceCommand(new ByteModemCMD(0, GSM_GPRS_CMD, APN_CONNECT_CMD_TIMEOUT));
+        // AT+CGATT will be automatically set to 0
+        apnState = GSM_APN_DEACTIVATED;
+        if (apnHandler != NULL) {
+            apnHandler->OnGPRSDeactivated(true);
+        }
         return true;
     }
 

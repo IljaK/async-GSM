@@ -22,7 +22,10 @@ void GSMSerialModem::OnResponseReceived(bool IsTimeOut, bool isOverFlow)
                 return;
             }
             size_t sz = strlen(GSM_PREFIX_CMD);
-            if (bufferLength >= sz && strncmp(buffer, GSM_PREFIX_CMD, sz) == 0) {
+            if (bufferLength > sz && strncmp(buffer, GSM_PREFIX_CMD, sz) == 0) {
+                if (buffer[bufferLength - 1] == 13) {
+                    pendingCMD->SetIsRespStarted(true);
+                }
                 if (pendingCMD->cmd == NULL) {
                     return;
                 }
@@ -55,7 +58,7 @@ void GSMSerialModem::OnResponseReceived(bool IsTimeOut, bool isOverFlow)
         debugPrint->println(remainRam());
     }
 
-    if (pendingCMD != NULL) {
+    if (pendingCMD != NULL && (pendingCMD->GetIsRespStarted() || IsTimeOut || isOverFlow)) {
         MODEM_RESPONSE_TYPE type = MODEM_RESPONSE_DATA;
         BaseModemCMD *cmd = pendingCMD;
         if (IsTimeOut) {
@@ -102,7 +105,7 @@ void GSMSerialModem::Loop()
         if (eventBufferTimeout != 0) {
             Timer::Stop(eventBufferTimeout);
         }
-        if (pendingCMD->ExtraTrigger()) {
+        if (pendingCMD->GetHasExtraTrigger()) {
             size_t extraLen = strlen(pendingCMD->ExtraTriggerValue());
             if (bufferLength >= extraLen) {
                 if (strncmp(buffer, pendingCMD->ExtraTriggerValue(), extraLen) == 0) {
@@ -147,26 +150,26 @@ bool GSMSerialModem::Send(BaseModemCMD *modemCMD)
             if (debugPrint != NULL) debugPrint->print(modemCMD->cmd);
 			serial->write(modemCMD->cmd);
 		}
-		if (modemCMD->IsSet()) {
+		if (modemCMD->GetIsModifier()) {
             if (debugPrint != NULL) debugPrint->print('=');
 			serial->write('=');
 		}
-		if (modemCMD->IsCheck()) {
+		if (modemCMD->GetIsCheck()) {
             if (debugPrint != NULL) debugPrint->print('?');
 			serial->write('?');
 		}
-        if (modemCMD->InQuatations()) {
+        if (modemCMD->GetInQuatations()) {
             if (debugPrint != NULL) debugPrint->print('\"');
             serial->write('\"');
         }
         if (debugPrint != NULL) modemCMD->WriteStream(debugPrint);
         modemCMD->WriteStream(serial);
 
-        if (modemCMD->InQuatations()) {
+        if (modemCMD->GetInQuatations()) {
             if (debugPrint != NULL) debugPrint->print('\"');
             serial->write('\"');
         }
-		if (modemCMD->EndSemicolon()) {
+		if (modemCMD->GetEndSemicolon()) {
             if (debugPrint != NULL) debugPrint->print(';');
 			serial->write(';');
 		}
