@@ -23,6 +23,7 @@ void GSMSerialModem::OnResponseReceived(bool IsTimeOut, bool isOverFlow)
             }
             if (!pendingCMD->GetIsRespStarted()) {
                 size_t sz = strlen(GSM_PREFIX_CMD);
+                // CMD echo enabled: (ATE1)
                 if (bufferLength > sz && strncmp(buffer, GSM_PREFIX_CMD, sz) == 0) {
                     if (buffer[bufferLength - 1] == 13) {
                         pendingCMD->SetIsRespStarted(true);
@@ -43,6 +44,7 @@ void GSMSerialModem::OnResponseReceived(bool IsTimeOut, bool isOverFlow)
                         return;
                     }
                 }
+                // TODO: In case of echo cmd is disabled: (ATE0)
             }
         }
     }
