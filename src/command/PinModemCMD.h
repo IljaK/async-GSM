@@ -1,6 +1,6 @@
 #pragma once
 #include "BaseModemCMD.h"
-#include <cstring>
+#include <Arduino.h>
 
 enum GSM_PIN_STATE_CMD {
     GSM_PIN_STATE_UNKNOWN,

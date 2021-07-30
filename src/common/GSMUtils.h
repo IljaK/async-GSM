@@ -8,7 +8,7 @@ union IPAddr {
 	uint32_t dword = 0;
 };
 
-extern bool GetAddr(char *addr, IPAddr * ip);
+extern bool GetAddr(const char *addr, IPAddr * ip);
 
 inline bool IsEvent(const char *evName, char *data, size_t dataLen)
 {

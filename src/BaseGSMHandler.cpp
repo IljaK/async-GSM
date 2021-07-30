@@ -16,7 +16,7 @@ void BaseGSMHandler::StartModem(bool restart, unsigned long baudRate)
     }
 
     if (debugPrint != NULL) {
-        debugPrint->println(F("StartModem"));
+        debugPrint->println(PSTR("StartModem"));
     }
     modemBootState = MODEM_BOOT_RESET;
     OnModemReboot();
@@ -69,7 +69,7 @@ bool BaseGSMHandler::AddCommand(BaseModemCMD *cmd)
 {
     if (!IsBooted() || !commandStack.Append(cmd)) {
         if (debugPrint != NULL) {
-            debugPrint->print(F("AddCommand FAIL! "));
+            debugPrint->print(PSTR("AddCommand FAIL! "));
             debugPrint->println(cmd->cmd);
         }
         delete cmd;
@@ -82,7 +82,7 @@ bool BaseGSMHandler::ForceCommand(BaseModemCMD *cmd)
 {
     if (!IsBooted() || !commandStack.Insert(cmd, 0)) {
         if (debugPrint != NULL) {
-            debugPrint->print(F("ForceCommand FAIL! "));
+            debugPrint->print(PSTR("ForceCommand FAIL! "));
             debugPrint->println(cmd->cmd);
         }
         delete cmd;
@@ -95,7 +95,7 @@ bool BaseGSMHandler::ForceCommandInternal(BaseModemCMD *cmd)
 {
     if (!commandStack.Insert(cmd, 0)) {
         if (debugPrint != NULL) {
-            debugPrint->print(F("ForceCommandInternal FAIL! "));
+            debugPrint->print(PSTR("ForceCommandInternal FAIL! "));
             debugPrint->println(cmd->cmd);
         }
         delete cmd;
@@ -145,19 +145,19 @@ void BaseGSMHandler::OnGSMResponseInternal(BaseModemCMD *cmd, char * response, s
     case MODEM_BOOT_CONNECTING:
         if (type == MODEM_RESPONSE_OK) {
             if (debugPrint != NULL) {
-                debugPrint->println(F("MODEM_BOOT_CONNECTING OK"));
+                debugPrint->println(PSTR("MODEM_BOOT_CONNECTING OK"));
             }
             FlushData();
             Timer::Stop(connectionTimer);
             if (baudRate > MODEM_MAX_AUTO_BAUD_RATE) {
                 if (debugPrint != NULL) {
-                    debugPrint->println(F("MODEM_BOOT_SPEED_CHAGE"));
+                    debugPrint->println(PSTR("MODEM_BOOT_SPEED_CHAGE"));
                 }
                 modemBootState = MODEM_BOOT_SPEED_CHAGE;
                 ForceCommandInternal(new ULongModemCMD(baudRate, GSM_MODEM_SPEED_CMD, MODEM_COMMAND_TIMEOUT));
             } else {
                 if (debugPrint != NULL) {
-                    debugPrint->println(F("MODEM_BOOT_COMPLETED"));
+                    debugPrint->println(PSTR("MODEM_BOOT_COMPLETED"));
                 }
                 modemBootState = MODEM_BOOT_COMPLETED;
                 OnModemBooted();
@@ -170,7 +170,7 @@ void BaseGSMHandler::OnGSMResponseInternal(BaseModemCMD *cmd, char * response, s
     case MODEM_BOOT_SPEED_CHAGE:
         if (type == MODEM_RESPONSE_OK) {
             if (debugPrint != NULL) {
-                debugPrint->println(F("MODEM_BOOT_SPEED_CHAGE OK"));
+                debugPrint->println(PSTR("MODEM_BOOT_SPEED_CHAGE OK"));
             }
             modemBootState = MODEM_BOOT_RECONNECTING;
             ((Uart *)serial)->end();
@@ -187,7 +187,7 @@ void BaseGSMHandler::OnGSMResponseInternal(BaseModemCMD *cmd, char * response, s
     case MODEM_BOOT_RECONNECTING:
         if (type == MODEM_RESPONSE_OK) {
             if (debugPrint != NULL) {
-                debugPrint->println(F("MODEM_BOOT_RECONNECTING OK"));
+                debugPrint->println(PSTR("MODEM_BOOT_RECONNECTING OK"));
             }
 #ifdef GSM_DEBUG_ERROR_CMD
             modemBootState = MODEM_BOOT_DEBUG_SET;

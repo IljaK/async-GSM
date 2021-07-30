@@ -396,22 +396,22 @@ GSMSocket * GSMSocketHandler::GetSocket(uint8_t socketId)
 
 void GSMSocketHandler::PrintDebug(Print *stream)
 {
-    stream->print(F("SH pendTR: "));
+    stream->print(PSTR("SH pendTR: "));
     stream->print(pendingSockTransmission);
     stream->print('\n');
 
-    stream->print(F("SH closed W: "));
+    stream->print(PSTR("SH closed W: "));
     stream->print(closedTimeout);
     stream->print('\n');
 
-    stream->print(F("SH sock amount: "));
+    stream->print(PSTR("SH sock amount: "));
     stream->print(socketArray->Size());
 
     for (size_t i = 0; i < socketArray->Size(); i++)
     {
         stream->print('\n');
         GSMSocket *sock = socketArray->Peek(i);
-        stream->print(F("SH sock: "));
+        stream->print(PSTR("SH sock: "));
         stream->print(sock->GetId());
         stream->print("->");
         stream->print((int)sock->GetState());

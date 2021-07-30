@@ -2,7 +2,7 @@
 #include <Arduino.h>
 
 
-bool GetAddr(char *addr, IPAddr * ip) {
+bool GetAddr(const char *addr, IPAddr * ip) {
 
     ip->dword = 0;
     if (addr == NULL || addr[0] == 0 ) {
