@@ -22,17 +22,17 @@ constexpr char GSM_TEMP_THRESHOLD_EVENT[] = "+UUSTS";
 constexpr char GSM_TEMP_CMD[] = "+UTEMP";
 
 // Reports the network or the device PS (Packet Switched) radio capabilities.
-constexpr char GSM_NETWORK_TYPE_STATUS[] = "+UREG"; // AT+UCREG=1
-constexpr char GSM_CMD_NETWORK_REG[] = "+CREG"; // AT+CREG=1
-constexpr char GSM_CMD_CALL_STATUS[] = "+UCALLSTAT"; // AT+UCALLSTAT=1
-constexpr char GSM_CMD_HEX_MODE[] = "+UDCONF"; // AT+UDCONF=1,1
-constexpr char GSM_CMD_DTFM[] = "+UDTMFD"; // AT+UDTMFD=1,2
-constexpr char GSM_CMD_UTEMP[] = "+UTEMP"; // AT+UDTMFD=1,2
+constexpr char GSM_NETWORK_TYPE_STATUS[] = "+UREG"; // AT+UCREG=1 // PIN required: No
+constexpr char GSM_CMD_NETWORK_REG[] = "+CREG"; // AT+CREG=1 // PIN required: Yes
+constexpr char GSM_CMD_CALL_STATUS[] = "+UCALLSTAT"; // AT+UCALLSTAT=1 // PIN required: No
+constexpr char GSM_CMD_HEX_MODE[] = "+UDCONF"; // AT+UDCONF=1,1 // PIN required: No
+constexpr char GSM_CMD_DTFM[] = "+UDTMFD"; // AT+UDTMFD=1,2 // PIN required: No
+constexpr char GSM_CMD_UTEMP[] = "+UTEMP"; // AT+UTEMP=1,2 // PIN required: No
 
-constexpr char GSM_CMD_SMS_FROMAT[] = "+CMGF"; // "AT+CMGF=1" // Incomming message format: 0 - PDU, 1 - text
+constexpr char GSM_CMD_SMS_FROMAT[] = "+CMGF"; // "AT+CMGF=1" // Incomming message format: 0 - PDU, 1 - text // PIN required: Yes
 constexpr char GSM_CMD_SMS_INDICATION[] = "+CNMI"; // AT+CNMI=2,2,0,0,0 // Message event format
 
-constexpr char GSM_CMD_TIME_ZONE[] = "+CTZU"; // "AT+CTZU=1"
+constexpr char GSM_CMD_TIME_ZONE[] = "+CTZU"; // "AT+CTZU=1" // Automatic time/time zone update // PIN required: Yes
 
 constexpr char GSM_SMS_EVENT[] = "+CMT"; // Data event
 constexpr char GSM_CMD_SMS_SEND[] = "+CMGS"; // "Send sms"
