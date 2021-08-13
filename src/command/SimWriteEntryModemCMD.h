@@ -13,6 +13,7 @@ enum SIM_ENTRY_DATA_TYPE {
     SIM_ENTRY_TOTAL_AMOUNT
 };
 
+constexpr char GSM_WRITE_USER_CMD[] = "+CPBW"; // Write phonebook entry command
 
 class SimWriteEntryModemCMD: public ULongModemCMD
 {
@@ -24,8 +25,8 @@ private:
 public:
     bool IsHidden = false;
 
-    SimWriteEntryModemCMD(unsigned long valueData, const char *cmd, unsigned long timeout = MODEM_COMMAND_TIMEOUT):
-        ULongModemCMD(valueData, cmd, timeout) {
+    SimWriteEntryModemCMD(unsigned long valueData, unsigned long timeout = MODEM_COMMAND_TIMEOUT):
+        ULongModemCMD(valueData, GSM_WRITE_USER_CMD, timeout) {
     }
 
     virtual ~SimWriteEntryModemCMD() {

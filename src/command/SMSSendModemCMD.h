@@ -5,11 +5,11 @@
 struct SMSSendModemCMD: public BaseModemCMD
 {
     uint8_t customData = 0;
-    char phoneNumber[20] = { 0 };
+    char phoneNumber[MAX_PHONE_LENGTH] = { 0 };
 
     SMSSendModemCMD(char *phoneNumber, const char *cmd, uint8_t customData = 0, unsigned long timeout = 5000000UL):BaseModemCMD(cmd, timeout, false, true, false, false) {
         this->customData = customData;
-        strcpy(this->phoneNumber, phoneNumber);
+        strncpy(this->phoneNumber, phoneNumber, MAX_PHONE_LENGTH);
         SetHasExtraTrigger(true);
     }
 
