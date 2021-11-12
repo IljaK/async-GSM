@@ -85,4 +85,6 @@ TEST(GSMModemTest, BaseModemCMDTest)
     BaseModemCMD *cmd = new BaseModemCMD(NULL, MODEM_BOOT_COMMAND_TIMEOUT);
 
     EXPECT_TRUE(cmd->cmd == NULL);
+
+    delete cmd;
 }
