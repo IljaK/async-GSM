@@ -190,6 +190,10 @@ void GSMSerialModem::SetDebugPrint(Print *debugPrint)
 }
 void GSMSerialModem::FlushIncoming()
 {
+    if (cmdReleaseTimer != 0) {
+        Timer::Stop(cmdReleaseTimer);
+        cmdReleaseTimer = 0;
+    }
     StopTimeoutTimer();
     if (pendingCMD != NULL) {
         delete pendingCMD;

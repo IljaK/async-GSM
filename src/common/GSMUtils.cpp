@@ -1,5 +1,5 @@
+#include <time.h>
 #include "GSMUtils.h"
-#include <Arduino.h>
 
 
 bool GetAddr(const char *addr, IPAddr * ip) {

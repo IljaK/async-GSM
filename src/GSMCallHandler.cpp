@@ -27,7 +27,7 @@ bool GSMCallHandler::OnGSMEvent(char * data, size_t dataLen)
 
         char *clccContent = data + strlen(GSM_CALL_STATE_TRIGGER) + 2;
 		char *clccArgs[2];
-		SplitString(clccContent, ',', clccArgs, 8, false);
+		SplitString(clccContent, ',', clccArgs, 2, false);
 
 		uint8_t status = atoi(clccArgs[1]);
         callState = (VOICE_CALLSTATE)status;

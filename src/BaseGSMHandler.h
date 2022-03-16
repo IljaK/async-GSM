@@ -65,6 +65,7 @@ private:
     ModemCommandStack commandStack;
 
     bool ForceCommandInternal(BaseModemCMD *cmd);
+    void CMDStackDebugPrint(BaseModemCMD *cmd);
 
 public:
     BaseGSMHandler();

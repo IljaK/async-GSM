@@ -1,6 +1,7 @@
 #pragma once
 #include "GSMCallHandler.h"
 #include "command/PinModemCMD.h"
+#include "common/TimeUtil.h"
 
 constexpr unsigned long QUALITY_CHECK_DURATION = 20000000ul;
 
@@ -92,7 +93,8 @@ enum GSM_INIT_STATE {
 struct IncomingSMSInfo {
     char sender[MAX_PHONE_LENGTH] = { 0 };
     time_t utcTime = 0;
-    time_t timeZone = 0;
+    // In seconds offset
+    int timeZone = 0;
 };
 
 struct GSMNetworkStats {

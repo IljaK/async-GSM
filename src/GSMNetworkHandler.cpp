@@ -1,4 +1,3 @@
-#define _XOPEN_SOURCE
 #include <time.h>
 #include "GSMNetworkHandler.h"
 #include "command/CharModemCMD.h"
@@ -52,21 +51,16 @@ bool GSMNetworkHandler::OnGSMEvent(char * data, size_t dataLen)
         // +CMT: "+393475234652",,"14/11/21,11:58:23+01"
         char *cmt = data + strlen(GSM_SMS_EVENT) + 2;
 		char *cmtArgs[3];
-        SplitString(cmt, ',', cmtArgs, 2, false);
-        ShiftQuotations(cmtArgs, 3);
+        SplitString(cmt, ',', cmtArgs, 3, false);
 
+        ShiftQuotations(cmtArgs, 3);
         incomingSms = new IncomingSMSInfo();
         strcpy(incomingSms->sender, cmtArgs[0]);
-        tm smsTime;
-        if (strptime(cmtArgs[2], "%y/%m/%d,%H:%M:%S", &smsTime) != NULL) {
-            incomingSms->utcTime = mktime(&smsTime);
-            char *zPointer = strchr(cmtArgs[2], '+');
-            if (zPointer == NULL) {
-                zPointer = strchr(cmtArgs[2], '-');
-            }
-            if (zPointer != NULL) {
-                incomingSms->timeZone = atoi(zPointer) * (15 * 60);
-            }
+
+        tmz tmzStruct;
+        incomingSms->utcTime = ExtractTime(cmtArgs[2], &tmzStruct);
+        if (incomingSms->utcTime > 0 ) {
+            incomingSms->timeZone = ZoneInSeconds(tmzStruct.quaterZone);
             incomingSms->utcTime -= incomingSms->timeZone;
         }
         return true;
@@ -295,20 +289,12 @@ bool GSMNetworkHandler::OnGSMResponse(BaseModemCMD *request, char *response, siz
     }
     if (strcmp(request->cmd, GSM_CMD_TIME) == 0) {
         if (type == MODEM_RESPONSE_DATA) {
-            tm now;
-            if (strptime(response, "+CCLK: \"%y/%m/%d,%H:%M:%S", &now) != NULL) {
-                // adjust for timezone offset which is +/- in 15 minute increments
-
-                currentTime = mktime(&now);
-                syncTS = millis();
-
-                char *zPointer = strchr(response + strlen(GSM_CMD_TIME) + 2, '+');
-                if (zPointer == NULL) {
-                    zPointer = strchr(response + strlen(GSM_CMD_TIME) + 2, '-');
-                }
-                if (zPointer != NULL) {
-                    timeZone = atoi(zPointer) * (15 * 60);
-                }
+            size_t cclkShift = strlen(GSM_CMD_TIME) + 2;
+            if (cclkShift < respLen) {
+                char *stamp = ShiftQuotations(response + cclkShift);
+                tmz tmzStruct;
+                currentTime = ExtractTime(stamp, &tmzStruct);
+                timeZone = ZoneInSeconds(tmzStruct.quaterZone);
             }
         } else if (type == MODEM_RESPONSE_TIMEOUT) {
             gsmHandler->StartModem(true, gsmHandler->GetBaudRate());
