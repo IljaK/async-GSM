@@ -92,9 +92,7 @@ enum GSM_INIT_STATE {
 
 struct IncomingSMSInfo {
     char sender[MAX_PHONE_LENGTH] = { 0 };
-    time_t utcTime = 0;
-    // In seconds offset
-    int timeZone = 0;
+    timez_t timeStamp;
 };
 
 struct GSMNetworkStats {
@@ -122,9 +120,8 @@ public:
 class GSMNetworkHandler: public GSMCallHandler
 {
 private:
-    time_t currentTime = 0;
+    timez_t currentTime;
     unsigned long syncTS = 0;
-    int timeZone = 0;
 
     const char *simPin;
     GSM_INIT_STATE initState = GSM_STATE_NONE;

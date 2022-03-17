@@ -58,10 +58,10 @@ bool GSMNetworkHandler::OnGSMEvent(char * data, size_t dataLen)
         strcpy(incomingSms->sender, cmtArgs[0]);
 
         tmz tmzStruct;
-        incomingSms->utcTime = ExtractTime(cmtArgs[2], &tmzStruct);
-        if (incomingSms->utcTime > 0 ) {
-            incomingSms->timeZone = ZoneInSeconds(tmzStruct.quaterZone);
-            incomingSms->utcTime -= incomingSms->timeZone;
+        incomingSms->timeStamp.utcStamp = ExtractTime(cmtArgs[2], &tmzStruct);
+        if (incomingSms->timeStamp.utcStamp > 0 ) {
+            incomingSms->timeStamp.quaterZone = tmzStruct.quaterZone;
+            incomingSms->timeStamp.utcStamp -= ZoneInSeconds(tmzStruct.quaterZone);
         }
         return true;
     }
@@ -293,8 +293,12 @@ bool GSMNetworkHandler::OnGSMResponse(BaseModemCMD *request, char *response, siz
             if (cclkShift < respLen) {
                 char *stamp = ShiftQuotations(response + cclkShift);
                 tmz tmzStruct;
-                currentTime = ExtractTime(stamp, &tmzStruct);
-                timeZone = ZoneInSeconds(tmzStruct.quaterZone);
+                currentTime.utcStamp = ExtractTime(stamp, &tmzStruct);
+                currentTime.quaterZone = tmzStruct.quaterZone;
+                currentTime.utcStamp -= ZoneInSeconds(tmzStruct.quaterZone);
+                if (currentTime.utcStamp != 0) {
+                    syncTS = millis();
+                }
             }
         } else if (type == MODEM_RESPONSE_TIMEOUT) {
             gsmHandler->StartModem(true, gsmHandler->GetBaudRate());
@@ -426,13 +430,14 @@ bool GSMNetworkHandler::IsSimUnlocked()
 
 time_t GSMNetworkHandler::GetUTCTime()
 {
-    return GetLocalTime() - timeZone;
+    if (currentTime.utcStamp == 0) return 0;
+    unsigned long syncDelta = (millis() - syncTS) / 1000ul;
+    return currentTime.utcStamp + syncDelta;
 }
 time_t GSMNetworkHandler::GetLocalTime()
 {
-    if (currentTime == 0) return 0;
-    unsigned long syncDelta = (millis() - syncTS) / 1000ul;
-    return currentTime + syncDelta;
+    if (currentTime.utcStamp == 0) return 0;
+    return GetUTCTime() + ZoneInSeconds(currentTime.quaterZone);
 }
 
 GSMNetworkStats *GSMNetworkHandler::GetGSMStats() {
