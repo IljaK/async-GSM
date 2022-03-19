@@ -141,8 +141,8 @@ bool GSMSerialModem::IsBusy()
 
 bool GSMSerialModem::Send(BaseModemCMD *modemCMD)
 {
-    if (IsBusy()) return false;
     if (modemCMD == NULL) return false;
+    if (IsBusy()) return false;
 
     ResetBuffer();
     this->pendingCMD = modemCMD;

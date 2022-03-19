@@ -100,8 +100,20 @@ void BaseGSMHandler::CMDStackDebugPrint(BaseModemCMD *cmd)
     debugPrint->print(cmd->cmd);
     debugPrint->print(PSTR(" stack: "));
     debugPrint->print(commandStack.Size());
-    debugPrint->print(PSTR(" modemBootState: "));
-    debugPrint->println((int)modemBootState);
+    debugPrint->print(PSTR(" state: "));
+    debugPrint->print((int)modemBootState);
+    debugPrint->print(PSTR(" IsBusy(): "));
+    debugPrint->print((int)IsBusy());
+    debugPrint->print(PSTR(" pendingCMD != NULL: "));
+    debugPrint->print((int)(pendingCMD != NULL));
+    debugPrint->print(PSTR(" cmdReleaseTimer != 0: "));
+    debugPrint->print((int)(cmdReleaseTimer != 0));
+    debugPrint->print(PSTR(" bufferLength != 0: "));
+    debugPrint->print((int)(bufferLength != 0));
+    debugPrint->print(PSTR(" serial->available() != 0: "));
+    debugPrint->print((int)(serial->available() != 0));
+    debugPrint->print(PSTR(" state: "));
+    debugPrint->print((int)modemBootState);
 }
 
 bool BaseGSMHandler::ForceCommandInternal(BaseModemCMD *cmd)
