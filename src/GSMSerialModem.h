@@ -20,7 +20,7 @@ constexpr unsigned long GSM_BUFFER_FILL_TIMEOUT = 100000ul;
 // AT command final response or URC before issuing a new AT command to give the module the
 // opportunity to transmit the buffered URCs. Otherwise the collision of the URCs with the
 // subsequent AT command is still possible
-constexpr unsigned long GSM_CMD_URC_COLLISION_DELAY = 30000ul;
+constexpr unsigned long GSM_DATA_COLLISION_DELAY = 30000ul;
 
 #ifdef ESP32
 // Produino GSM board
