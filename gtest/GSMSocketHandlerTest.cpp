@@ -14,7 +14,7 @@ void createConfigSocket(GSMSocketHandler *socketHandler, GSMHandlerMock *gsmHand
 
     gsmHandler->ReadResponse((char*)"AT+USOCR=6\r\r\n+USOCR: 0\r\n");
     gsmHandler->ReadResponse((char*)"\r\nOK\r\n");
-    timeOffset += GSM_CMD_URC_COLLISION_DELAY;
+    timeOffset += GSM_DATA_COLLISION_DELAY;
     Timer::Loop();
 
     GSMSocket *socket = socketHandler->GetSocket(0);
@@ -26,12 +26,12 @@ void createConfigSocket(GSMSocketHandler *socketHandler, GSMHandlerMock *gsmHand
 
     // AT+USOSO=0,65535,8,1
     gsmHandler->ReadResponse((char*)"AT+USOSO=0,65535,8,1\r\r\nOK\r\n");
-    timeOffset += GSM_CMD_URC_COLLISION_DELAY;
+    timeOffset += GSM_DATA_COLLISION_DELAY;
     Timer::Loop();
 
     // AT+USOSO=0,6,2,30000
     gsmHandler->ReadResponse((char*)"AT+USOSO=0,6,2,30000\r\r\nOK\r\n");
-    timeOffset += GSM_CMD_URC_COLLISION_DELAY;
+    timeOffset += GSM_DATA_COLLISION_DELAY;
     Timer::Loop();
 }
 
@@ -40,7 +40,7 @@ void createConnectSocket(GSMSocketHandler *socketHandler, GSMHandlerMock *gsmHan
 
     //AT+USOCO=0,"127.0.0.1",2234
     gsmHandler->ReadResponse((char*)"AT+USOCO=0,\"127.0.0.1\",2234\r\r\nOK\r\n");
-    timeOffset += GSM_CMD_URC_COLLISION_DELAY;
+    timeOffset += GSM_DATA_COLLISION_DELAY;
     Timer::Loop();
 
     GSMSocket *socket = socketHandler->GetSocket(0);
@@ -129,7 +129,7 @@ TEST(GSMSocketHandlerTest, SocketWriteErrorTest)
 
     ASSERT_FALSE(gsmHandler.IsBusy());
     createConnectSocket(socketHandler, &gsmHandler);
-    timeOffset += GSM_CMD_URC_COLLISION_DELAY;
+    timeOffset += GSM_DATA_COLLISION_DELAY;
     Timer::Loop();
 
     GSMSocket * socket = socketHandler->GetSocket(0);
@@ -142,12 +142,12 @@ TEST(GSMSocketHandlerTest, SocketWriteErrorTest)
 
     // Write socket error
     gsmHandler.ReadResponse((char*)"AT+USOWR=0,2,\"9291\"\r\r\nERROR\r\n");
-    timeOffset += GSM_CMD_URC_COLLISION_DELAY;
+    timeOffset += GSM_DATA_COLLISION_DELAY;
     Timer::Loop();
 
     // Close socket OK
     gsmHandler.ReadResponse((char*)"AT+USOCL=0\r\r\nOK\r\n");
-    timeOffset += GSM_CMD_URC_COLLISION_DELAY;
+    timeOffset += GSM_DATA_COLLISION_DELAY;
     Timer::Loop();
 
     socket = socketHandler->GetSocket(0);
@@ -181,7 +181,7 @@ TEST(GSMSocketHandlerTest, SocketWriteErrorTimeoutCloseTest)
 
     // Write socket error
     gsmHandler.ReadResponse((char*)"AT+USOWR=0,2,\"9291\"\r\r\nERROR\r\n");
-    timeOffset += GSM_CMD_URC_COLLISION_DELAY;
+    timeOffset += GSM_DATA_COLLISION_DELAY;
     Timer::Loop();
     gsmHandler.Loop();
 

@@ -12,6 +12,11 @@ GSMSerialModem::~GSMSerialModem()
 
 void GSMSerialModem::OnResponseReceived(bool IsTimeOut, bool isOverFlow)
 {
+    Timer::Stop(cmdReleaseTimer);
+    if (!IsTimeOut) {
+        cmdReleaseTimer = Timer::Start(this, GSM_DATA_COLLISION_DELAY);
+    }
+
     if (!IsTimeOut && !isOverFlow) {
         if (pendingCMD != NULL) {
             if (bufferLength == 0) {
@@ -83,20 +88,15 @@ void GSMSerialModem::OnResponseReceived(bool IsTimeOut, bool isOverFlow)
     #endif
         if (type >= MODEM_RESPONSE_OK) {
             pendingCMD = NULL;
-            Timer::Stop(cmdReleaseTimer);
-            if (!IsTimeOut) {
-                cmdReleaseTimer = Timer::Start(this, GSM_CMD_URC_COLLISION_DELAY);
-            }
+            StopTimeoutTimer();
         } else {
             StartTimeoutTimer(pendingCMD->timeout);
         }
         OnModemResponse(cmd, buffer, bufferLength, type);
-        if (type >= MODEM_RESPONSE_OK) {
+        if (pendingCMD == NULL && cmd != NULL) {
             delete cmd;
         }
     } else {
-        Timer::Stop(cmdReleaseTimer);
-        cmdReleaseTimer = Timer::Start(this, GSM_CMD_URC_COLLISION_DELAY);
         OnModemResponse(NULL, buffer, bufferLength, MODEM_RESPONSE_EVENT);
     }
 }
@@ -106,9 +106,6 @@ void GSMSerialModem::Loop()
     size_t prevBuffAmount = bufferLength;
     SerialCharResponseHandler::Loop();
     if (pendingCMD != NULL) {
-        if (eventBufferTimeout != 0) {
-            Timer::Stop(eventBufferTimeout);
-        }
         if (pendingCMD->GetHasExtraTrigger()) {
             size_t extraLen = strlen(pendingCMD->ExtraTriggerValue());
             if (bufferLength >= extraLen) {
@@ -119,13 +116,8 @@ void GSMSerialModem::Loop()
             }
         }
     } else if (prevBuffAmount != bufferLength) {
-        Timer::Stop(eventBufferTimeout);
-        if (bufferLength > 0) {
+        if (bufferLength > 0 && eventBufferTimeout == 0) {
             eventBufferTimeout = Timer::Start(this, GSM_BUFFER_FILL_TIMEOUT);
-        }
-    } else if (eventBufferTimeout != 0) {
-        if (bufferLength == 0) {
-            Timer::Stop(eventBufferTimeout);
         }
     }
 }
@@ -135,7 +127,8 @@ bool GSMSerialModem::IsBusy()
     return pendingCMD != NULL || 
         cmdReleaseTimer != 0 ||
         bufferLength != 0 || 
-        serial->available() != 0 || 
+        eventBufferTimeout != 0 ||
+        serial->available() > 0 || 
         SerialCharResponseHandler::IsBusy();
 }
 
