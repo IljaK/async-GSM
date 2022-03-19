@@ -1,7 +1,5 @@
 #pragma once
-#include <stdio.h>
-#include <stdlib.h>
-#include <cstring>
+#include <Arduino.h>
 
 union IPAddr {
 	uint8_t octet[4];  // IPv4 address

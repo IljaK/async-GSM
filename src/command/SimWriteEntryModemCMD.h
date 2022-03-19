@@ -39,13 +39,13 @@ public:
 
     void SetContent(char *number, char *text, char *group = NULL, char *adNumber = NULL, char *adType = NULL, char *secondText = NULL, char *email = NULL, bool isHidden = false) {
         this->IsHidden = isHidden;
-        contentData[0] = makeNewCopy(number);
-        contentData[1] = makeNewCopy(text);
-        contentData[2] = makeNewCopy(group);
-        contentData[3] = makeNewCopy(adNumber);
-        contentData[4] = makeNewCopy(adType);
-        contentData[5] = makeNewCopy(secondText);
-        contentData[6] = makeNewCopy(email);
+        contentData[SIM_ENTRY_NUMBER] = makeNewCopy(number);
+        contentData[SIM_ENTRY_TEXT] = makeNewCopy(text);
+        contentData[SIM_ENTRY_GROUP] = makeNewCopy(group);
+        contentData[SIM_ENTRY_AD_NUMBER] = makeNewCopy(adNumber);
+        contentData[SIM_ENTRY_AD_TYPE] = makeNewCopy(adType);
+        contentData[SIM_ENTRY_SECOND_TEXT] = makeNewCopy(secondText);
+        contentData[SIM_ENTRY_EMAIL] = makeNewCopy(email);
         if (email != NULL) {
             contentAmount = 7;
         }
