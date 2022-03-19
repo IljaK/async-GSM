@@ -268,3 +268,8 @@ unsigned long BaseGSMHandler::GetBaudRate()
 {
     return baudRate;
 }
+
+size_t BaseGSMHandler::GetCommandStackCount()
+{
+    return commandStack.Size();
+}

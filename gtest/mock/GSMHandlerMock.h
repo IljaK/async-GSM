@@ -1,13 +1,20 @@
+#pragma once
 #include <Arduino.h>
 #include "GSMHandler.h"
 #include "socket/GSMSocketHandler.h"
 
+typedef void (*gsmEventCb)(char * data, size_t dataLen);
+typedef void (*gsmResponseCb)(BaseModemCMD *request, char * response, size_t respLen, MODEM_RESPONSE_TYPE type);
+
 class GSMHandlerMock: public GSMHandler, public IGSMSocketHandler
 {
 private:
+    gsmEventCb eventCb;
+    gsmResponseCb responseCb;
+
     /* data */
 public:
-    GSMHandlerMock(/* args */);
+    GSMHandlerMock(gsmEventCb eventCb = NULL, gsmResponseCb responseCb = NULL);
     virtual ~GSMHandlerMock();
 
     void OnModemBooted() override;

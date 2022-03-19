@@ -88,4 +88,5 @@ public:
     bool IsBooted();
 
     unsigned long GetBaudRate();
+    size_t GetCommandStackCount();
 };

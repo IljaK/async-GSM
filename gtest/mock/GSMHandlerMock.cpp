@@ -1,7 +1,9 @@
 #include "GSMHandlerMock.h"
 
-GSMHandlerMock::GSMHandlerMock():GSMHandler()
+GSMHandlerMock::GSMHandlerMock(gsmEventCb eventCb, gsmResponseCb responseCb):GSMHandler()
 {
+    this->eventCb = eventCb;
+    this->responseCb = responseCb;
     socketHandler.SetSocketHandler(this);
 }
 
@@ -26,11 +28,17 @@ void GSMHandlerMock::OnModemReboot()
 
 bool GSMHandlerMock::OnGSMResponse(BaseModemCMD *request, char * response, size_t respLen, MODEM_RESPONSE_TYPE type)
 {
+    if (responseCb != NULL) {
+        responseCb(request, response, respLen, type);
+    }
     return GSMHandler::OnGSMResponse(request, response, respLen, type);
 }
 
 bool GSMHandlerMock::OnGSMEvent(char * data, size_t dataLen)
 {
+    if (eventCb != NULL) {
+        eventCb(data, dataLen);
+    }
     return GSMHandler::OnGSMEvent(data, dataLen);
 }
 
