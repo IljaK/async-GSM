@@ -71,6 +71,8 @@ void BaseGSMHandler::StartModem(bool restart, unsigned long baudRate)
 
 bool BaseGSMHandler::AddCommand(BaseModemCMD *cmd)
 {
+    if (cmd == NULL) return false;
+
     if (!IsBooted() || !commandStack.Append(cmd)) {
         if (debugPrint != NULL) {
             debugPrint->print(PSTR("AddCommand FAIL! "));
@@ -84,6 +86,8 @@ bool BaseGSMHandler::AddCommand(BaseModemCMD *cmd)
 
 bool BaseGSMHandler::ForceCommand(BaseModemCMD *cmd)
 {
+    if (cmd == NULL) return false;
+
     if (!IsBooted() || !commandStack.Insert(cmd, 0)) {
         if (debugPrint != NULL) {
             debugPrint->print(PSTR("ForceCommand FAIL! "));
@@ -118,6 +122,8 @@ void BaseGSMHandler::CMDStackDebugPrint(BaseModemCMD *cmd)
 
 bool BaseGSMHandler::ForceCommandInternal(BaseModemCMD *cmd)
 {
+    if (cmd == NULL) return false;
+    
     if (!commandStack.Insert(cmd, 0)) {
         if (debugPrint != NULL) {
             debugPrint->print(PSTR("ForceCommandInternal FAIL! "));

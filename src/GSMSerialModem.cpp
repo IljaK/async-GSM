@@ -143,49 +143,51 @@ bool GSMSerialModem::Send(BaseModemCMD *modemCMD)
     // if (IsBusy()) return false;
 
     ResetBuffer();
-    this->pendingCMD = modemCMD;
-	if (serial) {
-        if (debugPrint != NULL) debugPrint->print(GSM_PREFIX_CMD);
-		serial->write(GSM_PREFIX_CMD);
-		
-		if (modemCMD->cmd != NULL) {
-            if (debugPrint != NULL) debugPrint->print(modemCMD->cmd);
-			serial->write(modemCMD->cmd);
-		}
-		if (modemCMD->GetIsModifier()) {
-            if (debugPrint != NULL) debugPrint->print('=');
-			serial->write('=');
-		}
-		if (modemCMD->GetIsCheck()) {
-            if (debugPrint != NULL) debugPrint->print('?');
-			serial->write('?');
-		}
-        if (modemCMD->GetInQuatations()) {
-            if (debugPrint != NULL) debugPrint->print('\"');
-            serial->write('\"');
-        }
-        if (debugPrint != NULL) modemCMD->WriteStream(debugPrint);
-        modemCMD->WriteStream(serial);
 
-        if (modemCMD->GetInQuatations()) {
-            if (debugPrint != NULL) debugPrint->print('\"');
-            serial->write('\"');
-        }
-		if (modemCMD->GetEndSemicolon()) {
-            if (debugPrint != NULL) debugPrint->print(';');
-			serial->write(';');
-		}
-		if (debugPrint != NULL) debugPrint->println();
-		serial->println();
-	}
-    // TODO: URC collision detection!
-    // Waits for the transmission of outgoing serial data to complete.
-    serial->flush();
-    if (serial->available() > 0) {
-        // We send CMD and being received URC data, what modem will do?!
-        this->pendingCMD = NULL;
+    if (serial == NULL) {
         return false;
     }
+    this->pendingCMD = modemCMD;
+    if (debugPrint != NULL) debugPrint->print(GSM_PREFIX_CMD);
+    serial->write(GSM_PREFIX_CMD);
+    
+    if (modemCMD->cmd != NULL) {
+        if (debugPrint != NULL) debugPrint->print(modemCMD->cmd);
+        serial->write(modemCMD->cmd);
+    }
+    if (modemCMD->GetIsModifier()) {
+        if (debugPrint != NULL) debugPrint->print('=');
+        serial->write('=');
+    }
+    if (modemCMD->GetIsCheck()) {
+        if (debugPrint != NULL) debugPrint->print('?');
+        serial->write('?');
+    }
+    if (modemCMD->GetInQuatations()) {
+        if (debugPrint != NULL) debugPrint->print('\"');
+        serial->write('\"');
+    }
+    if (debugPrint != NULL) modemCMD->WriteStream(debugPrint);
+    modemCMD->WriteStream(serial);
+
+    if (modemCMD->GetInQuatations()) {
+        if (debugPrint != NULL) debugPrint->print('\"');
+        serial->write('\"');
+    }
+    if (modemCMD->GetEndSemicolon()) {
+        if (debugPrint != NULL) debugPrint->print(';');
+        serial->write(';');
+    }
+    if (debugPrint != NULL) debugPrint->println();
+    serial->println();
+
+    // NB! This is not working, some time buffer get filled partally with response!
+    // serial->flush();
+    // if (serial->available() > 0) {
+    //    // We send CMD and being received URC data, what modem will do?!
+    //    this->pendingCMD = NULL;
+    //    return false;
+    // }
 	StartTimeoutTimer(modemCMD->timeout);
     return true;
 }
