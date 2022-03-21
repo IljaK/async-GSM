@@ -55,7 +55,11 @@ void GSMSerialModem::OnResponseReceived(bool IsTimeOut, bool isOverFlow)
     }
 
     if (debugPrint != NULL) {
-        debugPrint->print("Response: [");
+        if (pendingCMD == NULL) {
+            debugPrint->print("Event: [");
+        } else {
+            debugPrint->print("Response: [");
+        }
         debugPrint->print(buffer);
         debugPrint->print("] IsTimeOut: ");
         debugPrint->print(IsTimeOut);
@@ -135,7 +139,8 @@ bool GSMSerialModem::IsBusy()
 bool GSMSerialModem::Send(BaseModemCMD *modemCMD)
 {
     if (modemCMD == NULL) return false;
-    if (IsBusy()) return false;
+    // No need to double check here
+    // if (IsBusy()) return false;
 
     ResetBuffer();
     this->pendingCMD = modemCMD;
@@ -173,6 +178,14 @@ bool GSMSerialModem::Send(BaseModemCMD *modemCMD)
 		if (debugPrint != NULL) debugPrint->println();
 		serial->println();
 	}
+    // TODO: URC collision detection!
+    // Waits for the transmission of outgoing serial data to complete.
+    serial->flush();
+    if (serial->available() > 0) {
+        // We send CMD and being received URC data, what modem will do?!
+        this->pendingCMD = NULL;
+        return false;
+    }
 	StartTimeoutTimer(modemCMD->timeout);
     return true;
 }

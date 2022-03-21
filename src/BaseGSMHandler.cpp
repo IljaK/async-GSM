@@ -132,9 +132,9 @@ bool BaseGSMHandler::ForceCommandInternal(BaseModemCMD *cmd)
 void BaseGSMHandler::Loop()
 {
     GSMSerialModem::Loop();
-    if (!IsBusy()) {
-        if (commandStack.Size() > 0) {
-            Send(commandStack.UnshiftFirst());
+    if (!IsBusy() && commandStack.Size() > 0) {
+        if (Send(commandStack.Peek())) {
+            commandStack.UnshiftFirst();
         }
     }
 }
@@ -274,6 +274,7 @@ void BaseGSMHandler::Flush()
 {
     if (eventBufferTimeout != 0) {
         Timer::Stop(eventBufferTimeout);
+        eventBufferTimeout = 0;
     }
     if (pendingCMD != NULL) {
         delete pendingCMD;
