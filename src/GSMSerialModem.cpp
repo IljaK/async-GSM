@@ -39,9 +39,11 @@ void GSMSerialModem::OnResponseReceived(bool IsTimeOut, bool isOverFlow)
                         return;
                     }
                     // Looks like we received an event, during CMD transfer
-                    debugPrint->print("CMD EVENT: [");
-                    debugPrint->write(buffer, bufferLength);
-                    debugPrint->println("]");
+                    if (debugPrint != NULL) {
+                        debugPrint->print("CMD EVENT: [");
+                        debugPrint->write(buffer, bufferLength);
+                        debugPrint->println("]");
+                    }
                     BaseModemCMD *cmd = pendingCMD;
                     pendingCMD = NULL;
                     StopTimeoutTimer();
@@ -210,7 +212,10 @@ void GSMSerialModem::FlushIncoming()
         pendingCMD = NULL;
     }
     while (serial->available() > 0) {
-        serial->read();
+        int val = serial->read();
+        if (val <= 0) {
+            break;
+        }
     }
     ResetBuffer();
 }
