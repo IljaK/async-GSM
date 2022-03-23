@@ -19,37 +19,39 @@ void GSMSerialModem::OnResponseReceived(bool IsTimeOut, bool isOverFlow)
 
     if (!IsTimeOut && !isOverFlow) {
         if (pendingCMD != NULL) {
+            StartTimeoutTimer(pendingCMD->timeout);
             if (bufferLength == 0) {
                 if (debugPrint != NULL) {
                     debugPrint->println("[]");
                 }
-                StartTimeoutTimer(pendingCMD->timeout);
                 return;
             }
             if (!pendingCMD->GetIsRespStarted()) {
-                size_t sz = strlen(GSM_PREFIX_CMD);
-                // CMD echo enabled: (ATE1)
-                if (bufferLength > sz && strncmp(buffer, GSM_PREFIX_CMD, sz) == 0) {
+                if (bufferLength > 0) {
                     if (buffer[bufferLength - 1] == 13) {
+                        // Got cmd trace back
                         pendingCMD->SetIsRespStarted(true);
-                    }
-                    if (pendingCMD->cmd == NULL) {
-                        return;
-                    }
-                    if (bufferLength >= sz + pendingCMD->cmdLen && strncmp(buffer+sz, pendingCMD->cmd, pendingCMD->cmdLen) == 0) {
                         if (debugPrint != NULL) {
-                            debugPrint->print("CMD RESP: [");
-                            if (buffer[bufferLength - 1] == 13) {
-                                debugPrint->write(buffer, bufferLength - 1);
-                            } else {
-                                debugPrint->write(buffer, bufferLength);
-                            }
+                            debugPrint->print("CMD TRACE: [");
+                            debugPrint->write(buffer, bufferLength - 1);
                             debugPrint->println("]");
                         }
                         return;
                     }
+                    // Looks like we received an event, during CMD transfer
+                    debugPrint->print("CMD EVENT: [");
+                    debugPrint->write(buffer, bufferLength);
+                    debugPrint->println("]");
+                    BaseModemCMD *cmd = pendingCMD;
+                    pendingCMD = NULL;
+                    StopTimeoutTimer();
+                    OnModemResponse(NULL, buffer, bufferLength, MODEM_RESPONSE_EVENT);
+                    OnModemResponse(cmd, (char *)GSM_ERROR_RESPONSE, strlen(GSM_ERROR_RESPONSE), MODEM_RESPONSE_ERROR);
+                    if (cmd != NULL) {
+                        delete cmd;
+                    }
+                    return;
                 }
-                // TODO: In case of echo cmd is disabled: (ATE0)
             }
         }
     }
