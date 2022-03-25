@@ -65,7 +65,6 @@ private:
     ModemCommandStack commandStack;
 
     bool ForceCommandInternal(BaseModemCMD *cmd);
-    void CMDStackDebugPrint(BaseModemCMD *cmd);
 
 public:
     BaseGSMHandler();
@@ -77,9 +76,9 @@ public:
 	void OnTimerStop(TimerID timerId, uint8_t data) override;
 
     // Append command to request stack
-    bool AddCommand(BaseModemCMD *cmd);
+    virtual bool AddCommand(BaseModemCMD *cmd);
     // Insert command to begin of request stack
-    bool ForceCommand(BaseModemCMD *cmd);
+    virtual bool ForceCommand(BaseModemCMD *cmd);
 
     Stream *GetModemStream();
 
