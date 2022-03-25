@@ -2,6 +2,7 @@
 #include <Arduino.h>
 #include "GSMHandler.h"
 #include "socket/GSMSocketHandler.h"
+#include "GSMExpectation.h"
 
 typedef void (*gsmEventCb)(char * data, size_t dataLen);
 typedef void (*gsmResponseCb)(BaseModemCMD *request, char * response, size_t respLen, MODEM_RESPONSE_TYPE type);
@@ -9,12 +10,11 @@ typedef void (*gsmResponseCb)(BaseModemCMD *request, char * response, size_t res
 class GSMHandlerMock: public GSMHandler, public IGSMSocketHandler
 {
 private:
-    gsmEventCb eventCb;
-    gsmResponseCb responseCb;
-
+    char *lastResponse = NULL;
+    char *lastEvent = NULL;
     /* data */
 public:
-    GSMHandlerMock(gsmEventCb eventCb = NULL, gsmResponseCb responseCb = NULL);
+    GSMHandlerMock();
     virtual ~GSMHandlerMock();
 
     void OnModemBooted() override;
@@ -40,4 +40,7 @@ public:
     GSMSocketHandler * GetSocketHandler();
 
     BaseModemCMD *GetPendingCMD();
+
+    char *GetLastEvent();
+    char *GetLastResponse();
 };

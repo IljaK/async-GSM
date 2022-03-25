@@ -1,9 +1,7 @@
 #include "GSMHandlerMock.h"
 
-GSMHandlerMock::GSMHandlerMock(gsmEventCb eventCb, gsmResponseCb responseCb):GSMHandler()
+GSMHandlerMock::GSMHandlerMock():GSMHandler()
 {
-    this->eventCb = eventCb;
-    this->responseCb = responseCb;
     socketHandler.SetSocketHandler(this);
 }
 
@@ -28,17 +26,22 @@ void GSMHandlerMock::OnModemReboot()
 
 bool GSMHandlerMock::OnGSMResponse(BaseModemCMD *request, char * response, size_t respLen, MODEM_RESPONSE_TYPE type)
 {
-    if (responseCb != NULL) {
-        responseCb(request, response, respLen, type);
+    if (lastResponse != NULL) {
+        free(lastResponse);
     }
+    lastResponse = (char*)malloc(respLen + 1);
+    strcpy(lastResponse, response);
+
     return GSMHandler::OnGSMResponse(request, response, respLen, type);
 }
 
 bool GSMHandlerMock::OnGSMEvent(char * data, size_t dataLen)
 {
-    if (eventCb != NULL) {
-        eventCb(data, dataLen);
+    if (lastEvent != NULL) {
+        free(lastEvent);
     }
+    lastEvent = (char*)malloc(dataLen + 1);
+    strcpy(lastEvent, data);
     return GSMHandler::OnGSMEvent(data, dataLen);
 }
 
@@ -102,4 +105,14 @@ GSMSocketHandler * GSMHandlerMock::GetSocketHandler()
 BaseModemCMD *GSMHandlerMock::GetPendingCMD()
 {
     return pendingCMD;
+}
+
+
+char *GSMHandlerMock::GetLastEvent()
+{
+    return lastEvent;
+}
+char *GSMHandlerMock::GetLastResponse()
+{
+    return lastResponse;
 }
