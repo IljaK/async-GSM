@@ -76,7 +76,6 @@ bool BaseGSMHandler::AddCommand(BaseModemCMD *cmd)
     if (!IsBooted() || !commandStack.Append(cmd)) {
         if (debugPrint != NULL) {
             debugPrint->print(PSTR("AddCommand FAIL! "));
-            CMDStackDebugPrint(cmd);
         }
         delete cmd;
         return false;
@@ -91,33 +90,11 @@ bool BaseGSMHandler::ForceCommand(BaseModemCMD *cmd)
     if (!IsBooted() || !commandStack.Insert(cmd, 0)) {
         if (debugPrint != NULL) {
             debugPrint->print(PSTR("ForceCommand FAIL! "));
-            CMDStackDebugPrint(cmd);
         }
         delete cmd;
         return false;
     }
     return true;
-}
-
-void BaseGSMHandler::CMDStackDebugPrint(BaseModemCMD *cmd)
-{
-    debugPrint->print(cmd->cmd);
-    debugPrint->print(PSTR(" stack: "));
-    debugPrint->print(commandStack.Size());
-    debugPrint->print(PSTR(" state: "));
-    debugPrint->print((int)modemBootState);
-    debugPrint->print(PSTR(" IsBusy(): "));
-    debugPrint->print((int)IsBusy());
-    debugPrint->print(PSTR(" pendingCMD != NULL: "));
-    debugPrint->print((int)(pendingCMD != NULL));
-    debugPrint->print(PSTR(" cmdReleaseTimer != 0: "));
-    debugPrint->print((int)(cmdReleaseTimer != 0));
-    debugPrint->print(PSTR(" bufferLength != 0: "));
-    debugPrint->print((int)(bufferLength != 0));
-    debugPrint->print(PSTR(" serial->available() != 0: "));
-    debugPrint->print((int)(serial->available() != 0));
-    debugPrint->print(PSTR(" state: "));
-    debugPrint->print((int)modemBootState);
 }
 
 bool BaseGSMHandler::ForceCommandInternal(BaseModemCMD *cmd)
@@ -127,7 +104,7 @@ bool BaseGSMHandler::ForceCommandInternal(BaseModemCMD *cmd)
     if (!commandStack.Insert(cmd, 0)) {
         if (debugPrint != NULL) {
             debugPrint->print(PSTR("ForceCommandInternal FAIL! "));
-            CMDStackDebugPrint(cmd);
+            // TODO: Collect debug message and send to server?
         }
         delete cmd;
         return false;

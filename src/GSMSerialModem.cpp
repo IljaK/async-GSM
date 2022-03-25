@@ -46,9 +46,12 @@ void GSMSerialModem::OnResponseReceived(bool IsTimeOut, bool isOverFlow)
                     }
                     BaseModemCMD *cmd = pendingCMD;
                     pendingCMD = NULL;
+
                     StopTimeoutTimer();
-                    OnModemResponse(NULL, buffer, bufferLength, MODEM_RESPONSE_EVENT);
+                    StartEventBufferTimer();
+
                     OnModemResponse(cmd, (char *)GSM_ERROR_RESPONSE, strlen(GSM_ERROR_RESPONSE), MODEM_RESPONSE_ERROR);
+                    //OnModemResponse(NULL, buffer, bufferLength, MODEM_RESPONSE_EVENT);
                     if (cmd != NULL) {
                         delete cmd;
                     }
@@ -111,7 +114,6 @@ void GSMSerialModem::OnResponseReceived(bool IsTimeOut, bool isOverFlow)
 
 void GSMSerialModem::Loop()
 {
-    size_t prevBuffAmount = bufferLength;
     SerialCharResponseHandler::Loop();
     if (pendingCMD != NULL) {
         if (pendingCMD->GetHasExtraTrigger()) {
@@ -123,10 +125,18 @@ void GSMSerialModem::Loop()
                 }
             }
         }
-    } else if (prevBuffAmount != bufferLength) {
-        if (bufferLength > 0 && eventBufferTimeout == 0) {
-            eventBufferTimeout = Timer::Start(this, GSM_BUFFER_FILL_TIMEOUT);
+    } else if (bufferLength > 0 && eventBufferTimeout == 0) {
+        /* For collision testing
+        serial->println(".");
+        if (debugPrint != NULL) {
+            debugPrint->print(".[");
+            debugPrint->print(bufferLength);
+            debugPrint->print("/");
+            debugPrint->print(serial->available());
+            debugPrint->println("]");
         }
+        */
+        StartEventBufferTimer();
     }
 }
 
@@ -226,21 +236,33 @@ void GSMSerialModem::OnTimerComplete(TimerID timerId, uint8_t data)
         eventBufferTimeout = 0;
         OnModemResponse(NULL, buffer, bufferLength, MODEM_RESPONSE_EVENT);
         ResetBuffer();
-    } else if (timerId == cmdReleaseTimer) { 
-        cmdReleaseTimer = 0;
-    } else {
-        SerialCharResponseHandler::OnTimerComplete(timerId, data);
+        return;
     }
-
+    if (timerId == cmdReleaseTimer) { 
+        cmdReleaseTimer = 0;
+        return;
+    }
+    SerialCharResponseHandler::OnTimerComplete(timerId, data);
 }
 
 void GSMSerialModem::OnTimerStop(TimerID timerId, uint8_t data)
 {
     if (timerId == eventBufferTimeout) {
         eventBufferTimeout = 0;
-    } else if (timerId == cmdReleaseTimer) { 
-        cmdReleaseTimer = 0;
-    } else {
-        SerialCharResponseHandler::OnTimerStop(timerId, data);
+        return;
     }
+    if (timerId == cmdReleaseTimer) { 
+        cmdReleaseTimer = 0;
+        return;
+    }
+    
+    SerialCharResponseHandler::OnTimerStop(timerId, data);
+}
+
+void GSMSerialModem::StartEventBufferTimer()
+{
+    if (eventBufferTimeout != 0) {
+        Timer::Stop(eventBufferTimeout);
+    }
+    eventBufferTimeout = Timer::Start(this, GSM_BUFFER_FILL_TIMEOUT);
 }
