@@ -201,21 +201,13 @@ void BaseGSMHandler::OnGSMResponseInternal(BaseModemCMD *cmd, char * response, s
             if (debugPrint != NULL) {
                 debugPrint->println(PSTR("MODEM_BOOT_RECONNECTING OK"));
             }
-#ifdef GSM_DEBUG_ERROR_CMD
             modemBootState = MODEM_BOOT_DEBUG_SET;
-            ForceCommandInternal(new ByteModemCMD(2, GSM_MODEM_CME_ERR_CMD));
-#else
-            ResetBuffer();
-            Timer::Stop(connectionTimer);
-            modemBootState = MODEM_BOOT_COMPLETED;
-            OnModemBooted();
-#endif
+            ForceCommandInternal(new ByteModemCMD(1, GSM_MODEM_CME_ERR_CMD));
         } else if (type > MODEM_RESPONSE_OK) {
             FlushIncoming();
             ForceCommandInternal(new BaseModemCMD(NULL, MODEM_BOOT_COMMAND_TIMEOUT));
         }
         break;
-#ifdef GSM_DEBUG_ERROR_CMD
     case MODEM_BOOT_DEBUG_SET:
         if (type == MODEM_RESPONSE_OK) {
             ResetBuffer();
@@ -226,7 +218,6 @@ void BaseGSMHandler::OnGSMResponseInternal(BaseModemCMD *cmd, char * response, s
             StartModem(true, GetBaudRate());
         }
         break;
-#endif
     default:
         break;
     }

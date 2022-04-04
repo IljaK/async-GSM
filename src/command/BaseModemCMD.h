@@ -21,6 +21,7 @@ public:
     const char *cmd;
     const size_t cmdLen;
     unsigned long timeout;
+    int16_t cme_error = 0;
 
     BaseModemCMD(const char *cmd, unsigned long timeout = MODEM_COMMAND_TIMEOUT, bool isCheck = false, bool isSet = false,
         bool dataQuotations = false, bool semicolon = false):

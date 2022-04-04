@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 #include "GSMExpectation.h"
+#include "common/Util.h"
 
 void GSMExpectation::SetExpectation(const char *expectation) {
     if (expectation == NULL) {
@@ -13,9 +14,7 @@ void GSMExpectation::SetExpectation(const char *expectation) {
     }
     isHandled = false;
     isWaiting = true;
-    size_t len = strlen(result);
-    this->expectation = (char *)malloc(len+1);
-    strcpy(this->expectation, result);
+    this->expectation = makeNewCopy(expectation);
 }
 
 void GSMExpectation::HandleResult(char *result) {
@@ -28,9 +27,7 @@ void GSMExpectation::HandleResult(char *result) {
         free(this->result);
         this->result = NULL;
     }
-    size_t len = strlen(result);
-    this->result = (char *)malloc(len+1);
-    strcpy(this->result, result);
+    this->result = makeNewCopy(result);
 }
 
 bool GSMExpectation::IsHandled() {

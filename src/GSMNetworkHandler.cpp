@@ -109,18 +109,20 @@ bool GSMNetworkHandler::OnGSMResponse(BaseModemCMD *request, char *response, siz
                     gsmHandler->ForceCommand(new CharModemCMD(simPin, GSM_SIM_PIN_CMD, MODEM_COMMAND_TIMEOUT, true));
                 } else if (pinStatusCMD->pinState == GSM_PIN_STATE_READY) {
                     HandleSimUnlocked();
-                } else if (listener != NULL) {
-                    listener->OnGSMFailed(pinStatusCMD->pinState);
+                } else {
+                    HandleGSMFail(GSM_FAIL_OTHER_PIN);
                 }
             } else if (type == MODEM_RESPONSE_DATA) {
                 pinStatusCMD->HandleDataContent(response, respLen);
             } else if (type >= MODEM_RESPONSE_ERROR && type <= MODEM_RESPONSE_CANCELED) {
                 // Resend cmd, pin module not ready
+                if (pinStatusCMD->cme_error == CME_ERROR_NO_SIM) {
+                    HandleGSMFail(GSM_FAIL_OTHER_PIN);
+                    return true;
+                }
                 gsmHandler->ForceCommand(new PinStatusModemCMD(GSM_SIM_PIN_CMD, MODEM_COMMAND_TIMEOUT));
             } else if (type > MODEM_RESPONSE_TIMEOUT) {
-                if (listener != NULL) {
-                    listener->OnGSMFailed(pinStatusCMD->pinState);
-                }
+                HandleGSMFail(GSM_FAIL_OTHER_PIN);
             }
             return true;
         } else {
@@ -133,9 +135,7 @@ bool GSMNetworkHandler::OnGSMResponse(BaseModemCMD *request, char *response, siz
                     isSimUnlocked = false;
                 }
             } else if (type > MODEM_RESPONSE_ERROR) {
-                if (listener != NULL) {
-                    listener->OnGSMFailed(GSM_PIN_STATE_UNKNOWN);
-                }
+                HandleGSMFail(GSM_FAIL_UNKNOWN);
             }
         }
         return true;
@@ -383,9 +383,7 @@ void GSMNetworkHandler::UpdateCregResult()
             break;
         case GSM_REG_STATE_DENIED:
         case GSM_REG_STATE_UNKNOWN:
-            if (listener != NULL) {
-                listener->OnGSMFailed(GSM_PIN_STATE_READY);
-            }
+            HandleGSMFail(GSM_FAIL_REG_NETWORK);
             break;
     }
 }
@@ -395,9 +393,7 @@ void GSMNetworkHandler::OnTimerComplete(TimerID timerId, uint8_t data)
     if (timerId == gsmTimer) {
         gsmTimer = 0;
         if (data == 0) {
-            if (listener != NULL) {
-                listener->OnGSMFailed(GSM_PIN_STATE_UNKNOWN);
-            }
+            HandleGSMFail(GSM_FAIL_UNKNOWN);
         } else {
             FetchModemStats();
         }
@@ -468,5 +464,13 @@ void GSMNetworkHandler::FlushIncomingSMS()
     if (incomingSms != NULL) {
         delete incomingSms;
         incomingSms = NULL;
+    }
+}
+
+void GSMNetworkHandler::HandleGSMFail(GSM_FAIL_STATE failState)
+{
+    Timer::Stop(gsmTimer);
+    if (listener != NULL) {
+        listener->OnGSMFailed(GSM_FAIL_OTHER_PIN);
     }
 }

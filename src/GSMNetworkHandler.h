@@ -90,6 +90,13 @@ enum GSM_INIT_STATE {
     GSM_STATE_ERROR
 };
 
+enum GSM_FAIL_STATE {
+    GSM_FAIL_UNKNOWN,
+    GSM_FAIL_NO_SIM,
+    GSM_FAIL_OTHER_PIN,
+    GSM_FAIL_REG_NETWORK
+};
+
 struct IncomingSMSInfo {
     char sender[MAX_PHONE_LENGTH] = { 0 };
     timez_t timeStamp;
@@ -107,7 +114,7 @@ struct GSMNetworkStats {
 class IGSMNetworkHandler {
 public:
     virtual void OnGSMSimUnlocked() = 0;
-    virtual void OnGSMFailed(GSM_PIN_STATE_CMD pinState) = 0;
+    virtual void OnGSMFailed(GSM_FAIL_STATE failState) = 0;
     virtual void OnGSMConnected() = 0;
     virtual void OnGSMStatus(GSM_REG_STATE state) = 0;
     virtual void OnGSMQuality(uint8_t strength, uint8_t quality) = 0;
@@ -133,6 +140,7 @@ private:
     IGSMNetworkHandler *listener = NULL;
     IncomingSMSInfo *incomingSms = NULL;
 
+    void HandleGSMFail(GSM_FAIL_STATE failState);
     void TriggerCommand();
     void IncreaseState();
     void FetchModemStats();

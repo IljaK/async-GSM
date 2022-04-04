@@ -2,19 +2,26 @@
 #include "serial/SerialCharResponseHandler.h"
 #include "command/BaseModemCMD.h"
 
-// For debugging modem command errors
-#define GSM_DEBUG_ERROR_CMD
-
 #define MODEM_SERIAL_BUFFER_SIZE 1024
 
 constexpr char GSM_PREFIX_CMD[] = "AT";
 constexpr char GSM_OK_RESPONSE[] = "OK";
 constexpr char GSM_ERROR_RESPONSE[] = "ERROR";
 constexpr char GSM_ABORTED_RESPONSE[] = "ABORTED";
-#ifdef GSM_DEBUG_ERROR_CMD
 constexpr char GSM_CME_ERROR_RESPONSE[] = "+CME ERROR:";
-#endif
 constexpr unsigned long GSM_BUFFER_FILL_TIMEOUT = 100000ul;
+
+#define CME_ERROR_NOT_ALLOWED 3
+#define CME_ERROR_NOT_SUPPORTED 4
+#define CME_ERROR_NO_SIM 10
+#define CME_ERROR_SIM_PIN 11
+#define CME_ERROR_SIM_PUK 12
+#define CME_ERROR_SIM_FAIL 13
+#define CME_ERROR_SIM_BUSY 14
+#define CME_ERROR_SIM_WRONG 15
+#define CME_ERROR_WRONG_PASSWORD 16
+#define CME_ERROR_SIM_PIN2 17
+#define CME_ERROR_SIM_PUK2 18
 
 // The DTE shall wait some time (the recommended value is at least 20 ms) after the reception of an
 // AT command final response or URC before issuing a new AT command to give the module the
