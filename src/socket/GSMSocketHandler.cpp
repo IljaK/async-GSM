@@ -211,7 +211,6 @@ bool GSMSocketHandler::OnGSMEvent(char * data, size_t dataLen)
                 socketHandler->OnSocketConnected(sock, error);
             }
         }
-        // TODO: Error?
         return true;
     }
     if (IsEvent(GSM_SOCKET_CLOSE_EVENT, data, dataLen)) {
@@ -245,8 +244,6 @@ bool GSMSocketHandler::OnGSMEvent(char * data, size_t dataLen)
         if (available > 0) {
             gsmHandler->ForceCommand(new ByteShortModemCMD(socketId, GSM_SOCKET_BUFFER_SIZE, GSM_SOCKET_READ_CMD));
         }
-
-        // TODO: Error?
         return true;
     }
     return false;

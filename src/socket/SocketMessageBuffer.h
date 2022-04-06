@@ -44,7 +44,7 @@ private:
     }
 
     size_t AppendToItem(SocketMessage *item , uint8_t * data, size_t length) {
-        // TODO: fetch item size from buffer
+        // Fetch item size from buffer
         if (item->size == 0) {
             // We havent received enough data for length
             item->size = GetLength(item->data, item->filled, data, length);

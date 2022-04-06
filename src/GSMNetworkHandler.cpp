@@ -143,7 +143,6 @@ bool GSMNetworkHandler::OnGSMResponse(BaseModemCMD *request, char *response, siz
 
     if (strcmp(request->cmd, GSM_CMD_NETWORK_REG) == 0) {
         if (request->GetIsCheck()) {
-            // TODO:
             if (type== MODEM_RESPONSE_DATA) {
                 gsmStats.regState = GetCregState(response, respLen);
             } else if (type== MODEM_RESPONSE_OK) {

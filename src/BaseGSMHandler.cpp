@@ -104,7 +104,6 @@ bool BaseGSMHandler::ForceCommandInternal(BaseModemCMD *cmd)
     if (!commandStack.Insert(cmd, 0)) {
         if (debugPrint != NULL) {
             debugPrint->print(PSTR("ForceCommandInternal FAIL! "));
-            // TODO: Collect debug message and send to server?
         }
         delete cmd;
         return false;

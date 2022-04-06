@@ -38,6 +38,5 @@ struct SocketWriteModemCMD: public BaseModemCMD
         }
         
         stream->print('"');
-        // TODO: Write hex data to stream
     }
 };

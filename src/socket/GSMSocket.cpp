@@ -18,7 +18,6 @@ GSMSocket::~GSMSocket()
 
 void GSMSocket::OnKeepAliveConfirm()
 {
-    // TODO: if !isSuccess ?
     if (sslType > GSM_SOCKET_SSL_DISABLE) {
         socketHandler->SetSSL(this);
     } else {
@@ -28,7 +27,6 @@ void GSMSocket::OnKeepAliveConfirm()
 
 void GSMSocket::OnSSLConfirm()
 {
-    // TODO: if !isSuccess ?
     socketHandler->Connect(this);
 }
 
