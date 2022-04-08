@@ -32,8 +32,6 @@ void GSMSocket::OnSSLConfirm()
 
 void GSMSocket::OnConnectionConfirm(int error)
 {
-    Serial.print("OnConnectionConfirm: ");
-    Serial.println(error);
     if (error == 0) {
         state = GSM_SOCKET_STATE_READY;
     } else {

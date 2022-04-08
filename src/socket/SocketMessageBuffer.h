@@ -98,9 +98,8 @@ private:
         // Append unfilled data with known message size
         size_t append = item->size - item->filled;
         if (append > length) append = length;
-        item->filled += append;
         memcpy(item->data + item->filled, data, append);
-
+        item->filled += append;
         return append;
 
     }

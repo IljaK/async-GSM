@@ -85,9 +85,6 @@ bool GSMNetworkHandler::OnGSMEvent(char * data, size_t dataLen)
         SplitString(uusts, ',', uustsArgs, 2, false);
         gsmStats.thresholdState = (GSM_THRESHOLD_STATE)atoi(uustsArgs[1]);
 
-        //Serial.print("Threshold state: ");
-        //Serial.println((int)gsmStats.thresholdState);
-
         if (listener != NULL) {
             listener->OnGSMThreshold(gsmStats.thresholdState);
         }
@@ -181,9 +178,6 @@ bool GSMNetworkHandler::OnGSMResponse(BaseModemCMD *request, char *response, siz
                 char* temp = response + strlen(GSM_CMD_UTEMP) + 2;
                 gsmStats.temperature = atoi(temp);
                 gsmStats.temperature /= 10;
-                //Serial.print("Temperature: ");
-                //Serial.print(gsmStats.temperature);
-                //Serial.println("C");
             } else if (type == MODEM_RESPONSE_TIMEOUT) {
                 gsmHandler->StartModem(true, gsmHandler->GetBaudRate());
             } else if (type >= MODEM_RESPONSE_ERROR) {
