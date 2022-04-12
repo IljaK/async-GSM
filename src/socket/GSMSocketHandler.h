@@ -3,6 +3,7 @@
 #include "../BaseGSMHandler.h"
 #include "SocketArray.h"
 #include "GSMSocket.h"
+#include "IGSMSocketHandler.h"
 #include "command/BaseModemCMD.h"
 
 constexpr unsigned long SOCKET_CONNECTION_TIMEOUT = 60000000ul;
@@ -26,21 +27,7 @@ constexpr char GSM_SOCKET_WRITE_CMD[] = "+USOWR"; // AT+USOWR=<socket>,<length>,
 //constexpr uint16_t GSM_SOCKET_BUFFER_SIZE = (MODEM_SERIAL_BUFFER_SIZE / 2) - 20;
 #define GSM_SOCKET_BUFFER_SIZE 256
 
-class GSMSocket;
 class SocketArray;
-
-class IGSMSocketHandler {
-public:
-    virtual void OnSocketCreateError() = 0;
-
-    virtual void OnSocketOpen(GSMSocket * socket) = 0;
-    virtual void OnSocketClose(uint8_t sockedId, bool isSuccess) = 0;
-
-    virtual void OnSocketConnected(GSMSocket * socket, int error) = 0;
-    virtual void OnSocketData(GSMSocket * socket, uint8_t *data, size_t len) = 0;
-
-    virtual void OnSocketStartListen(GSMSocket * socket) = 0;
-};
 
 class GSMSocketHandler: public IBaseGSMHandler, public ITimerCallback
 {

@@ -32,7 +32,7 @@ void GSMSerialModem::OnResponseReceived(bool IsTimeOut, bool isOverFlow)
                         // Got cmd trace back
                         pendingCMD->SetIsRespStarted(true);
                         if (debugPrint != NULL) {
-                            debugPrint->print("CMD TRACE: [");
+                            debugPrint->print("CMD: [");
                             debugPrint->write(buffer, bufferLength - 1);
                             debugPrint->println("]");
                         }
@@ -40,7 +40,7 @@ void GSMSerialModem::OnResponseReceived(bool IsTimeOut, bool isOverFlow)
                     }
                     // Looks like we received an event, during CMD transfer
                     if (debugPrint != NULL) {
-                        debugPrint->print("CMD EVENT: [");
+                        debugPrint->print("CMD: [");
                         debugPrint->write(buffer, bufferLength);
                         debugPrint->println("]");
                     }
@@ -68,11 +68,11 @@ void GSMSerialModem::OnResponseReceived(bool IsTimeOut, bool isOverFlow)
             debugPrint->print("Response: [");
         }
         debugPrint->print(buffer);
-        debugPrint->print("] IsTimeOut: ");
+        debugPrint->print("] ");
         debugPrint->print(IsTimeOut);
-        debugPrint->print(" isOverFlow: ");
+        debugPrint->print(" ");
         debugPrint->print(isOverFlow);
-        debugPrint->print(" isWaitingConfirm: ");
+        debugPrint->print(" ");
         debugPrint->print(pendingCMD != NULL);
         debugPrint->print(" RAM: ");
         debugPrint->println(remainRam());
