@@ -7,6 +7,12 @@ GSMHandlerMock::GSMHandlerMock():GSMHandler()
 
 GSMHandlerMock::~GSMHandlerMock()
 {
+    if (lastResponse != NULL) {
+        free(lastResponse);
+    }
+    if (lastEvent != NULL) {
+        free(lastEvent);
+    }
 }
 
 void GSMHandlerMock::OnModemBooted()
