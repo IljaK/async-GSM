@@ -25,16 +25,6 @@ void GSMSocketHandler::SetSocketHandler(IGSMSocketHandler *socketHandler)
     this->socketHandler = socketHandler;
 }
 
-void GSMSocketHandler::OnTimerComplete(TimerID timerId, uint8_t data)
-{
-
-}
-
-void GSMSocketHandler::OnTimerStop(TimerID timerId, uint8_t data)
-{
-    
-}
-
 bool GSMSocketHandler::OnGSMResponse(BaseModemCMD *request, char * response, size_t respLen, MODEM_RESPONSE_TYPE type)
 {
     // Create socket

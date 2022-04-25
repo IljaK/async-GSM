@@ -1,5 +1,4 @@
 #pragma once
-#include "common/Timer.h"
 #include "../BaseGSMHandler.h"
 #include "SocketArray.h"
 #include "GSMSocket.h"
@@ -29,7 +28,7 @@ constexpr char GSM_SOCKET_WRITE_CMD[] = "+USOWR"; // AT+USOWR=<socket>,<length>,
 
 class SocketArray;
 
-class GSMSocketHandler: public IBaseGSMHandler, public ITimerCallback
+class GSMSocketHandler: public IBaseGSMHandler
 {
 private:
     uint16_t closedTimeout = 0;
@@ -53,9 +52,6 @@ public:
 
     bool OnGSMResponse(BaseModemCMD *request, char * response, size_t respLen, MODEM_RESPONSE_TYPE type) override;
     bool OnGSMEvent(char * data, size_t dataLen) override;
-
-	void OnTimerComplete(TimerID timerId, uint8_t data) override;
-	void OnTimerStop(TimerID timerId, uint8_t data) override;
 
     bool CreateSocket();
     bool CloseSocket(uint8_t socketId);

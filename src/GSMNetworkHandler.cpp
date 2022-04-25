@@ -390,12 +390,14 @@ void GSMNetworkHandler::OnTimerComplete(TimerID timerId, uint8_t data)
         } else {
             FetchModemStats();
         }
+        return;
     }
 }
 void GSMNetworkHandler::OnTimerStop(TimerID timerId, uint8_t data)
 {
     if (timerId == gsmTimer) {
         gsmTimer = 0;
+        return;
     }
 }
 
