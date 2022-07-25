@@ -66,6 +66,7 @@ bool GSMNetworkHandler::OnGSMEvent(char * data, size_t dataLen)
         return true;
     }
     if (IsEvent(GSM_CMD_NETWORK_REG, data, dataLen)) {
+        Timer::Stop(gsmTimer);
         gsmStats.regState = GetCregState(data, dataLen);
         UpdateCregResult();
         return true;
@@ -144,14 +145,12 @@ bool GSMNetworkHandler::OnGSMResponse(BaseModemCMD *request, char *response, siz
                 gsmStats.regState = GetCregState(response, respLen);
             } else if (type== MODEM_RESPONSE_OK) {
                 switch (gsmStats.regState) {
-                    case GSM_REG_STATE_CONNECTING_HOME:
-                    case GSM_REG_STATE_CONNECTING_OTHER:
-                        // Connection in progress, do nothing
-                        break;
                     default:
                         UpdateCregResult();
                         break;
                 }
+            } else if (type >= MODEM_RESPONSE_ERROR) {
+                gsmHandler->StartModem(true, gsmHandler->GetBaudRate());
             }
         } else {
             if (type == MODEM_RESPONSE_OK) {
@@ -243,7 +242,6 @@ bool GSMNetworkHandler::OnGSMResponse(BaseModemCMD *request, char *response, siz
     if (strcmp(request->cmd, GSM_CMD_CALL_STATUS) == 0) {
         if (type == MODEM_RESPONSE_OK) {
             initState = GSM_STATE_WAIT_CREG;
-            // TODO: Wait network registration
             gsmHandler->ForceCommand(new BaseModemCMD(GSM_CMD_NETWORK_REG, MODEM_COMMAND_TIMEOUT, true));
         } else if (type >= MODEM_RESPONSE_ERROR) {
             gsmHandler->StartModem(true, gsmHandler->GetBaudRate());
@@ -386,7 +384,7 @@ void GSMNetworkHandler::OnTimerComplete(TimerID timerId, uint8_t data)
     if (timerId == gsmTimer) {
         gsmTimer = 0;
         if (data == 0) {
-            HandleGSMFail(GSM_FAIL_UNKNOWN);
+            gsmHandler->StartModem(true, gsmHandler->GetBaudRate());
         } else {
             FetchModemStats();
         }
