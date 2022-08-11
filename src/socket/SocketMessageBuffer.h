@@ -14,6 +14,13 @@ struct SocketMessage{
     bool IsFull() {
         return size > 0 && filled == size;
     }
+
+    void FreeData() {
+        if (data != NULL) {
+            free(data);
+            data = NULL;
+        }
+    }
 };
 
 class SocketMessageBuffer: public StackArray<SocketMessage *> {
@@ -142,9 +149,7 @@ private:
 public:
     void FreeItem(SocketMessage * item) override {
         if (item != NULL) {
-            if (item->data != NULL) {
-                free(item->data);
-            }
+            item->FreeData();
             free(item);
         }
     }
