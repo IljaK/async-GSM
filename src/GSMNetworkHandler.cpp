@@ -66,7 +66,10 @@ bool GSMNetworkHandler::OnGSMEvent(char * data, size_t dataLen)
         return true;
     }
     if (IsEvent(GSM_CMD_NETWORK_REG, data, dataLen)) {
-        Timer::Stop(gsmTimer);
+        if (gsmTimer != 0 && Timer::GetData(gsmTimer) == 0) {
+            // Stop timer if it is for modem reboot
+            Timer::Stop(gsmTimer);
+        }
         gsmStats.regState = GetCregState(data, dataLen);
         UpdateCregResult();
         return true;
