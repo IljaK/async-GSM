@@ -1,13 +1,47 @@
 #include "GSMSerialModem.h"
 
-GSMSerialModem::GSMSerialModem():SerialCharResponseHandler(MODEM_SERIAL_BUFFER_SIZE, "\r\n", &SerialGSM)
+GSMSerialModem::GSMSerialModem(HardwareSerial *serial, int8_t resetPin):SerialCharResponseHandler(MODEM_SERIAL_BUFFER_SIZE, "\r\n", serial)
 {
-
+    this->resetPin = resetPin;
 }
 
 GSMSerialModem::~GSMSerialModem()
 {
 
+}
+
+void GSMSerialModem::Reboot(uint32_t baud, uint32_t config, bool hardReset)
+{
+    ResetSerial(baud > MODEM_MAX_AUTO_BAUD_RATE ? MODEM_MAX_AUTO_BAUD_RATE : baud, config);
+    if (resetPin > 0) {
+        pinMode(resetPin, OUTPUT);
+        digitalWrite(resetPin, LOW);
+
+        if (hardReset) {
+            // Hardware reset
+            digitalWrite(resetPin, HIGH);
+            delayMicroseconds(150);
+            digitalWrite(resetPin, LOW);
+            delay(3);
+            digitalWrite(resetPin, HIGH);
+            delay(600);
+            digitalWrite(resetPin, LOW);
+
+            // TODO: Software reset?
+            // send("AT+CFUN=16");
+        }
+    }
+}
+
+void GSMSerialModem::ResetSerial(uint32_t baud, uint32_t config)
+{
+    HardwareSerial * serial = GetSerial();
+
+    if (serial == NULL) return;
+    serial->end();
+    delay(10);
+    serial->begin(baud, config);
+    ResetBuffer();
 }
 
 void GSMSerialModem::OnResponseReceived(bool IsTimeOut, bool isOverFlow)
@@ -265,4 +299,9 @@ void GSMSerialModem::StartEventBufferTimer()
         Timer::Stop(eventBufferTimeout);
     }
     eventBufferTimeout = Timer::Start(this, GSM_BUFFER_FILL_TIMEOUT);
+}
+
+HardwareSerial *GSMSerialModem::GetSerial()
+{
+    return (HardwareSerial *)serial;
 }

@@ -29,16 +29,8 @@ constexpr unsigned long GSM_BUFFER_FILL_TIMEOUT = 100000ul;
 // subsequent AT command is still possible
 constexpr unsigned long GSM_DATA_COLLISION_DELAY = 30000ul;
 
-#ifdef ESP32
-// Produino GSM board
-#define GSM_RTS    (27u)
-#define GSM_CTS    (35u)
-#define GSM_RESETN (14u)
-#define GSM_DTR    (26u)
-#define GSM_RX    (34u)
-#define GSM_TX    (25u)
-#define SerialGSM Serial2
-#endif
+constexpr unsigned long MODEM_MAX_AUTO_BAUD_RATE = 115200ul;
+constexpr unsigned long MODEM_BAUD_RATE = 921600ul;
 
 enum MODEM_RESPONSE_TYPE {
     MODEM_RESPONSE_EVENT,
@@ -51,9 +43,10 @@ enum MODEM_RESPONSE_TYPE {
     MODEM_RESPONSE_TIMEOUT
 };
 
-class GSMSerialModem : public SerialCharResponseHandler
+class GSMSerialModem : protected SerialCharResponseHandler
 {
 protected:
+    int8_t resetPin = -1;
     BaseModemCMD *pendingCMD = NULL;
     TimerID eventBufferTimeout = 0;
     TimerID cmdReleaseTimer = 0;
@@ -63,8 +56,13 @@ protected:
 	virtual void OnModemResponse(BaseModemCMD *cmd, char *data, size_t dataLen, MODEM_RESPONSE_TYPE type) = 0;
     void FlushIncoming();
     void StartEventBufferTimer();
+    void Reboot(uint32_t baud, uint32_t config, bool hardReset);
+    HardwareSerial *GetSerial();
+    // For Uart pin reassignment
+    virtual void ResetSerial(uint32_t baud, uint32_t config);
+
 public:
-    GSMSerialModem();
+    GSMSerialModem(HardwareSerial *serial, int8_t resetPin = -1);
     virtual ~GSMSerialModem();
 
     void Loop() override;

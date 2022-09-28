@@ -12,7 +12,7 @@ protected:
     GSMNetworkHandler gsmHandler;
     GSMSocketHandler socketHandler;
 public:
-    GSMHandler();
+    GSMHandler(HardwareSerial *serial, int8_t resetPin);
     virtual ~GSMHandler();
 
     void OnModemReboot() override;

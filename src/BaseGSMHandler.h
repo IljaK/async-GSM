@@ -16,9 +16,6 @@ constexpr char GSM_MODEM_CME_ERR_CMD[] = "+CMEE"; // ERROR reporting mode
 constexpr unsigned long GSM_MODEM_CONNECTION_TIME = 30000000ul;
 constexpr unsigned long MODEM_BOOT_COMMAND_TIMEOUT = 100000ul;
 
-constexpr unsigned long MODEM_MAX_AUTO_BAUD_RATE = 115200ul;
-constexpr unsigned long MODEM_BAUD_RATE = 921600ul;
-
 constexpr unsigned long GSM_STATUS_CHECK_DELAY = 2000000ul;
 
 class IModemBootHandler
@@ -56,17 +53,17 @@ protected:
     void OnGSMResponseInternal(BaseModemCMD *cmd, char * response, size_t respLen, MODEM_RESPONSE_TYPE type);
 
 private:
-    unsigned long baudRate = 0;
+    uint32_t baudRate = 0;
     TimerID connectionTimer = 0;
     ModemCommandStack commandStack;
 
     bool ForceCommandInternal(BaseModemCMD *cmd);
 
 public:
-    BaseGSMHandler();
+    BaseGSMHandler(HardwareSerial *serial, int8_t resetPin);
     virtual ~BaseGSMHandler();
 
-    void StartModem(bool restart, unsigned long baudRate = MODEM_BAUD_RATE);
+    void StartModem(bool restart, uint32_t baudRate = MODEM_BAUD_RATE);
 
 	void OnTimerComplete(TimerID timerId, uint8_t data) override;
 	void OnTimerStop(TimerID timerId, uint8_t data) override;
@@ -83,6 +80,6 @@ public:
 
     bool IsBooted();
 
-    unsigned long GetBaudRate();
+    uint32_t GetBaudRate();
     size_t GetCommandStackCount();
 };

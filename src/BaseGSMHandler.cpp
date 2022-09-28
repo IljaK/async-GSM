@@ -1,6 +1,7 @@
 #include "BaseGSMHandler.h"
 
-BaseGSMHandler::BaseGSMHandler():GSMSerialModem(), commandStack(OUT_MESSAGE_STACK_SIZE)
+BaseGSMHandler::BaseGSMHandler(HardwareSerial *serial, int8_t resetPin)
+    :GSMSerialModem(serial, resetPin), commandStack(OUT_MESSAGE_STACK_SIZE)
 {
 }
 
@@ -9,7 +10,7 @@ BaseGSMHandler::~BaseGSMHandler()
     Flush();
 }
 
-void BaseGSMHandler::StartModem(bool restart, unsigned long baudRate)
+void BaseGSMHandler::StartModem(bool restart, uint32_t baudRate)
 {
     if (modemBootState == MODEM_BOOT_RESET) {
         return;
@@ -22,45 +23,8 @@ void BaseGSMHandler::StartModem(bool restart, unsigned long baudRate)
     OnModemReboot();
     this->baudRate = baudRate;
 
-    ((HardwareSerial *)serial)->end();
-    delay(10);
-    #if defined(GSM_RX) || defined(GSM_TX)
-    ((HardwareSerial *)serial)->begin(baudRate > MODEM_MAX_AUTO_BAUD_RATE ? MODEM_MAX_AUTO_BAUD_RATE : baudRate, SERIAL_8N1, GSM_RX, GSM_TX);
-    #else
-    ((HardwareSerial *)serial)->begin(baudRate > MODEM_MAX_AUTO_BAUD_RATE ? MODEM_MAX_AUTO_BAUD_RATE : baudRate);
-    #endif
+    Reboot(baudRate, SERIAL_8N1, true);
     Flush();
-
-#ifdef GSM_RESETN
-    pinMode(GSM_RESETN, OUTPUT);
-    digitalWrite(GSM_RESETN, LOW);
-#endif
-
-#ifdef GSM_RTS
-    pinMode(GSM_RTS, OUTPUT);
-    digitalWrite(GSM_RTS, LOW);
-#endif
-
-#ifdef GSM_CTS
-    pinMode(GSM_CTS, INPUT);
-#endif
-
-#ifdef GSM_RESETN
-    if (restart) {
-        // Hardware reset
-        pinMode(GSM_RESETN, OUTPUT);
-        digitalWrite(GSM_RESETN, HIGH);
-        delayMicroseconds(150);
-        digitalWrite(GSM_RESETN, LOW);
-        delay(3);
-        digitalWrite(GSM_RESETN, HIGH);
-        delay(600);
-        digitalWrite(GSM_RESETN, LOW);
-
-        // TODO: Software reset?
-        // send("AT+CFUN=16");
-    }
-#endif
 
     modemBootState = MODEM_BOOT_CONNECTING;
     Timer::Stop(connectionTimer);
@@ -180,14 +144,7 @@ void BaseGSMHandler::OnGSMResponseInternal(BaseModemCMD *cmd, char * response, s
                 debugPrint->println(PSTR("MODEM_BOOT_SPEED_CHAGE OK"));
             }
             modemBootState = MODEM_BOOT_RECONNECTING;
-            ((HardwareSerial *)serial)->end();
-            delay(10);
-            ResetBuffer();
-            #if defined(GSM_RX) || defined(GSM_TX)
-            ((HardwareSerial *)serial)->begin(baudRate, SERIAL_8N1, GSM_RX, GSM_TX);
-            #else
-            ((HardwareSerial *)serial)->begin(baudRate);
-            #endif
+            ResetSerial(baudRate, SERIAL_8N1);
             Timer::Stop(connectionTimer);
             connectionTimer = Timer::Start(this, GSM_MODEM_CONNECTION_TIME);
             ForceCommandInternal(new BaseModemCMD(NULL, MODEM_BOOT_COMMAND_TIMEOUT));
@@ -267,7 +224,7 @@ bool BaseGSMHandler::IsBooted()
     return modemBootState == MODEM_BOOT_COMPLETED;
 }
 
-unsigned long BaseGSMHandler::GetBaudRate()
+uint32_t BaseGSMHandler::GetBaudRate()
 {
     return baudRate;
 }

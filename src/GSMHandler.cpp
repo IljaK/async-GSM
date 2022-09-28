@@ -1,9 +1,7 @@
 #include "GSMHandler.h"
 
-
-
-GSMHandler::GSMHandler():
-    BaseGSMHandler(),
+GSMHandler::GSMHandler(HardwareSerial *serial, int8_t resetPin)
+    :BaseGSMHandler(serial, resetPin),
     gprsHandler(this),
     gsmHandler(this),
     socketHandler(this)
