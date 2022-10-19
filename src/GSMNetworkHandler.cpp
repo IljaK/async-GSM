@@ -117,10 +117,10 @@ bool GSMNetworkHandler::OnGSMResponse(BaseModemCMD *request, char *response, siz
                 pinStatusCMD->HandleDataContent(response, respLen);
             } else if (type >= MODEM_RESPONSE_ERROR && type <= MODEM_RESPONSE_CANCELED) {
                 // Resend cmd, pin module not ready
-                if (pinStatusCMD->cme_error == CME_ERROR_NO_SIM) {
-                    HandleGSMFail(GSM_FAIL_OTHER_PIN);
-                    return true;
-                }
+                //if (pinStatusCMD->cme_error == CME_ERROR_NO_SIM) {
+                //    HandleGSMFail(GSM_FAIL_NO_SIM);
+                //    return true;
+                //}
                 gsmHandler->ForceCommand(new PinStatusModemCMD(GSM_SIM_PIN_CMD, MODEM_COMMAND_TIMEOUT));
             } else if (type > MODEM_RESPONSE_TIMEOUT) {
                 HandleGSMFail(GSM_FAIL_OTHER_PIN);
