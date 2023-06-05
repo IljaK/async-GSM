@@ -30,8 +30,8 @@ void GSMNetworkHandler::Connect(const char *simPin)
     this->simPin = simPin;
     gsmStats.regState = GSM_REG_STATE_UNKNOWN;
     initState = GSM_STATE_PIN;
-    Timer::Stop(gsmTimer);
-    gsmTimer = Timer::Start(this, GSM_MODEM_CONNECTION_TIME, 0);
+    Timer::Stop(gsmReconnectTimer);
+    gsmReconnectTimer = Timer::Start(this, GSM_MODEM_CONNECTION_TIME, 0);
     gsmHandler->ForceCommand(new PinStatusModemCMD(GSM_SIM_PIN_CMD, MODEM_COMMAND_TIMEOUT));
 }
 
@@ -66,9 +66,9 @@ bool GSMNetworkHandler::OnGSMEvent(char * data, size_t dataLen)
         return true;
     }
     if (IsEvent(GSM_CMD_NETWORK_REG, data, dataLen)) {
-        if (gsmTimer != 0 && Timer::GetData(gsmTimer) == 0) {
+        if (gsmReconnectTimer != 0) {
             // Stop timer if it is for modem reboot
-            Timer::Stop(gsmTimer);
+            Timer::Stop(gsmReconnectTimer);
         }
         gsmStats.regState = GetCregState(data, dataLen);
         UpdateCregResult();
@@ -121,7 +121,10 @@ bool GSMNetworkHandler::OnGSMResponse(BaseModemCMD *request, char *response, siz
                 //    HandleGSMFail(GSM_FAIL_NO_SIM);
                 //    return true;
                 //}
-                gsmHandler->ForceCommand(new PinStatusModemCMD(GSM_SIM_PIN_CMD, MODEM_COMMAND_TIMEOUT));
+                // TODO: Start delayed timer?
+
+                gsmSimTimer = Timer::Start(this, GSM_MODEM_SIM_PIN_DELAY, 0);
+                //gsmHandler->ForceCommand(new PinStatusModemCMD(GSM_SIM_PIN_CMD, MODEM_COMMAND_TIMEOUT));
             } else if (type > MODEM_RESPONSE_TIMEOUT) {
                 HandleGSMFail(GSM_FAIL_OTHER_PIN);
             }
@@ -384,27 +387,41 @@ void GSMNetworkHandler::UpdateCregResult()
 
 void GSMNetworkHandler::OnTimerComplete(TimerID timerId, uint8_t data)
 {
-    if (timerId == gsmTimer) {
-        gsmTimer = 0;
-        if (data == 0) {
-            gsmHandler->StartModem(true, gsmHandler->GetBaudRate());
-        } else {
-            FetchModemStats();
-        }
+    if (timerId == gsmReconnectTimer) {
+        gsmReconnectTimer = 0;
+        gsmHandler->StartModem(true, gsmHandler->GetBaudRate());
+        return;
+    }
+    if (timerId == gsmSimTimer) {
+        gsmSimTimer = 0;
+        gsmHandler->ForceCommand(new PinStatusModemCMD(GSM_SIM_PIN_CMD, MODEM_COMMAND_TIMEOUT));
+        return;
+    }
+    if (timerId == gsmNetStatsTimer) {
+        gsmNetStatsTimer = 0;
+        FetchModemStats();
         return;
     }
 }
 void GSMNetworkHandler::OnTimerStop(TimerID timerId, uint8_t data)
 {
-    if (timerId == gsmTimer) {
-        gsmTimer = 0;
+    if (timerId == gsmReconnectTimer) {
+        gsmReconnectTimer = 0;
+        return;
+    }
+    if (timerId == gsmSimTimer) {
+        gsmSimTimer = 0;
+        return;
+    }
+    if (timerId == gsmNetStatsTimer) {
+        gsmNetStatsTimer = 0;
         return;
     }
 }
 
 void GSMNetworkHandler::FetchModemStats() {
-    Timer::Stop(gsmTimer);
-    gsmTimer = Timer::Start(this, QUALITY_CHECK_DURATION, 1u);
+    Timer::Stop(gsmNetStatsTimer);
+    gsmNetStatsTimer = Timer::Start(this, QUALITY_CHECK_DURATION, 0);
     gsmHandler->AddCommand(new BaseModemCMD(GSM_CMD_TIME, MODEM_COMMAND_TIMEOUT, true));
     gsmHandler->AddCommand(new BaseModemCMD(GSM_CMD_UTEMP, MODEM_COMMAND_TIMEOUT, true));
     gsmHandler->AddCommand(new BaseModemCMD(GSM_CMD_NETWORK_QUALITY));
@@ -449,7 +466,7 @@ void GSMNetworkHandler::OnModemReboot()
     gsmStats.thresholdState = GSM_THRESHOLD_T;
     gsmStats.signalStrength = 0;
     gsmStats.signalQuality = 0;
-    Timer::Stop(gsmTimer);
+    StopTimers();
 
     FlushIncomingSMS();
     GSMCallHandler::OnModemReboot();
@@ -463,9 +480,16 @@ void GSMNetworkHandler::FlushIncomingSMS()
     }
 }
 
+void GSMNetworkHandler::StopTimers()
+{
+    Timer::Stop(gsmNetStatsTimer);
+    Timer::Stop(gsmReconnectTimer);
+    Timer::Stop(gsmSimTimer);
+}
+
 void GSMNetworkHandler::HandleGSMFail(GSM_FAIL_STATE failState)
 {
-    Timer::Stop(gsmTimer);
+    StopTimers();
     if (listener != NULL) {
         listener->OnGSMFailed(GSM_FAIL_OTHER_PIN);
     }

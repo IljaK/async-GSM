@@ -135,10 +135,14 @@ private:
     GSMNetworkStats gsmStats;
 
     bool isSimUnlocked = false;
-    TimerID gsmTimer = 0;
+    TimerID gsmReconnectTimer = 0;
+    TimerID gsmSimTimer = 0;
+    TimerID gsmNetStatsTimer = 0;
 
     IGSMNetworkHandler *listener = NULL;
     IncomingSMSInfo *incomingSms = NULL;
+
+    void StopTimers();
 
     void HandleGSMFail(GSM_FAIL_STATE failState);
     void TriggerCommand();

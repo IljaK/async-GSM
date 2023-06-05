@@ -14,6 +14,7 @@ constexpr char GSM_MODEM_SPEED_CMD[] = "+IPR"; // AT+IPR=9600
 constexpr char GSM_MODEM_CME_ERR_CMD[] = "+CMEE"; // ERROR reporting mode
 
 constexpr unsigned long GSM_MODEM_CONNECTION_TIME = 30000000ul;
+constexpr unsigned long GSM_MODEM_SIM_PIN_DELAY = 500000ul;
 constexpr unsigned long MODEM_BOOT_COMMAND_TIMEOUT = 100000ul;
 
 constexpr unsigned long GSM_STATUS_CHECK_DELAY = 2000000ul;
