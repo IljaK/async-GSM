@@ -7,10 +7,7 @@ struct ULong2StringModemCMD: public ULong2ModemCMD
 
     ULong2StringModemCMD(unsigned long valueData, unsigned long valueData2, char *valueData3, const char *cmd, unsigned long timeout = MODEM_COMMAND_TIMEOUT):
         ULong2ModemCMD(valueData, valueData2, cmd, timeout) {
-            if (valueData3 != NULL && valueData3[0] != 0) {
-                this->valueData3 = (char *)malloc(strlen(valueData3) + 1);
-                strcpy(this->valueData3, valueData3);
-            }
+            this->valueData3 = makeNewCopy(valueData3);
     }
 
     virtual ~ULong2StringModemCMD() {

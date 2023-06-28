@@ -359,8 +359,8 @@ void GSMNetworkHandler::UpdateCregResult()
 {
     switch (gsmStats.regState) {
         case GSM_REG_STATE_CONNECTING_HOME:
-        case GSM_REG_CONNECTED_HOME:
         case GSM_REG_STATE_CONNECTING_OTHER:
+        case GSM_REG_STATE_CONNECTED_HOME:
         case GSM_REG_STATE_CONNECTED_ROAMING:
         case GSM_REG_STATE_CONNECTED_SMS_ONLY_HOME:
         case GSM_REG_STATE_CONNECTED_SMS_ONLY_ROAMING:

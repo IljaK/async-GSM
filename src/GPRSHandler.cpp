@@ -59,20 +59,11 @@ bool GPRSHandler::Connect(char* apn, char* login, char* password)
     }
     FlushAuthData();
     
-    if (apn != NULL) {
-        this->apn = (char*)malloc(strlen(apn) + 1);
-        strcpy(this->apn, apn);
-    }
-    if (login != NULL) {
-        this->login = (char*)malloc(strlen(login) + 1);
-        strcpy(this->login, login);
-    }
-    if (password != NULL) {
-        this->password = (char*)malloc(strlen(password) + 1);
-        strcpy(this->password, password);
-    }
-    Connect();
-    return true;
+    this->apn = makeNewCopy(apn);
+    this->login = makeNewCopy(login);
+    this->password = makeNewCopy(password);
+
+    return Connect();
 }
 
 bool GPRSHandler::Connect()

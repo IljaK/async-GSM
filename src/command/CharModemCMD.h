@@ -7,10 +7,7 @@ struct CharModemCMD: public BaseModemCMD
 
     CharModemCMD(const char * charData, const char *cmd, unsigned long timeout = MODEM_COMMAND_TIMEOUT, bool dataQuotations = false, bool semicolon = false):
         BaseModemCMD(cmd, timeout, false, true, dataQuotations, semicolon) {
-        if (charData != NULL) {
-            this->charData = (char *)malloc(strlen(charData) + 1);
-            strcpy(this->charData, charData);
-        }
+        this->charData = makeNewCopy(charData);
     }
 
     virtual ~CharModemCMD() {
