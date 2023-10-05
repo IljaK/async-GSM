@@ -13,7 +13,10 @@
 constexpr char GSM_MODEM_SPEED_CMD[] = "+IPR"; // AT+IPR=9600
 constexpr char GSM_MODEM_CME_ERR_CMD[] = "+CMEE"; // ERROR reporting mode
 
-constexpr unsigned long GSM_MODEM_CONNECTION_TIME = 30000000ul;
+// Timeout for getting proper response for AT command (on modem initialization + modem speed change)
+constexpr unsigned long GSM_MODEM_INIT_TIMEOUT = 20000000ul;
+constexpr unsigned long GSM_MODEM_SIM_INIT_TIMEOUT = 30000000ul;
+
 constexpr unsigned long GSM_MODEM_SIM_PIN_DELAY = 500000ul;
 constexpr unsigned long MODEM_BOOT_COMMAND_TIMEOUT = 100000ul;
 
@@ -55,7 +58,7 @@ protected:
 
 private:
     uint32_t baudRate = 0;
-    TimerID connectionTimer = 0;
+    TimerID modemRebootTimer = 0;
     ModemCommandStack commandStack;
 
     bool ForceCommandInternal(BaseModemCMD *cmd);

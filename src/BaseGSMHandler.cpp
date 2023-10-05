@@ -27,8 +27,8 @@ void BaseGSMHandler::StartModem(bool restart, uint32_t baudRate)
     Flush();
 
     modemBootState = MODEM_BOOT_CONNECTING;
-    Timer::Stop(connectionTimer);
-    connectionTimer = Timer::Start(this, GSM_MODEM_CONNECTION_TIME);
+    Timer::Stop(modemRebootTimer);
+    modemRebootTimer = Timer::Start(this, GSM_MODEM_INIT_TIMEOUT);
     FlushIncoming();
     ForceCommandInternal(new BaseModemCMD(NULL, MODEM_BOOT_COMMAND_TIMEOUT));
 }
@@ -119,7 +119,7 @@ void BaseGSMHandler::OnGSMResponseInternal(BaseModemCMD *cmd, char * response, s
                 debugPrint->println(PSTR("MODEM_BOOT_CONNECTING OK"));
             }
             FlushData();
-            Timer::Stop(connectionTimer);
+            Timer::Stop(modemRebootTimer);
             if (baudRate > MODEM_MAX_AUTO_BAUD_RATE) {
                 if (debugPrint != NULL) {
                     debugPrint->println(PSTR("MODEM_BOOT_SPEED_CHAGE"));
@@ -130,8 +130,10 @@ void BaseGSMHandler::OnGSMResponseInternal(BaseModemCMD *cmd, char * response, s
                 if (debugPrint != NULL) {
                     debugPrint->println(PSTR("MODEM_BOOT_COMPLETED"));
                 }
-                modemBootState = MODEM_BOOT_COMPLETED;
-                OnModemBooted();
+                modemBootState = MODEM_BOOT_DEBUG_SET;
+                ForceCommandInternal(new ByteModemCMD(1, GSM_MODEM_CME_ERR_CMD));
+                //modemBootState = MODEM_BOOT_COMPLETED;
+                //OnModemBooted();
             }
         } else if (type > MODEM_RESPONSE_OK) {
             FlushIncoming();
@@ -145,8 +147,8 @@ void BaseGSMHandler::OnGSMResponseInternal(BaseModemCMD *cmd, char * response, s
             }
             modemBootState = MODEM_BOOT_RECONNECTING;
             ResetSerial(baudRate, SERIAL_8N1);
-            Timer::Stop(connectionTimer);
-            connectionTimer = Timer::Start(this, GSM_MODEM_CONNECTION_TIME);
+            Timer::Stop(modemRebootTimer);
+            modemRebootTimer = Timer::Start(this, GSM_MODEM_INIT_TIMEOUT);
             ForceCommandInternal(new BaseModemCMD(NULL, MODEM_BOOT_COMMAND_TIMEOUT));
         } else {
             StartModem(true, GetBaudRate());
@@ -167,7 +169,7 @@ void BaseGSMHandler::OnGSMResponseInternal(BaseModemCMD *cmd, char * response, s
     case MODEM_BOOT_DEBUG_SET:
         if (type == MODEM_RESPONSE_OK) {
             ResetBuffer();
-            Timer::Stop(connectionTimer);
+            Timer::Stop(modemRebootTimer);
             modemBootState = MODEM_BOOT_COMPLETED;
             OnModemBooted();
         } else {
@@ -181,8 +183,8 @@ void BaseGSMHandler::OnGSMResponseInternal(BaseModemCMD *cmd, char * response, s
 
 void BaseGSMHandler::OnTimerComplete(TimerID timerId, uint8_t data)
 {
-    if (timerId == connectionTimer) {
-        connectionTimer = 0;
+    if (timerId == modemRebootTimer) {
+        modemRebootTimer = 0;
         ResetBuffer();
         modemBootState = MODEM_BOOT_ERROR;
         OnModemFailedBoot();
@@ -193,8 +195,8 @@ void BaseGSMHandler::OnTimerComplete(TimerID timerId, uint8_t data)
 
 void BaseGSMHandler::OnTimerStop(TimerID timerId, uint8_t data)
 {
-    if (timerId == connectionTimer) {
-        connectionTimer = 0;
+    if (timerId == modemRebootTimer) {
+        modemRebootTimer = 0;
     } else {
         GSMSerialModem::OnTimerStop(timerId, data);
     }

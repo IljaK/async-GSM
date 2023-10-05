@@ -41,6 +41,8 @@ constexpr char GSM_CMD_SMS_SEND[] = "+CMGS"; // "Send sms"
 constexpr char GSM_CMD_NETWORK_QUALITY[] = "+CSQ";
 constexpr char GSM_CMD_TIME[] = "+CCLK";
 
+constexpr unsigned long GSM_NETWORG_REG_TIMEOUT = 90000000ul;
+
 // Provides the event status:
 enum GSM_THRESHOLD_STATE {
     GSM_THRESHOLD_T_MINUS_2 = -2, // -2: temperature below t-2 threshold
@@ -92,7 +94,6 @@ enum GSM_INIT_STATE {
 
 enum GSM_FAIL_STATE {
     GSM_FAIL_UNKNOWN,
-    GSM_FAIL_NO_SIM,
     GSM_FAIL_OTHER_PIN,
     GSM_FAIL_REG_NETWORK
 };

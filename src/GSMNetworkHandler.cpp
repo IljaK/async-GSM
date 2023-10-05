@@ -31,7 +31,6 @@ void GSMNetworkHandler::Connect(const char *simPin)
     gsmStats.regState = GSM_REG_STATE_UNKNOWN;
     initState = GSM_STATE_PIN;
     Timer::Stop(gsmReconnectTimer);
-    gsmReconnectTimer = Timer::Start(this, GSM_MODEM_CONNECTION_TIME, 0);
     gsmHandler->ForceCommand(new PinStatusModemCMD(GSM_SIM_PIN_CMD, MODEM_COMMAND_TIMEOUT));
 }
 
@@ -117,12 +116,6 @@ bool GSMNetworkHandler::OnGSMResponse(BaseModemCMD *request, char *response, siz
                 pinStatusCMD->HandleDataContent(response, respLen);
             } else if (type >= MODEM_RESPONSE_ERROR && type <= MODEM_RESPONSE_CANCELED) {
                 // Resend cmd, pin module not ready
-                //if (pinStatusCMD->cme_error == CME_ERROR_NO_SIM) {
-                //    HandleGSMFail(GSM_FAIL_NO_SIM);
-                //    return true;
-                //}
-                // TODO: Start delayed timer?
-
                 gsmSimTimer = Timer::Start(this, GSM_MODEM_SIM_PIN_DELAY, 0);
                 //gsmHandler->ForceCommand(new PinStatusModemCMD(GSM_SIM_PIN_CMD, MODEM_COMMAND_TIMEOUT));
             } else if (type > MODEM_RESPONSE_TIMEOUT) {
@@ -150,11 +143,7 @@ bool GSMNetworkHandler::OnGSMResponse(BaseModemCMD *request, char *response, siz
             if (type== MODEM_RESPONSE_DATA) {
                 gsmStats.regState = GetCregState(response, respLen);
             } else if (type== MODEM_RESPONSE_OK) {
-                switch (gsmStats.regState) {
-                    default:
-                        UpdateCregResult();
-                        break;
-                }
+                UpdateCregResult();
             } else if (type >= MODEM_RESPONSE_ERROR) {
                 gsmHandler->StartModem(true, gsmHandler->GetBaudRate());
             }
@@ -349,9 +338,10 @@ GSM_REG_STATE GSMNetworkHandler::GetCregState(char * data, size_t dataLen)
     cregArgs[1] = 0;
 
     size_t args = SplitString(creg, ',', cregArgs, 2, false);
-    if (args == 2) { // Data from event
+    if (args == 2) { // Data from command
         return (GSM_REG_STATE)atoi(cregArgs[1]);
     }
+    // Data from event
     return (GSM_REG_STATE)atoi(cregArgs[0]);
 }
 
@@ -360,6 +350,9 @@ void GSMNetworkHandler::UpdateCregResult()
     switch (gsmStats.regState) {
         case GSM_REG_STATE_CONNECTING_HOME:
         case GSM_REG_STATE_CONNECTING_OTHER:
+            Timer::Stop(gsmReconnectTimer);
+            gsmReconnectTimer = Timer::Start(this, GSM_NETWORG_REG_TIMEOUT, 0);
+            break;
         case GSM_REG_STATE_CONNECTED_HOME:
         case GSM_REG_STATE_CONNECTED_ROAMING:
         case GSM_REG_STATE_CONNECTED_SMS_ONLY_HOME:
@@ -367,7 +360,7 @@ void GSMNetworkHandler::UpdateCregResult()
         case GSM_REG_STATE_CONNECTED_EMERGENSY_ONLY:
         case GSM_REG_STATE_CONNECTED_CSFB_NOT_HOME:
         case GSM_REG_STATE_CONNECTED_CSFB_NOT_ROAMING:
-            if (initState < GSM_STATE_READY && initState > GSM_STATE_NONE) {
+            if (initState > GSM_STATE_NONE && initState < GSM_STATE_READY) {
                 FetchModemStats();
                 initState = GSM_STATE_READY;
                 if (listener != NULL) {
@@ -491,6 +484,6 @@ void GSMNetworkHandler::HandleGSMFail(GSM_FAIL_STATE failState)
 {
     StopTimers();
     if (listener != NULL) {
-        listener->OnGSMFailed(GSM_FAIL_OTHER_PIN);
+        listener->OnGSMFailed(failState);
     }
 }
