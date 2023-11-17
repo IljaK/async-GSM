@@ -107,7 +107,10 @@ void BaseGSMHandler::OnGSMResponseInternal(BaseModemCMD *cmd, char * response, s
     case MODEM_BOOT_COMPLETED:
         if (cmd != NULL) {
             if (type == MODEM_RESPONSE_TIMEOUT) {
-                StartModem(true, GetBaudRate());
+                if (debugPrint != NULL) {
+                    debugPrint->println(PSTR("MODEM_RESPONSE_TIMEOUT"));
+                    StartModem(true, GetBaudRate());
+                }
             } else {
                 OnGSMResponse(cmd, response, respLen, type);
             }
@@ -151,6 +154,9 @@ void BaseGSMHandler::OnGSMResponseInternal(BaseModemCMD *cmd, char * response, s
             modemRebootTimer = Timer::Start(this, GSM_MODEM_INIT_TIMEOUT);
             ForceCommandInternal(new BaseModemCMD(NULL, MODEM_BOOT_COMMAND_TIMEOUT));
         } else {
+            if (debugPrint != NULL) {
+                debugPrint->println(PSTR("MODEM_BOOT_SPEED_CHAGE FAIL"));
+            }
             StartModem(true, GetBaudRate());
         }
         break;

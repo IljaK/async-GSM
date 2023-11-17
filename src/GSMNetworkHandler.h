@@ -42,6 +42,7 @@ constexpr char GSM_CMD_NETWORK_QUALITY[] = "+CSQ";
 constexpr char GSM_CMD_TIME[] = "+CCLK";
 
 constexpr unsigned long GSM_NETWORG_REG_TIMEOUT = 90000000ul;
+constexpr unsigned long GSM_NETWORG_CREG_INTERVAL = 5000000ul;
 
 // Provides the event status:
 enum GSM_THRESHOLD_STATE {
@@ -139,6 +140,7 @@ private:
     TimerID gsmReconnectTimer = 0;
     TimerID gsmSimTimer = 0;
     TimerID gsmNetStatsTimer = 0;
+    TimerID gsmCREGTimer = 0;
 
     IGSMNetworkHandler *listener = NULL;
     IncomingSMSInfo *incomingSms = NULL;

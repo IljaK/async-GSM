@@ -144,6 +144,8 @@ bool GSMNetworkHandler::OnGSMResponse(BaseModemCMD *request, char *response, siz
                 gsmStats.regState = GetCregState(response, respLen);
             } else if (type== MODEM_RESPONSE_OK) {
                 UpdateCregResult();
+                Timer::Stop(gsmCREGTimer);
+                gsmCREGTimer = Timer::Start(this, GSM_NETWORG_CREG_INTERVAL, 0);
             } else if (type >= MODEM_RESPONSE_ERROR) {
                 gsmHandler->StartModem(true, gsmHandler->GetBaudRate());
             }
@@ -373,6 +375,7 @@ void GSMNetworkHandler::UpdateCregResult()
             break;
         case GSM_REG_STATE_DENIED:
         case GSM_REG_STATE_UNKNOWN:
+            // TODO: or give modem chance to connect?
             HandleGSMFail(GSM_FAIL_REG_NETWORK);
             break;
     }
@@ -395,6 +398,9 @@ void GSMNetworkHandler::OnTimerComplete(TimerID timerId, uint8_t data)
         FetchModemStats();
         return;
     }
+    if (timerId == gsmCREGTimer) {
+        gsmHandler->ForceCommand(new BaseModemCMD(GSM_CMD_NETWORK_REG, MODEM_COMMAND_TIMEOUT, true));
+    }
 }
 void GSMNetworkHandler::OnTimerStop(TimerID timerId, uint8_t data)
 {
@@ -408,6 +414,10 @@ void GSMNetworkHandler::OnTimerStop(TimerID timerId, uint8_t data)
     }
     if (timerId == gsmNetStatsTimer) {
         gsmNetStatsTimer = 0;
+        return;
+    }
+    if (timerId == gsmCREGTimer) {
+        gsmCREGTimer = 0;
         return;
     }
 }
@@ -478,6 +488,7 @@ void GSMNetworkHandler::StopTimers()
     Timer::Stop(gsmNetStatsTimer);
     Timer::Stop(gsmReconnectTimer);
     Timer::Stop(gsmSimTimer);
+    Timer::Stop(gsmCREGTimer);
 }
 
 void GSMNetworkHandler::HandleGSMFail(GSM_FAIL_STATE failState)

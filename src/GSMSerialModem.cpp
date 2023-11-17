@@ -12,7 +12,6 @@ GSMSerialModem::~GSMSerialModem()
 
 void GSMSerialModem::Reboot(uint32_t baud, uint32_t config, bool hardReset)
 {
-    ResetSerial(baud > MODEM_MAX_AUTO_BAUD_RATE ? MODEM_MAX_AUTO_BAUD_RATE : baud, config);
     if (resetPin > 0) {
         pinMode(resetPin, OUTPUT);
         digitalWrite(resetPin, LOW);
@@ -26,11 +25,14 @@ void GSMSerialModem::Reboot(uint32_t baud, uint32_t config, bool hardReset)
             digitalWrite(resetPin, HIGH);
             delay(600);
             digitalWrite(resetPin, LOW);
+            // Just in case?
+            delayMicroseconds(50);
 
             // TODO: Software reset?
             // send("AT+CFUN=16");
         }
     }
+    ResetSerial(baud > MODEM_MAX_AUTO_BAUD_RATE ? MODEM_MAX_AUTO_BAUD_RATE : baud, config);
 }
 
 void GSMSerialModem::ResetSerial(uint32_t baud, uint32_t config)
@@ -42,6 +44,7 @@ void GSMSerialModem::ResetSerial(uint32_t baud, uint32_t config)
     delay(10);
     serial->begin(baud, config);
     ResetBuffer();
+    delayMicroseconds(50);
 }
 
 void GSMSerialModem::OnResponseReceived(bool IsTimeOut, bool isOverFlow)
@@ -255,13 +258,7 @@ void GSMSerialModem::FlushIncoming()
         delete pendingCMD;
         pendingCMD = NULL;
     }
-    while (serial->available() > 0) {
-        int val = serial->read();
-        if (val <= 0) {
-            break;
-        }
-    }
-    ResetBuffer();
+    FlushData();
 }
 
 void GSMSerialModem::OnTimerComplete(TimerID timerId, uint8_t data)
