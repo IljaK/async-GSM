@@ -1,14 +1,12 @@
 #pragma once
 #include "common/GSMUtils.h"
-#include "BaseGSMHandler.h"
+#include "IGPRSHandler.h"
+#include "GSMModemManager.h"
 #include "command/ByteModemCMD.h"
 #include "command/ULongModemCMD.h"
 #include "command/ULong2StringModemCMD.h"
+#include "GPRSManager.h"
 
-constexpr unsigned long APN_CONNECT_CMD_TIMEOUT = 20000000ul;
-constexpr unsigned long APN_STATUS_CHECK_DELAY = 200000ul;
-
-constexpr char GSM_GPRS_CMD[] = "+CGATT";
 
 // "AT+UPSD=0,1,\"%s\"", _apn
 // "AT+UPSD=0,2,\"%s\"", _username
@@ -30,7 +28,7 @@ constexpr char GSM_APN_FETCH_DATA_CMD[] = "+UPSND";
 // In case of PDP context deactivation with AT+UPSDA=0,4, the +UUPSDD URC is not issued
 constexpr char GSM_APN_DEACTIVATED_EVENT[] = "+UUPSDD"; // +UUPSDD: 0
 
-constexpr char GSM_RESOLVE_DNS_CMD[] = "+UDNSRN"; // Get IP of dns name
+constexpr char GSM_UBLOX_RESOLVE_DNS_CMD[] = "+UDNSRN"; // Get IP of dns name
 
 // TODO:
 //AT+UDYNDNS=<on_off>[,<service_id>,<domain_name>,<username>,<password>]
@@ -56,61 +54,26 @@ enum UPSDN_SETTING_INDEX {
     UPSDN_SETTING_STATUS = 8
 };
 
-class IGPRSHandler
-{
-public:
-    virtual void OnGPRSActivated(bool isSuccess) = 0;
-    virtual void OnGPRSDeactivated(bool isSuccess) = 0;
-    virtual void OnHostNameResolve(const char *hostName, IPAddr ip, bool isSuccess) = 0;
-    //virtual void OnDynDnsActivated(bool isSuccess) = 0;
-    //virtual void OnDynDnsDeactivated(bool isSuccess) = 0;
-};
-
-enum GSM_APN_STATE {
-    GSM_APN_DEACTIVATED,
-    GSM_APN_ACTIVATING,
-    GSM_APN_ACTIVE,
-    GSM_APN_DEACTIVATING
-};
-
-class GPRSHandler: public IBaseGSMHandler, public ITimerCallback
+class UbloxGPRSManager: public GPRSManager, public ITimerCallback
 {
 private:
-    BaseGSMHandler *gsmHandler = NULL;
-    IGPRSHandler *apnHandler = NULL;
-    GSM_APN_STATE apnState = GSM_APN_DEACTIVATED;
     TimerID checkTimer = 0;
-
-    IPAddr deviceAddr;
-
-    char *apn = NULL;
-    char* login = NULL;
-    char* password = NULL;
-
-    void FlushAuthData();
-
     UPSD_SETTING_INDEX GetNextSetting(int index);
     void SendSetting(UPSD_SETTING_INDEX setting);
 
+protected:
+
+    void FlushAuthData() override;
+    bool ResolveHostNameCMD(const char *hostName) override;
+    bool ConnectInternal() override;
+
 public:
-    GPRSHandler(BaseGSMHandler *gsmHandler);
-    virtual ~GPRSHandler();
-
-    void OnTimerComplete(TimerID timerId, uint8_t data) override;
-	void OnTimerStop(TimerID timerId, uint8_t data) override;
-
-    void SetAPNHandler(IGPRSHandler *apnHandler);
+    UbloxGPRSManager(GSMModemManager *gsmManager);
+    virtual ~UbloxGPRSManager();
 
     bool OnGSMResponse(BaseModemCMD *request, char * response, size_t respLen, MODEM_RESPONSE_TYPE type) override;
     bool OnGSMEvent(char * data, size_t dataLen) override;
 
-    bool Connect(char* apn, char* login = NULL, char* password = NULL);
-    bool Connect();
-    bool Deactivate();
-
-    bool IsActive();
-    IPAddr GetDeviceAddr();
-    void OnModemReboot();
-
-    bool ResolveHostName(const char *hostName);
+    void OnTimerComplete(TimerID timerId, uint8_t data) override;
+	void OnTimerStop(TimerID timerId, uint8_t data) override;
 };

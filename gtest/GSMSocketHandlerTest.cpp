@@ -1,12 +1,13 @@
 #include <gtest/gtest.h>
 #include "common/Timer.h"
 #include <Arduino.h>
-#include "socket/GSMSocketHandler.h"
+#include "socket/GSMSocketManager.h"
 #include "mock/TimerMock.h"
 #include "mock/GSMHandlerMock.h"
+#include "IGSMNetworkManager.h"
 
-void createConfigSocket(GSMSocketHandler *socketHandler, GSMHandlerMock *gsmHandler) {
-    socketHandler->CreateSocket();
+void createConfigSocket(GSMSocketManager *socketManager, GSMHandlerMock *gsmHandler) {
+    socketManager->CreateSocket();
     // AT+USOCR=6
     gsmHandler->Loop();
 
@@ -17,7 +18,7 @@ void createConfigSocket(GSMSocketHandler *socketHandler, GSMHandlerMock *gsmHand
     timeOffset += GSM_DATA_COLLISION_DELAY;
     Timer::Loop();
 
-    GSMSocket *socket = socketHandler->GetSocket(0);
+    GSMSocket *socket = socketManager->GetSocket(0);
     ASSERT_FALSE(socket == NULL);
 
     EXPECT_EQ(socket->GetId(), 0);
@@ -37,8 +38,8 @@ void createConfigSocket(GSMSocketHandler *socketHandler, GSMHandlerMock *gsmHand
     gsmHandler->Loop();
 }
 
-void createConnectSocket(GSMSocketHandler *socketHandler, GSMHandlerMock *gsmHandler) {
-    createConfigSocket(socketHandler, gsmHandler);
+void createConnectSocket(GSMSocketManager *socketManager, GSMHandlerMock *gsmHandler) {
+    createConfigSocket(socketManager, gsmHandler);
 
     //AT+USOCO=0,"127.0.0.1",2234
     gsmHandler->ReadResponse((char*)"AT+USOCO=0,\"127.0.0.1\",2234\r\r\nOK\r\n");
@@ -46,7 +47,7 @@ void createConnectSocket(GSMSocketHandler *socketHandler, GSMHandlerMock *gsmHan
     Timer::Loop();
     gsmHandler->Loop();
 
-    GSMSocket *socket = socketHandler->GetSocket(0);
+    GSMSocket *socket = socketManager->GetSocket(0);
 
     EXPECT_TRUE(socket->IsConnected());
 
@@ -55,33 +56,33 @@ void createConnectSocket(GSMSocketHandler *socketHandler, GSMHandlerMock *gsmHan
     EXPECT_TRUE(socket->IsConnected());
 }
 
-TEST(GSMSocketHandlerTest, SocketConnectionTest)
+TEST(GSMSocketManagerTest, SocketConnectionTest)
 {
 	timeOffset = 0;
 	TimerMock::Reset();
 
     GSMHandlerMock gsmHandler;
-    GSMSocketHandler *socketHandler;
-    socketHandler = gsmHandler.GetSocketHandler();
+    GSMSocketManager *socketManager;
+    socketManager = gsmHandler.GetSocketHandler();
 
     gsmHandler.SetReady();
 
     ASSERT_FALSE(gsmHandler.IsBusy());
-    createConnectSocket(socketHandler, &gsmHandler);
+    createConnectSocket(socketManager, &gsmHandler);
 }
 
-TEST(GSMSocketHandlerTest, SocketConnectionFailTest)
+TEST(GSMSocketManagerTest, SocketConnectionFailTest)
 {
 	timeOffset = 0;
 	TimerMock::Reset();
 
     GSMHandlerMock gsmHandler;
-    GSMSocketHandler *socketHandler;
-    socketHandler = gsmHandler.GetSocketHandler();
+    GSMSocketManager *socketManager;
+    socketManager = gsmHandler.GetSocketHandler();
 
     gsmHandler.SetReady();
     
-    createConnectSocket(socketHandler, &gsmHandler);
+    createConnectSocket(socketManager, &gsmHandler);
 
     gsmHandler.ReadResponse((char*)"\r\n+UUSOCL: 0\r\n");
 
@@ -89,21 +90,21 @@ TEST(GSMSocketHandlerTest, SocketConnectionFailTest)
     Timer::Loop();
     gsmHandler.Loop();
     
-    GSMSocket *socket = socketHandler->GetSocket(0);
+    GSMSocket *socket = socketManager->GetSocket(0);
     EXPECT_TRUE(socket == NULL);
 }
 
-TEST(GSMSocketHandlerTest, SocketConnectionCorruptionFailTest)
+TEST(GSMSocketManagerTest, SocketConnectionCorruptionFailTest)
 {
 	timeOffset = 0;
 	TimerMock::Reset();
 
     GSMHandlerMock gsmHandler;
-    GSMSocketHandler *socketHandler;
-    socketHandler = gsmHandler.GetSocketHandler();
+    GSMSocketManager *socketManager;
+    socketManager = gsmHandler.GetSocketHandler();
 
     gsmHandler.SetReady();
-    createConfigSocket(socketHandler, &gsmHandler);
+    createConfigSocket(socketManager, &gsmHandler);
 
     // Corrupted response
     gsmHandler.ReadResponse((char*)"AT+USOCO=0,\"127.0.0.1\",2234\r\r\nER\r\n");
@@ -115,28 +116,28 @@ TEST(GSMSocketHandlerTest, SocketConnectionCorruptionFailTest)
     Timer::Loop();
     gsmHandler.Loop();
     
-    GSMSocket *socket = socketHandler->GetSocket(0);
+    GSMSocket *socket = socketManager->GetSocket(0);
 
     EXPECT_TRUE(socket == NULL);
 }
 
-TEST(GSMSocketHandlerTest, SocketWriteErrorTest)
+TEST(GSMSocketManagerTest, SocketWriteErrorTest)
 {
     timeOffset = 0;
 	TimerMock::Reset();
 
     GSMHandlerMock gsmHandler;
-    GSMSocketHandler *socketHandler;
-    socketHandler = gsmHandler.GetSocketHandler();
+    GSMSocketManager *socketManager;
+    socketManager = gsmHandler.GetSocketHandler();
 
     gsmHandler.SetReady();
 
     ASSERT_FALSE(gsmHandler.IsBusy());
-    createConnectSocket(socketHandler, &gsmHandler);
+    createConnectSocket(socketManager, &gsmHandler);
     timeOffset += GSM_DATA_COLLISION_DELAY;
     Timer::Loop();
 
-    GSMSocket * socket = socketHandler->GetSocket(0);
+    GSMSocket * socket = socketManager->GetSocket(0);
 
     ASSERT_FALSE(socket == NULL);
 
@@ -154,28 +155,28 @@ TEST(GSMSocketHandlerTest, SocketWriteErrorTest)
     timeOffset += GSM_DATA_COLLISION_DELAY;
     Timer::Loop();
 
-    socket = socketHandler->GetSocket(0);
+    socket = socketManager->GetSocket(0);
 
     ASSERT_TRUE(socket == NULL);
     
 }
 
 
-TEST(GSMSocketHandlerTest, SocketWriteErrorTimeoutCloseTest)
+TEST(GSMSocketManagerTest, SocketWriteErrorTimeoutCloseTest)
 {
     timeOffset = 0;
 	TimerMock::Reset();
 
     GSMHandlerMock gsmHandler;
-    GSMSocketHandler *socketHandler;
-    socketHandler = gsmHandler.GetSocketHandler();
+    GSMSocketManager *socketManager;
+    socketManager = gsmHandler.GetSocketHandler();
 
     gsmHandler.SetReady();
 
     ASSERT_FALSE(gsmHandler.IsBusy());
-    createConnectSocket(socketHandler, &gsmHandler);
+    createConnectSocket(socketManager, &gsmHandler);
 
-    GSMSocket * socket = socketHandler->GetSocket(0);
+    GSMSocket * socket = socketManager->GetSocket(0);
 
     ASSERT_FALSE(socket == NULL);
 
@@ -194,7 +195,7 @@ TEST(GSMSocketHandlerTest, SocketWriteErrorTimeoutCloseTest)
     Timer::Loop();
     gsmHandler.Loop();
 
-    socket = socketHandler->GetSocket(0);
+    socket = socketManager->GetSocket(0);
 
     ASSERT_TRUE(socket == NULL);
     

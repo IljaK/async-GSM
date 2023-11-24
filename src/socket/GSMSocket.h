@@ -1,7 +1,7 @@
 #pragma once
 #include <stdio.h>
 #include <stdint.h>
-#include "GSMSocketHandler.h"
+#include "GSMSocketManager.h"
 #include "common/GSMUtils.h"
 #include "array/ByteStackArray.h"
 #include "SocketMessageBuffer.h"
@@ -25,7 +25,7 @@ enum GSM_SOCKET_SSL: uint8_t {
     GSM_SOCKET_SSL_PROFILE_4
 };
 
-class GSMSocketHandler;
+class GSMSocketManager;
 
 class GSMSocket: public ITimerCallback {
 private:
@@ -40,16 +40,16 @@ private:
     uint16_t port = 0;
 
     char * domain = NULL;
-    GSMSocketHandler * socketHandler = NULL;
+    GSMSocketManager * socketManager = NULL;
 protected:
     ByteStackArray outgoingMessageStack;
     void OnKeepAliveConfirm();
     void OnSSLConfirm();
-    void OnConnectionConfirm(int error);
+    void OnConnectionConfirm(bool isSuccess);
 
-    friend class GSMSocketHandler;
+    friend class GSMSocketManager;
 public:
-    GSMSocket(GSMSocketHandler * socketHandler, uint8_t socketId);
+    GSMSocket(GSMSocketManager * socketManager, uint8_t socketId);
     virtual ~GSMSocket();
 
 	void OnTimerComplete(TimerID timerId, uint8_t data) override;

@@ -8,7 +8,6 @@
 #include "command/ByteModemCMD.h"
 
 #define OUT_MESSAGE_STACK_SIZE 12
-#define MAX_PHONE_LENGTH 20
 
 constexpr char GSM_MODEM_SPEED_CMD[] = "+IPR"; // AT+IPR=9600
 constexpr char GSM_MODEM_CME_ERR_CMD[] = "+CMEE"; // ERROR reporting mode
@@ -25,9 +24,9 @@ constexpr unsigned long GSM_STATUS_CHECK_DELAY = 2000000ul;
 class IModemBootHandler
 {
 public:
+    virtual void OnModemStartReboot() = 0;
     virtual void OnModemBooted() = 0;
     virtual void OnModemFailedBoot() = 0;
-    virtual void OnModemReboot() = 0;
 };
 
 class IBaseGSMHandler
@@ -48,7 +47,7 @@ enum MODEM_BOOT_STATE {
     MODEM_BOOT_ERROR,
 };
 
-class BaseGSMHandler: public IModemBootHandler, public IBaseGSMHandler, public GSMSerialModem
+class GSMModemManager: public IModemBootHandler, public IBaseGSMHandler, public GSMSerialModem
 {
 protected:
     MODEM_BOOT_STATE modemBootState = MODEM_BOOT_IDLE;
@@ -56,18 +55,25 @@ protected:
     void OnModemResponse(BaseModemCMD *cmd, char *data, size_t dataLen, MODEM_RESPONSE_TYPE type) override;
     void OnGSMResponseInternal(BaseModemCMD *cmd, char * response, size_t respLen, MODEM_RESPONSE_TYPE type);
 
+    virtual void ReBootModem(bool hardReset = true);
+    virtual void BootModem();
+
 private:
-    uint32_t baudRate = 0;
+    uint32_t initBaudRate = 115200ul;
+    uint32_t targetBaudRate = 115200ul;
+    uint32_t serialConfig = SERIAL_8N1;
+
     TimerID modemRebootTimer = 0;
     ModemCommandStack commandStack;
 
     bool ForceCommandInternal(BaseModemCMD *cmd);
 
 public:
-    BaseGSMHandler(HardwareSerial *serial, int8_t resetPin);
-    virtual ~BaseGSMHandler();
+    GSMModemManager(HardwareSerial *serial, int8_t resetPin);
+    virtual ~GSMModemManager();
 
-    void StartModem(bool restart, uint32_t baudRate = MODEM_BAUD_RATE);
+    void SetConfig(uint32_t initBaudRate, uint32_t targetBaudRate, uint32_t serialConfig);
+    void StartModem();
 
 	void OnTimerComplete(TimerID timerId, uint8_t data) override;
 	void OnTimerStop(TimerID timerId, uint8_t data) override;
@@ -84,6 +90,5 @@ public:
 
     bool IsBooted();
 
-    uint32_t GetBaudRate();
     size_t GetCommandStackCount();
 };

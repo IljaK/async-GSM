@@ -10,31 +10,6 @@ GSMSerialModem::~GSMSerialModem()
 
 }
 
-void GSMSerialModem::Reboot(uint32_t baud, uint32_t config, bool hardReset)
-{
-    if (resetPin > 0) {
-        pinMode(resetPin, OUTPUT);
-        digitalWrite(resetPin, LOW);
-
-        if (hardReset) {
-            // Hardware reset
-            digitalWrite(resetPin, HIGH);
-            delayMicroseconds(150);
-            digitalWrite(resetPin, LOW);
-            delay(3);
-            digitalWrite(resetPin, HIGH);
-            delay(600);
-            digitalWrite(resetPin, LOW);
-            // Just in case?
-            delayMicroseconds(50);
-
-            // TODO: Software reset?
-            // send("AT+CFUN=16");
-        }
-    }
-    ResetSerial(baud > MODEM_MAX_AUTO_BAUD_RATE ? MODEM_MAX_AUTO_BAUD_RATE : baud, config);
-}
-
 void GSMSerialModem::ResetSerial(uint32_t baud, uint32_t config)
 {
     HardwareSerial * serial = GetSerial();
@@ -56,7 +31,7 @@ void GSMSerialModem::OnResponseReceived(bool IsTimeOut, bool isOverFlow)
 
     if (!IsTimeOut && !isOverFlow) {
         if (pendingCMD != NULL) {
-            StartTimeoutTimer(pendingCMD->timeout);
+            //StartTimeoutTimer(pendingCMD->timeout);
             if (bufferLength == 0) {
                 if (debugPrint != NULL) {
                     debugPrint->println("[]");
@@ -75,8 +50,9 @@ void GSMSerialModem::OnResponseReceived(bool IsTimeOut, bool isOverFlow)
                         }
                         return;
                     }
+
                     // Looks like we received an event, during CMD transfer
-                    if (debugPrint != NULL) {
+                    /*if (debugPrint != NULL) {
                         debugPrint->print("CMD: [");
                         debugPrint->write(buffer, bufferLength);
                         debugPrint->println("]");
@@ -88,10 +64,18 @@ void GSMSerialModem::OnResponseReceived(bool IsTimeOut, bool isOverFlow)
                     StartEventBufferTimer();
 
                     OnModemResponse(cmd, (char *)GSM_ERROR_RESPONSE, strlen(GSM_ERROR_RESPONSE), MODEM_RESPONSE_ERROR);
-                    //OnModemResponse(NULL, buffer, bufferLength, MODEM_RESPONSE_EVENT);
                     if (cmd != NULL) {
                         delete cmd;
                     }
+                    return;
+                    */
+                    if (debugPrint != NULL) {
+                        debugPrint->print("EVENT collided: [");
+                        debugPrint->write(buffer, bufferLength);
+                        debugPrint->println("]");
+                    }
+                    StartTimeoutTimer(pendingCMD->timeout);
+                    OnModemResponse(NULL, (char *)GSM_ERROR_RESPONSE, strlen(GSM_ERROR_RESPONSE), MODEM_RESPONSE_EVENT);
                     return;
                 }
             }

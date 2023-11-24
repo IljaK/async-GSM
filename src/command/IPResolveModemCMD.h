@@ -1,13 +1,13 @@
 #pragma once
-#include "ByteCharModemCMD.h"
+#include "CharModemCMD.h"
 #include "common/GSMUtils.h"
 
-struct IPResolveModemCMD: public ByteCharModemCMD
+struct IPResolveModemCMD: public CharModemCMD
 {
     IPAddr ipAddr;
 
-    IPResolveModemCMD(uint8_t data, const char * charData2, const char *cmd, unsigned long timeout = MODEM_COMMAND_TIMEOUT):
-        ByteCharModemCMD(data, charData2, cmd, timeout) {
+    IPResolveModemCMD(const char * charData, const char *cmd, unsigned long timeout = MODEM_COMMAND_TIMEOUT):
+        CharModemCMD(charData, cmd, timeout) {
         ipAddr.dword = 0;
     }
 
@@ -15,6 +15,6 @@ struct IPResolveModemCMD: public ByteCharModemCMD
     }
 
     void WriteStream(Print *stream) override {
-        ByteCharModemCMD::WriteStream(stream);
+        CharModemCMD::WriteStream(stream);
     }
 };

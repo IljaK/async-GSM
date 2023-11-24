@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 #include "common/Timer.h"
 #include <Arduino.h>
-#include "socket/GSMSocketHandler.h"
+#include "socket/GSMSocketManager.h"
 #include "mock/TimerMock.h"
 #include "mock/GSMHandlerMock.h"
 

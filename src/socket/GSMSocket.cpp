@@ -1,10 +1,10 @@
 #include "GSMSocket.h"
 
 
-GSMSocket::GSMSocket(GSMSocketHandler * socketHandler, uint8_t socketId):
+GSMSocket::GSMSocket(GSMSocketManager * socketManager, uint8_t socketId):
     outgoingMessageStack(16, 128)
 {
-    this->socketHandler = socketHandler;
+    this->socketManager = socketManager;
     this->socketId = socketId;
 }
 GSMSocket::~GSMSocket()
@@ -19,25 +19,25 @@ GSMSocket::~GSMSocket()
 void GSMSocket::OnKeepAliveConfirm()
 {
     if (sslType > GSM_SOCKET_SSL_DISABLE) {
-        socketHandler->SetSSL(this);
+        socketManager->SetSSL(this);
     } else {
-        socketHandler->Connect(this);
+        socketManager->Connect(this);
     }
 }
 
 void GSMSocket::OnSSLConfirm()
 {
-    socketHandler->Connect(this);
+    socketManager->Connect(this);
 }
 
-void GSMSocket::OnConnectionConfirm(int error)
+void GSMSocket::OnConnectionConfirm(bool isSuccess)
 {
-    if (error == 0) {
-        state = GSM_SOCKET_STATE_READY;
-    } else {
+    if (!isSuccess) {
         state = GSM_SOCKET_STATE_CLOSING_DELAY;
         closeTimer = Timer::Start(this, SOCKET_CLOSE_CONNECT_FAIL_TIMEOUT);
+        return;
     }
+    state = GSM_SOCKET_STATE_READY;
 }
 
 bool GSMSocket::Connect(char *ip, uint16_t port, bool keepAlive, GSM_SOCKET_SSL sslType)
@@ -63,13 +63,13 @@ bool GSMSocket::Connect(IPAddr ip, uint16_t port, bool keepAlive, GSM_SOCKET_SSL
     this->ip = ip;
 
     if (keepAlive) {
-        return socketHandler->SetKeepAlive(this);
+        return socketManager->SetKeepAlive(this);
     }
     if (sslType != GSM_SOCKET_SSL_DISABLE) {
-        return socketHandler->SetSSL(this);
+        return socketManager->SetSSL(this);
     }
 
-    return socketHandler->Connect(this);
+    return socketManager->Connect(this);
 }
 
 bool GSMSocket::Close()
@@ -78,7 +78,7 @@ bool GSMSocket::Close()
         return false;
     }
     state = GSM_SOCKET_STATE_CLOSING;
-    return socketHandler->Close(this);
+    return socketManager->Close(this);
 }
 
 bool GSMSocket::StartListen(uint16_t port)
@@ -94,7 +94,7 @@ bool GSMSocket::SendData(uint8_t *data, size_t len)
     if (outgoingMessageStack.Append(data, len) == 0) {
         return false;
     }
-    socketHandler->Send(this);
+    socketManager->Send(this);
     return true;
 }
 
@@ -132,7 +132,7 @@ void GSMSocket::OnTimerComplete(TimerID timerId, uint8_t data)
 {
     if (timerId == closeTimer) {
         closeTimer = 0;
-        socketHandler->DestroySocket(socketId);
+        socketManager->DestroySocket(socketId);
     }
 }
 

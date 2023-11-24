@@ -1,5 +1,5 @@
 #include <time.h>
-#include "GSMNetworkHandler.h"
+#include "GSMNetworkManager.h"
 #include "command/CharModemCMD.h"
 #include "command/ByteModemCMD.h"
 #include "command/ULong2ModemCMD.h"
@@ -7,34 +7,36 @@
 #include "command/PinModemCMD.h"
 #include "common/GSMUtils.h"
 
-GSMNetworkHandler::GSMNetworkHandler(BaseGSMHandler *gsmHandler):GSMCallHandler(gsmHandler)
+GSMNetworkManager::GSMNetworkManager(GSMModemManager *modemManager)
 {
+    this->modemManager = modemManager;
     gsmStats.regState = GSM_REG_STATE_UNKNOWN;
     gsmStats.networkType = GSM_NETWORK_UNKNOWN;
     gsmStats.thresholdState = GSM_THRESHOLD_T;
     gsmStats.signalStrength = 0;
     gsmStats.signalQuality = 0;
 }
-GSMNetworkHandler::~GSMNetworkHandler()
+GSMNetworkManager::~GSMNetworkManager()
 {
     
 }
 
-void GSMNetworkHandler::SetGSMListener(IGSMNetworkHandler *listener)
+void GSMNetworkManager::SetGSMListener(IGSMNetworkManager *listener)
 {
     this->listener = listener;
 }
 
-void GSMNetworkHandler::Connect(const char *simPin)
+void GSMNetworkManager::Connect(const char *simPin)
 {
     this->simPin = simPin;
     gsmStats.regState = GSM_REG_STATE_UNKNOWN;
     initState = GSM_STATE_PIN;
     Timer::Stop(gsmReconnectTimer);
-    gsmHandler->ForceCommand(new PinStatusModemCMD(GSM_SIM_PIN_CMD, MODEM_COMMAND_TIMEOUT));
+
+    modemManager->ForceCommand(new PinStatusModemCMD(GSM_SIM_PIN_CMD, MODEM_COMMAND_TIMEOUT));
 }
 
-bool GSMNetworkHandler::OnGSMEvent(char * data, size_t dataLen)
+bool GSMNetworkManager::OnGSMEvent(char * data, size_t dataLen)
 {
     if (incomingSms != NULL) {
         if (listener != NULL) {
@@ -73,32 +75,13 @@ bool GSMNetworkHandler::OnGSMEvent(char * data, size_t dataLen)
         UpdateCregResult();
         return true;
     }
-    if (IsEvent(GSM_NETWORK_TYPE_STATUS, data, dataLen)) {
-        char *ureg = data + strlen(GSM_NETWORK_TYPE_STATUS) + 2;
-        gsmStats.networkType = (GSM_NETWORK_TYPE)atoi(ureg);
-        if (listener != NULL) {
-            listener->OnGSMNetworkType(gsmStats.networkType);
-        }
-        return true;
-    }
-    if (IsEvent(GSM_TEMP_THRESHOLD_EVENT, data, dataLen)) {
-        // GSM_TEMP_THRESHOLD_EVENT
-        char *uusts = data + strlen(GSM_TEMP_THRESHOLD_EVENT) + 2;
-		char *uustsArgs[2];
-        SplitString(uusts, ',', uustsArgs, 2, false);
-        gsmStats.thresholdState = (GSM_THRESHOLD_STATE)atoi(uustsArgs[1]);
-
-        if (listener != NULL) {
-            listener->OnGSMThreshold(gsmStats.thresholdState);
-        }
-        return true;
-    }
     
-    return GSMCallHandler::OnGSMEvent(data, dataLen);
+    return false;
 }
 
-bool GSMNetworkHandler::OnGSMResponse(BaseModemCMD *request, char *response, size_t respLen, MODEM_RESPONSE_TYPE type)
+bool GSMNetworkManager::OnGSMResponse(BaseModemCMD *request, char *response, size_t respLen, MODEM_RESPONSE_TYPE type)
 {
+    // Network registration commands
     if (strcmp(request->cmd, GSM_SIM_PIN_CMD) == 0) {
         if (request->GetIsCheck()) {
             PinStatusModemCMD *pinStatusCMD = (PinStatusModemCMD *)request;
@@ -106,7 +89,7 @@ bool GSMNetworkHandler::OnGSMResponse(BaseModemCMD *request, char *response, siz
             // State should be changed on data read
             if (type == MODEM_RESPONSE_OK) {
                 if (pinStatusCMD->pinState == GSM_PIN_STATE_SIM_PIN) {
-                    gsmHandler->ForceCommand(new CharModemCMD(simPin, GSM_SIM_PIN_CMD, MODEM_COMMAND_TIMEOUT, true));
+                    modemManager->ForceCommand(new CharModemCMD(simPin, GSM_SIM_PIN_CMD, MODEM_COMMAND_TIMEOUT, true));
                 } else if (pinStatusCMD->pinState == GSM_PIN_STATE_READY) {
                     HandleSimUnlocked();
                 } else {
@@ -117,9 +100,7 @@ bool GSMNetworkHandler::OnGSMResponse(BaseModemCMD *request, char *response, siz
             } else if (type >= MODEM_RESPONSE_ERROR && type <= MODEM_RESPONSE_CANCELED) {
                 // Resend cmd, pin module not ready
                 gsmSimTimer = Timer::Start(this, GSM_MODEM_SIM_PIN_DELAY, 0);
-                //gsmHandler->ForceCommand(new PinStatusModemCMD(GSM_SIM_PIN_CMD, MODEM_COMMAND_TIMEOUT));
-            } else if (type > MODEM_RESPONSE_TIMEOUT) {
-                HandleGSMFail(GSM_FAIL_OTHER_PIN);
+                //modemManager->ForceCommand(new PinStatusModemCMD(GSM_SIM_PIN_CMD, MODEM_COMMAND_TIMEOUT));
             }
             return true;
         } else {
@@ -144,108 +125,46 @@ bool GSMNetworkHandler::OnGSMResponse(BaseModemCMD *request, char *response, siz
                 gsmStats.regState = GetCregState(response, respLen);
             } else if (type== MODEM_RESPONSE_OK) {
                 UpdateCregResult();
-                Timer::Stop(gsmCREGTimer);
-                gsmCREGTimer = Timer::Start(this, GSM_NETWORG_CREG_INTERVAL, 0);
             } else if (type >= MODEM_RESPONSE_ERROR) {
-                gsmHandler->StartModem(true, gsmHandler->GetBaudRate());
+                modemManager->StartModem();
             }
         } else {
-            if (type == MODEM_RESPONSE_OK) {
-                gsmHandler->ForceCommand(new ByteModemCMD(2, GSM_TEMP_THRESHOLD_CMD));
-            } else if (type >= MODEM_RESPONSE_ERROR) {
-                gsmHandler->StartModem(true, gsmHandler->GetBaudRate());
+            if (type >= MODEM_RESPONSE_ERROR) {
+                modemManager->StartModem();
             }
         }
         return true;
     }
 
-    if (strcmp(request->cmd, GSM_TEMP_THRESHOLD_CMD) == 0) {
-        if (type == MODEM_RESPONSE_OK) {
-            gsmHandler->ForceCommand(new ByteModemCMD(0, GSM_CMD_UTEMP));
-        } else if (type >= MODEM_RESPONSE_ERROR) {
-            gsmHandler->StartModem(true, gsmHandler->GetBaudRate());
-        }
-        return true;
-    }
-
-    if (strcmp(request->cmd, GSM_CMD_UTEMP) == 0) {
-        if (request->GetIsCheck()) {
-            if (type == MODEM_RESPONSE_DATA) {
-                char* temp = response + strlen(GSM_CMD_UTEMP) + 2;
-                gsmStats.temperature = atoi(temp);
-                gsmStats.temperature /= 10;
-            } else if (type == MODEM_RESPONSE_TIMEOUT) {
-                gsmHandler->StartModem(true, gsmHandler->GetBaudRate());
-            } else if (type >= MODEM_RESPONSE_ERROR) {
-                // TODO: ?
-            }
-        } else {
-            if (type == MODEM_RESPONSE_OK) {
-                gsmHandler->ForceCommand(new ByteModemCMD(1, GSM_CMD_SMS_FROMAT));
-            } else if (type >= MODEM_RESPONSE_ERROR) {
-                gsmHandler->StartModem(true, gsmHandler->GetBaudRate());
-            }
-        }
-        return true;
-    }
+    // Modem output configuration commands:
     if (strcmp(request->cmd, GSM_CMD_SMS_FROMAT) == 0) {
         if (type == MODEM_RESPONSE_OK) {
-            gsmHandler->ForceCommand(new CharModemCMD("2,2,0,0,0", GSM_CMD_SMS_INDICATION));
+            NextConfigurationStep();
         } else if (type >= MODEM_RESPONSE_ERROR) {
-            gsmHandler->StartModem(true, gsmHandler->GetBaudRate());
-        }
-        return true;
-    }
-    if (strcmp(request->cmd, GSM_CMD_SMS_INDICATION) == 0) {
-        if (type == MODEM_RESPONSE_OK) {
-            gsmHandler->ForceCommand(new ULong2ModemCMD(1,1, GSM_CMD_HEX_MODE));
-        } else if (type >= MODEM_RESPONSE_ERROR) {
-            gsmHandler->StartModem(true, gsmHandler->GetBaudRate());
-        }
-        return true;
-    }
-    if (strcmp(request->cmd, GSM_CMD_HEX_MODE) == 0) {
-        if (type == MODEM_RESPONSE_OK) {
-            gsmHandler->ForceCommand(new ByteModemCMD(1, GSM_CMD_TIME_ZONE));
-        } else if (type >= MODEM_RESPONSE_ERROR) {
-            gsmHandler->StartModem(true, gsmHandler->GetBaudRate());
-        }
-        return true;
-    }
-    if (strcmp(request->cmd, GSM_CMD_TIME_ZONE) == 0) {
-        if (type == MODEM_RESPONSE_OK) {
-            gsmHandler->ForceCommand(new ULong2ModemCMD(1,2, GSM_CMD_DTFM));
-        } else if (type >= MODEM_RESPONSE_ERROR) {
-            gsmHandler->StartModem(true, gsmHandler->GetBaudRate());
-        }
-        return true;
-    }
-    if (strcmp(request->cmd, GSM_CMD_DTFM) == 0) {
-        if (type == MODEM_RESPONSE_OK) {
-            gsmHandler->ForceCommand(new ByteModemCMD(1, GSM_NETWORK_TYPE_STATUS));
-        }  else if (type >= MODEM_RESPONSE_ERROR) {
-            gsmHandler->StartModem(true, gsmHandler->GetBaudRate());
-        }
-        return true;
-    }
-    if (strcmp(request->cmd, GSM_NETWORK_TYPE_STATUS) == 0) {
-        if (type == MODEM_RESPONSE_OK) {
-            gsmHandler->ForceCommand(new ByteModemCMD(1, GSM_CMD_CALL_STATUS));
-        }  else if (type >= MODEM_RESPONSE_ERROR) {
-            gsmHandler->StartModem(true, gsmHandler->GetBaudRate());
-        }
-        return true;
-    }
-    if (strcmp(request->cmd, GSM_CMD_CALL_STATUS) == 0) {
-        if (type == MODEM_RESPONSE_OK) {
-            initState = GSM_STATE_WAIT_CREG;
-            gsmHandler->ForceCommand(new BaseModemCMD(GSM_CMD_NETWORK_REG, MODEM_COMMAND_TIMEOUT, true));
-        } else if (type >= MODEM_RESPONSE_ERROR) {
-            gsmHandler->StartModem(true, gsmHandler->GetBaudRate());
+            modemManager->StartModem();
         }
         return true;
     }
 
+    if (strcmp(request->cmd, GSM_CMD_SMS_INDICATION) == 0) {
+        if (type == MODEM_RESPONSE_OK) {
+            NextConfigurationStep();
+        } else if (type >= MODEM_RESPONSE_ERROR) {
+            modemManager->StartModem();
+        }
+        return true;
+    }
+
+    if (strcmp(request->cmd, GSM_CMD_TIME_ZONE) == 0) {
+        if (type == MODEM_RESPONSE_OK) {
+            NextConfigurationStep();
+        } else if (type >= MODEM_RESPONSE_ERROR) {
+            modemManager->StartModem();
+        }
+        return true;
+    }
+
+    // Functionality commands:
     if (strcmp(request->cmd, GSM_CMD_NETWORK_QUALITY) == 0) {
         if (type == MODEM_RESPONSE_DATA) {
             char* csq = response + strlen(GSM_CMD_NETWORK_QUALITY) + 2;
@@ -269,38 +188,19 @@ bool GSMNetworkHandler::OnGSMResponse(BaseModemCMD *request, char *response, siz
                 listener->OnGSMQuality(gsmStats.signalStrength, gsmStats.signalQuality);
             }
         } else if (type == MODEM_RESPONSE_TIMEOUT) {
-            gsmHandler->StartModem(true, gsmHandler->GetBaudRate());
+            modemManager->StartModem();
         } else if (type >= MODEM_RESPONSE_ERROR) {
             // TODO: ?
         }
         return true;
     }
-    if (strcmp(request->cmd, GSM_CMD_TIME) == 0) {
-        if (type == MODEM_RESPONSE_DATA) {
-            size_t cclkShift = strlen(GSM_CMD_TIME) + 2;
-            if (cclkShift < respLen) {
-                char *stamp = ShiftQuotations(response + cclkShift);
-                tmz tmzStruct;
-                currentTime.utcStamp = ExtractTime(stamp, &tmzStruct);
-                currentTime.quaterZone = tmzStruct.quaterZone;
-                currentTime.utcStamp -= ZoneInSeconds(tmzStruct.quaterZone);
-                if (currentTime.utcStamp != 0) {
-                    syncTS = millis();
-                }
-            }
-        } else if (type == MODEM_RESPONSE_TIMEOUT) {
-            gsmHandler->StartModem(true, gsmHandler->GetBaudRate());
-        } else if (type >= MODEM_RESPONSE_ERROR) {
-            // TODO: ?
-        }
-        return true;
-    }
+
     if (strcmp(request->cmd, GSM_CMD_SMS_SEND) == 0) {
         SMSSendModemCMD *sendSMSCmd = (SMSSendModemCMD *)request;
         if (type == MODEM_RESPONSE_DATA) {
             if (strcmp(request->ExtraTriggerValue(), response) == 0) {
                 request->SetHasExtraTrigger(false);
-                Stream *modemStream = gsmHandler->GetModemStream();
+                Stream *modemStream = modemManager->GetModemStream();
                 if (listener != NULL && listener->OnSMSSendStream(modemStream, sendSMSCmd->phoneNumber, sendSMSCmd->customData)) {
                     //Send message end
                     modemStream->write(CRTLZ_ASCII_SYMBOL);
@@ -318,22 +218,81 @@ bool GSMNetworkHandler::OnGSMResponse(BaseModemCMD *request, char *response, siz
         }
         return true;
     }
-    return GSMCallHandler::OnGSMResponse(request, response, respLen, type);
+
+    if (strcmp(request->cmd, GSM_CMD_TIME) == 0) {
+        if (type == MODEM_RESPONSE_DATA) {
+            size_t cclkShift = strlen(GSM_CMD_TIME) + 2;
+            if (cclkShift < respLen) {
+                char *stamp = ShiftQuotations(response + cclkShift);
+                tmz tmzStruct;
+                currentTime.utcStamp = ExtractTime(stamp, &tmzStruct);
+                currentTime.quaterZone = tmzStruct.quaterZone;
+                currentTime.utcStamp -= ZoneInSeconds(tmzStruct.quaterZone);
+                if (currentTime.utcStamp != 0) {
+                    syncTS = millis();
+                }
+            }
+        } else if (type == MODEM_RESPONSE_TIMEOUT) {
+            modemManager->StartModem();
+        } else if (type >= MODEM_RESPONSE_ERROR) {
+            // TODO: ?
+        }
+        return true;
+    }
+
+
+    return false;
 }
 
-
-void GSMNetworkHandler::HandleSimUnlocked()
+void GSMNetworkManager::HandleSimUnlocked()
 {
     isSimUnlocked = true;
-    initState = GSM_STATE_CONFIG;
-    gsmHandler->ForceCommand(new ByteModemCMD(1, GSM_CMD_NETWORK_REG));
+    initState = GSM_STATE_WAIT_CREG;
+    NextConfigurationStep();
     if (listener != NULL) {
         listener->OnGSMSimUnlocked();
     }
 }
 
+void GSMNetworkManager::NextConfigurationStep()
+{
+    configurationStep++;
+    if (configurationStep >= GSM_MODEM_CONFIGURATION_STEP_COMPLETE) {
+        ContinueConfigureModem();
+        return;
+    }
 
-GSM_REG_STATE GSMNetworkHandler::GetCregState(char * data, size_t dataLen)
+    switch (configurationStep) {
+        case GSM_MODEM_CONFIGURATION_STEP_NONE:
+            // TODO: ?
+            break;
+        case GSM_MODEM_CONFIGURATION_STEP_CNMI:
+            modemManager->ForceCommand(new CharModemCMD("2,2,0,0,0", GSM_CMD_SMS_INDICATION));
+            break;
+        case GSM_MODEM_CONFIGURATION_STEP_CMFG:
+            modemManager->ForceCommand(new ByteModemCMD(1, GSM_CMD_SMS_FROMAT));
+            break;
+        case GSM_MODEM_CONFIGURATION_STEP_CTZU:
+            modemManager->ForceCommand(new ByteModemCMD(1, GSM_CMD_TIME_ZONE));
+            break;
+    }
+}
+
+// Override to handle modem specific configuration
+void GSMNetworkManager::ContinueConfigureModem()
+{
+    ConfigureModemCompleted();
+}
+
+// Trigger when configuration completes
+void GSMNetworkManager::ConfigureModemCompleted()
+{
+    Timer::Stop(gsmCREGTimer);
+    gsmCREGTimer = Timer::Start(this, GSM_NETWORG_CREG_INTERVAL, 0);
+    modemManager->ForceCommand(new ByteModemCMD(1, GSM_CMD_NETWORK_REG));
+}
+
+GSM_REG_STATE GSMNetworkManager::GetCregState(char * data, size_t dataLen)
 {
     char *creg = data + strlen(GSM_CMD_NETWORK_REG) + 2;
     char *cregArgs[2];
@@ -347,7 +306,7 @@ GSM_REG_STATE GSMNetworkHandler::GetCregState(char * data, size_t dataLen)
     return (GSM_REG_STATE)atoi(cregArgs[0]);
 }
 
-void GSMNetworkHandler::UpdateCregResult()
+void GSMNetworkManager::UpdateCregResult()
 {
     switch (gsmStats.regState) {
         case GSM_REG_STATE_CONNECTING_HOME:
@@ -381,16 +340,16 @@ void GSMNetworkHandler::UpdateCregResult()
     }
 }
 
-void GSMNetworkHandler::OnTimerComplete(TimerID timerId, uint8_t data)
+void GSMNetworkManager::OnTimerComplete(TimerID timerId, uint8_t data)
 {
     if (timerId == gsmReconnectTimer) {
         gsmReconnectTimer = 0;
-        gsmHandler->StartModem(true, gsmHandler->GetBaudRate());
+        modemManager->StartModem();
         return;
     }
     if (timerId == gsmSimTimer) {
         gsmSimTimer = 0;
-        gsmHandler->ForceCommand(new PinStatusModemCMD(GSM_SIM_PIN_CMD, MODEM_COMMAND_TIMEOUT));
+        modemManager->ForceCommand(new PinStatusModemCMD(GSM_SIM_PIN_CMD, MODEM_COMMAND_TIMEOUT));
         return;
     }
     if (timerId == gsmNetStatsTimer) {
@@ -399,10 +358,10 @@ void GSMNetworkHandler::OnTimerComplete(TimerID timerId, uint8_t data)
         return;
     }
     if (timerId == gsmCREGTimer) {
-        gsmHandler->ForceCommand(new BaseModemCMD(GSM_CMD_NETWORK_REG, MODEM_COMMAND_TIMEOUT, true));
+        modemManager->ForceCommand(new BaseModemCMD(GSM_CMD_NETWORK_REG, MODEM_COMMAND_TIMEOUT, true));
     }
 }
-void GSMNetworkHandler::OnTimerStop(TimerID timerId, uint8_t data)
+void GSMNetworkManager::OnTimerStop(TimerID timerId, uint8_t data)
 {
     if (timerId == gsmReconnectTimer) {
         gsmReconnectTimer = 0;
@@ -422,47 +381,47 @@ void GSMNetworkHandler::OnTimerStop(TimerID timerId, uint8_t data)
     }
 }
 
-void GSMNetworkHandler::FetchModemStats() {
+void GSMNetworkManager::FetchModemStats() {
     Timer::Stop(gsmNetStatsTimer);
     gsmNetStatsTimer = Timer::Start(this, QUALITY_CHECK_DURATION, 0);
-    gsmHandler->AddCommand(new BaseModemCMD(GSM_CMD_TIME, MODEM_COMMAND_TIMEOUT, true));
-    gsmHandler->AddCommand(new BaseModemCMD(GSM_CMD_UTEMP, MODEM_COMMAND_TIMEOUT, true));
-    gsmHandler->AddCommand(new BaseModemCMD(GSM_CMD_NETWORK_QUALITY));
+    modemManager->AddCommand(new BaseModemCMD(GSM_CMD_TIME, MODEM_COMMAND_TIMEOUT, true));
+    modemManager->AddCommand(new BaseModemCMD(GSM_CMD_NETWORK_QUALITY));
 }
 
-bool GSMNetworkHandler::IsInitialized()
+bool GSMNetworkManager::IsInitialized()
 {
     return initState == GSM_STATE_READY;
 }
 
-bool GSMNetworkHandler::IsSimUnlocked()
+bool GSMNetworkManager::IsSimUnlocked()
 {
     return isSimUnlocked;
 }
 
-time_t GSMNetworkHandler::GetUTCTime()
+time_t GSMNetworkManager::GetUTCTime()
 {
     if (currentTime.utcStamp == 0) return 0;
     unsigned long syncDelta = (millis() - syncTS) / 1000ul;
     return currentTime.utcStamp + syncDelta;
 }
-time_t GSMNetworkHandler::GetLocalTime()
+time_t GSMNetworkManager::GetLocalTime()
 {
     if (currentTime.utcStamp == 0) return 0;
     return GetUTCTime() + ZoneInSeconds(currentTime.quaterZone);
 }
 
-GSMNetworkStats *GSMNetworkHandler::GetGSMStats() {
+GSMNetworkStats *GSMNetworkManager::GetGSMStats() {
     return &gsmStats;
 }
 
-bool GSMNetworkHandler::InitSendSMS(char *phone, uint8_t customData)
+bool GSMNetworkManager::InitSendSMS(char *phone, uint8_t customData)
 {
-    return gsmHandler->AddCommand(new SMSSendModemCMD(phone, GSM_CMD_SMS_SEND, customData));
+    return modemManager->AddCommand(new SMSSendModemCMD(phone, GSM_CMD_SMS_SEND, customData));
 }
 
-void GSMNetworkHandler::OnModemReboot()
+void GSMNetworkManager::OnModemReboot()
 {
+    configurationStep = GSM_MODEM_CONFIGURATION_STEP_NONE;
     initState = GSM_STATE_NONE;
     gsmStats.regState = GSM_REG_STATE_UNKNOWN;
     gsmStats.networkType = GSM_NETWORK_UNKNOWN;
@@ -472,10 +431,9 @@ void GSMNetworkHandler::OnModemReboot()
     StopTimers();
 
     FlushIncomingSMS();
-    GSMCallHandler::OnModemReboot();
 }
 
-void GSMNetworkHandler::FlushIncomingSMS()
+void GSMNetworkManager::FlushIncomingSMS()
 {
     if (incomingSms != NULL) {
         delete incomingSms;
@@ -483,7 +441,7 @@ void GSMNetworkHandler::FlushIncomingSMS()
     }
 }
 
-void GSMNetworkHandler::StopTimers()
+void GSMNetworkManager::StopTimers()
 {
     Timer::Stop(gsmNetStatsTimer);
     Timer::Stop(gsmReconnectTimer);
@@ -491,10 +449,31 @@ void GSMNetworkHandler::StopTimers()
     Timer::Stop(gsmCREGTimer);
 }
 
-void GSMNetworkHandler::HandleGSMFail(GSM_FAIL_STATE failState)
+void GSMNetworkManager::HandleGSMFail(GSM_FAIL_STATE failState)
 {
     StopTimers();
     if (listener != NULL) {
         listener->OnGSMFailed(failState);
     }
+}
+
+
+void GSMNetworkManager::UpdateThresoldState(GSM_THRESHOLD_STATE state)
+{
+    gsmStats.thresholdState = state;
+
+    if (listener != NULL) {
+        listener->OnGSMThreshold(gsmStats.thresholdState);
+    }
+}
+void GSMNetworkManager::UpdateNetworkType(GSM_NETWORK_TYPE type)
+{
+    gsmStats.networkType = type;
+    if (listener != NULL) {
+        listener->OnGSMNetworkType(gsmStats.networkType);
+    }
+}
+void GSMNetworkManager::UpdateTemperature(float temp)
+{
+    gsmStats.temperature = temp;
 }

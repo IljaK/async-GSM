@@ -1,0 +1,27 @@
+#pragma once
+#include "SimComGSMNetworkManager.h"
+#include "SimComGSMModemManager.h"
+#include "SimComGSMCallManager.h"
+#include "SimComGPRSManager.h"
+#include "SimComGSMCallManager.h"
+#include "SimComGSMSocketManager.h"
+
+class SimComGSMManager: public SimComGSMModemManager
+{
+protected:
+    SimComGPRSManager gprsManager;
+    SimComGSMNetworkManager gsmManager;
+    SimComGSMCallManager callManager;
+    SimComGSMSocketManager socketManager;
+    void ReBootModem(bool hardReset = true) override;
+
+public:
+    SimComGSMManager(HardwareSerial *serial, int8_t resetPin);
+    virtual ~SimComGSMManager();
+
+    bool OnGSMResponse(BaseModemCMD *request, char * response, size_t respLen, MODEM_RESPONSE_TYPE type) override;
+    bool OnGSMEvent(char * data, size_t dataLen) override;
+
+    //void OnModemBooted() override;
+    //void OnModemFailedBoot() override;
+};

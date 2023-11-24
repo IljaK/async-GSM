@@ -1,13 +1,13 @@
 #pragma once
 #include <Arduino.h>
-#include "GSMHandler.h"
-#include "socket/GSMSocketHandler.h"
+#include "UbloxGSMManager.h"
+#include "socket/GSMSocketManager.h"
 #include "GSMExpectation.h"
 
 typedef void (*gsmEventCb)(char * data, size_t dataLen);
 typedef void (*gsmResponseCb)(BaseModemCMD *request, char * response, size_t respLen, MODEM_RESPONSE_TYPE type);
 
-class GSMHandlerMock: public GSMHandler, public IGSMSocketHandler
+class GSMHandlerMock: public UbloxGSMManager, public IGSMSocketManager
 {
 private:
     char *lastResponse = NULL;
@@ -35,9 +35,9 @@ public:
     void ReadResponse(char * response);
     void SetReady();
 
-    GPRSHandler *GetGprsHandler();
+    UbloxGPRSManager *GetGprsHandler();
     GSMNetworkHandler *GetGsmHandler();
-    GSMSocketHandler * GetSocketHandler();
+    GSMSocketManager * GetSocketHandler();
 
     BaseModemCMD *GetPendingCMD();
 

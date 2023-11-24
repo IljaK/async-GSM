@@ -1,8 +1,8 @@
 #include "GSMHandlerMock.h"
 
-GSMHandlerMock::GSMHandlerMock():GSMHandler()
+GSMHandlerMock::GSMHandlerMock():UbloxGSMManager()
 {
-    socketHandler.SetSocketHandler(this);
+    socketManager.SetSocketHandler(this);
 }
 
 GSMHandlerMock::~GSMHandlerMock()
@@ -22,12 +22,12 @@ void GSMHandlerMock::OnModemBooted()
 
 void GSMHandlerMock::OnModemFailedBoot()
 {
-    //GSMHandler::OnModemFailedBoot();
+    //UbloxGSMManager::OnModemFailedBoot();
 }
 
 void GSMHandlerMock::OnModemReboot()
 {
-    GSMHandler::OnModemReboot();
+    UbloxGSMManager::OnModemReboot();
 }
 
 bool GSMHandlerMock::OnGSMResponse(BaseModemCMD *request, char * response, size_t respLen, MODEM_RESPONSE_TYPE type)
@@ -38,7 +38,7 @@ bool GSMHandlerMock::OnGSMResponse(BaseModemCMD *request, char * response, size_
     lastResponse = (char*)malloc(respLen + 1);
     strcpy(lastResponse, response);
 
-    return GSMHandler::OnGSMResponse(request, response, respLen, type);
+    return UbloxGSMManager::OnGSMResponse(request, response, respLen, type);
 }
 
 bool GSMHandlerMock::OnGSMEvent(char * data, size_t dataLen)
@@ -48,7 +48,7 @@ bool GSMHandlerMock::OnGSMEvent(char * data, size_t dataLen)
     }
     lastEvent = (char*)malloc(dataLen + 1);
     strcpy(lastEvent, data);
-    return GSMHandler::OnGSMEvent(data, dataLen);
+    return UbloxGSMManager::OnGSMEvent(data, dataLen);
 }
 
 void GSMHandlerMock::OnSocketCreateError()
@@ -95,7 +95,7 @@ void GSMHandlerMock::SetReady()
     Flush();
 }
 
-GPRSHandler *GSMHandlerMock::GetGprsHandler()
+UbloxGPRSManager *GSMHandlerMock::GetGprsHandler()
 {
     return &gprsHandler;
 }
@@ -103,9 +103,9 @@ GSMNetworkHandler *GSMHandlerMock::GetGsmHandler()
 {
     return &gsmHandler;
 }
-GSMSocketHandler * GSMHandlerMock::GetSocketHandler()
+GSMSocketManager * GSMHandlerMock::GetSocketHandler()
 {
-    return &socketHandler;
+    return &socketManager;
 }
 
 BaseModemCMD *GSMHandlerMock::GetPendingCMD()

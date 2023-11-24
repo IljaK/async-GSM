@@ -1,0 +1,116 @@
+#include "SimComGPRSManager.h"
+#include "command/ULong2ModemCMD.h"
+#include "command/IPResolveModemCMD.h"
+#include "command/Byte2Char2ModemCMD.h"
+#include "command/ByteChar2ModemCMD.h"
+
+SimComGPRSManager::SimComGPRSManager(GSMModemManager *gsmManager):GPRSManager(gsmManager)
+{
+
+}
+SimComGPRSManager::~SimComGPRSManager()
+{
+
+}
+
+
+void SimComGPRSManager::OnTimerComplete(TimerID timerId, uint8_t data)
+{
+
+}
+void SimComGPRSManager::OnTimerStop(TimerID timerId, uint8_t data)
+{
+
+}
+
+void SimComGPRSManager::FlushAuthData()
+{
+
+}
+
+
+bool SimComGPRSManager::ConnectInternal()
+{
+    HandleAPNUpdate(GSM_APN_ACTIVATING);
+    // Set apn
+    gsmManager->ForceCommand(new ByteChar2ModemCMD(1, "IP", apn, SIMCOM_DEFINE_PDP));
+    return false;
+}
+
+bool SimComGPRSManager::OnGSMResponse(BaseModemCMD *request, char * response, size_t respLen, MODEM_RESPONSE_TYPE type)
+{
+    if (strcmp(request->cmd, SIMCOM_RESOLVE_DNS_CMD) == 0) {
+        IPResolveModemCMD *ipResolve = (IPResolveModemCMD *)request;
+        if (type == MODEM_RESPONSE_DATA) {
+            char *ipString = response + strlen(SIMCOM_RESOLVE_DNS_CMD) + 2;
+            GetAddr(ShiftQuotations(ipString), &ipResolve->ipAddr);
+        } else {
+            HandleHostNameResolve(ipResolve->charData, ipResolve->ipAddr);
+        }
+        return true;
+    }
+    if (strcmp(request->cmd, SIMCOM_DEFINE_PDP) == 0) {
+        if (type == MODEM_RESPONSE_OK) {
+            // Set apn auth
+            if (login != NULL && login[0] != 0 && password != NULL && password[0] != 0) {
+                // login + password
+                // AT+CGAUTH=1,1,"PASSWORD","LOGIN"
+                gsmManager->ForceCommand(new Byte2Char2ModemCMD(1, 1, password, login, SIMCOM_AUTH_PDP, 9000000ul));
+            } else if (password != NULL && password[0] != 0) {
+                // password only
+                // AT+CGAUTH=1,2,"PASSWORD"
+                gsmManager->ForceCommand(new Byte2CharModemCMD(1, 2, password, SIMCOM_AUTH_PDP, 9000000ul));
+            } else {
+                // no auth
+                // AT+CGAUTH=1,0
+                gsmManager->ForceCommand(new Byte2ModemCMD(1, 0, SIMCOM_AUTH_PDP, 9000000ul));
+            }
+        } else if (type > MODEM_RESPONSE_OK) {
+            ForceDeactivate();
+        }
+        return true;
+    }
+    if (strcmp(request->cmd, SIMCOM_AUTH_PDP) == 0) {
+        if (type == MODEM_RESPONSE_OK) {
+            // TODO: Activate
+            gsmManager->ForceCommand(new Byte2ModemCMD(1, 1, SIMCOM_ACTIVATE_PDP, 9000000ul));
+        } else if (type > MODEM_RESPONSE_OK) {
+            ForceDeactivate();
+        }
+        return true;
+    }
+    if (strcmp(request->cmd, SIMCOM_ACTIVATE_PDP) == 0) {
+        if (type == MODEM_RESPONSE_OK) {
+            // gsmManager->ForceCommand(new BaseModemCMD(GSM_GPRS_CMD, 9000000ul, true));
+            gsmManager->ForceCommand(new ByteModemCMD(1, SIMCOM_GET_PDP_IP, 9000000ul));
+        } else if (type > MODEM_RESPONSE_OK) {
+            ForceDeactivate();
+        }
+        return true;
+    }
+    if (strcmp(request->cmd, SIMCOM_GET_PDP_IP) == 0) {
+        if (type == MODEM_RESPONSE_DATA) {
+            char *cgpaddr = response + strlen(SIMCOM_GET_PDP_IP) + 2;
+            char *cgpaddrArgs[2];
+            SplitString(cgpaddr, ',', cgpaddrArgs, 2, false);
+            GetAddr(ShiftQuotations(cgpaddrArgs[1]), &deviceAddr);
+        } else if (type == MODEM_RESPONSE_OK) {
+            HandleAPNUpdate(GSM_APN_ACTIVE);
+        } else if (type >= MODEM_RESPONSE_ERROR) {
+            ForceDeactivate();
+        }
+        return true;
+    }
+
+
+    return GPRSManager::OnGSMResponse(request, response, respLen, type);
+}
+bool SimComGPRSManager::OnGSMEvent(char * data, size_t dataLen)
+{
+    return GPRSManager::OnGSMEvent(data, dataLen);
+}
+
+bool SimComGPRSManager::ResolveHostNameCMD(const char *hostName)
+{
+    return gsmManager->AddCommand(new IPResolveModemCMD(hostName, SIMCOM_RESOLVE_DNS_CMD, APN_CONNECT_CMD_TIMEOUT));
+}

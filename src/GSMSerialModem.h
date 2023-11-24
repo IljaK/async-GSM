@@ -29,9 +29,6 @@ constexpr unsigned long GSM_BUFFER_FILL_TIMEOUT = 100000ul;
 // subsequent AT command is still possible
 constexpr unsigned long GSM_DATA_COLLISION_DELAY = 30000ul;
 
-constexpr unsigned long MODEM_MAX_AUTO_BAUD_RATE = 115200ul;
-constexpr unsigned long MODEM_BAUD_RATE = 921600ul;
-
 enum MODEM_RESPONSE_TYPE {
     MODEM_RESPONSE_EVENT,
     MODEM_RESPONSE_DATA,
@@ -56,7 +53,7 @@ protected:
 	virtual void OnModemResponse(BaseModemCMD *cmd, char *data, size_t dataLen, MODEM_RESPONSE_TYPE type) = 0;
     void FlushIncoming();
     void StartEventBufferTimer();
-    void Reboot(uint32_t baud, uint32_t config, bool hardReset);
+    //void Reboot(uint32_t baud, uint32_t config, bool hardReset);
     HardwareSerial *GetSerial();
     // For Uart pin reassignment
     virtual void ResetSerial(uint32_t baud, uint32_t config);
@@ -75,4 +72,9 @@ public:
     void SetDebugPrint(Print *debugPrint);
 
     bool virtual Send(BaseModemCMD *modemCMD);
+
+    
+    // Helper for ublox sara u2 modem
+    //void virtual BootSaraU2(bool hardReset);
+    //void virtual BootSimA7670(bool hardReset);
 };
