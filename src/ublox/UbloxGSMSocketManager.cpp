@@ -6,7 +6,7 @@
 #include "command/CharModemCMD.h"
 #include "command/ULong4ModemCMD.h"
 #include "command/ByteShortModemCMD.h"
-#include "command/SocketWriteModemCMD.h"
+#include "command/SocketHEXWriteModemCMD.h"
 #include "command/SockeCreateModemCMD.h"
 
 UbloxGSMSocketManager::UbloxGSMSocketManager(GSMModemManager *gsmManager):GSMSocketManager(gsmManager, UBLOX_MAX_SOCKETS_AMOUNT)
@@ -36,13 +36,18 @@ bool UbloxGSMSocketManager::OnGSMResponse(BaseModemCMD *request, char * response
                 createSockSMD->socketId = atoi(sockId);
             }
         } else {
-            GSMSocketManager::OnSocketCreated(createSockSMD->socketId);
+            GSMSocket * socket = GSMSocketManager::OnSocketCreated(createSockSMD->socketId);
+            Connect(socket);
         }
         return true;
     }
     if (strcmp(request->cmd, GSM_SOCKET_CONNECT_CMD) == 0) {
         SocketConnectCMD *usoco = (SocketConnectCMD *)request;
-        OnSocketConnection(usoco->socketId, type == MODEM_RESPONSE_OK);
+        if (type == MODEM_RESPONSE_OK) {
+            OnSocketConnection(usoco->socketId, GSM_SOCKET_ERROR_NONE);
+        } else if (type >= MODEM_RESPONSE_ERROR) {
+            OnSocketConnection(usoco->socketId, GSM_SOCKET_ERROR_FAILED_CONNECT);
+        }
         return true;
     }
     if (strcmp(request->cmd, GSM_SOCKET_CONFIG_CMD) == 0) {
@@ -58,7 +63,7 @@ bool UbloxGSMSocketManager::OnGSMResponse(BaseModemCMD *request, char * response
                     OnKeepAliveConfirm(usoso->valueData);
                 }
             } else {
-                CloseSocket(usoso->valueData);
+                OnSocketConnection(usoso->valueData, GSM_SOCKET_ERROR_FAILED_CONFIGURE_SOCKET);
             }
         }
         return true;
@@ -70,7 +75,7 @@ bool UbloxGSMSocketManager::OnGSMResponse(BaseModemCMD *request, char * response
             if (type == MODEM_RESPONSE_OK) {
                 OnSSLConfirm(usosec->byteData);
             } else {
-                CloseSocket(usosec->byteData);
+                OnSocketConnection(usosec->byteData, GSM_SOCKET_ERROR_FAILED_CONFIGURE_SOCKET);
             }
         }
         return true;
@@ -100,7 +105,7 @@ bool UbloxGSMSocketManager::OnGSMResponse(BaseModemCMD *request, char * response
         if (type == MODEM_RESPONSE_OK) {
             SendNextAvailableData();
         } else if (type > MODEM_RESPONSE_OK) {
-            SocketWriteModemCMD *writeCMD = (SocketWriteModemCMD *)request;
+            SocketHEXWriteModemCMD *writeCMD = (SocketHEXWriteModemCMD *)request;
             CloseSocket(writeCMD->socketId);
         }
         return true;
@@ -135,8 +140,11 @@ bool UbloxGSMSocketManager::OnGSMEvent(char * data, size_t dataLen)
         SplitString(uusoco, ',', uusocoData, 2, false);
         uint8_t socketId = atoi(uusocoData[0]);
         int error = atoi(uusocoData[1]);
-
-        OnSocketConnection(socketId, error == 0);
+        if (error == 0) {
+            OnSocketConnection(socketId, GSM_SOCKET_ERROR_NONE);
+        } else {
+            OnSocketConnection(socketId, GSM_SOCKET_ERROR_FAILED_CONNECT);
+        }
         return true;
     }
     if (IsEvent(GSM_SOCKET_CLOSE_EVENT, data, dataLen)) {
@@ -172,11 +180,9 @@ bool UbloxGSMSocketManager::OnGSMEvent(char * data, size_t dataLen)
     return false;
 }
 
-bool UbloxGSMSocketManager::CreateSocket()
+
+bool UbloxGSMSocketManager::ConnectSocketInternal(GSMSocket *socket)
 {
-    if (GSMSocketManager::IsMaxCreated()) {
-        return false;
-    }
     return gsmManager->AddCommand(new SockeCreateModemCMD(6, GSM_SOCKET_CREATE_CMD, SOCKET_CMD_TIMEOUT));
 }
 
@@ -211,17 +217,16 @@ bool UbloxGSMSocketManager::SetSSL(GSMSocket *sock)
 
 }
 
-bool UbloxGSMSocketManager::Close(GSMSocket *socket)
+bool UbloxGSMSocketManager::Close(uint8_t socketId)
 {
-    if (socket == NULL) return false;
     // TODO: Async close, SARAU2 does not have async close support
-    return gsmManager->AddCommand(new ByteModemCMD(socket->GetId(), GSM_SOCKET_CLOSE_CMD, SOCKET_CONNECTION_TIMEOUT));
+    return gsmManager->AddCommand(new ByteModemCMD(socketId, GSM_SOCKET_CLOSE_CMD, SOCKET_CONNECTION_TIMEOUT));
 }
 
 
 bool UbloxGSMSocketManager::SendInternal(GSMSocket *socket, ByteArray *packet)
 {
-    return gsmManager->AddCommand(new SocketWriteModemCMD(socket->GetId(), packet, GSM_SOCKET_WRITE_CMD, SOCKET_CMD_TIMEOUT));
+    return gsmManager->AddCommand(new SocketHEXWriteModemCMD(socket->GetId(), packet, GSM_SOCKET_WRITE_CMD, SOCKET_CMD_TIMEOUT));
 }
 
 

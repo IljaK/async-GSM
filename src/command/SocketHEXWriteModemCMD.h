@@ -2,21 +2,18 @@
 #include "BaseModemCMD.h"
 #include "array/ByteStackArray.h"
 
-struct SocketWriteModemCMD: public BaseModemCMD
+struct SocketHEXWriteModemCMD: public BaseModemCMD
 {
     uint8_t socketId;
     ByteArray *data;
 
-    SocketWriteModemCMD(uint8_t socketId, ByteArray *data, const char *cmd, unsigned long timeout):BaseModemCMD(cmd, timeout, false, true, false, false) {
+    SocketHEXWriteModemCMD(uint8_t socketId, ByteArray *data, const char *cmd, unsigned long timeout):BaseModemCMD(cmd, timeout, false, true, false, false) {
         this->socketId = socketId;
         this->data = data;
     }
 
-    virtual ~SocketWriteModemCMD() {
-        if (data->array != NULL) {
-            free(data->array);
-        }
-        free(data);
+    virtual ~SocketHEXWriteModemCMD() {
+        delete data;
     }
 
     void WriteStream(Print *stream) override {
@@ -24,13 +21,13 @@ struct SocketWriteModemCMD: public BaseModemCMD
 
         stream->print(socketId);
         stream->print(',');
-        stream->print(data->length);
+        stream->print(data->GetLength());
         stream->print(',');
         stream->print('"');
 
         char hexBuff[3];
-        for (size_t i = 0; i < data->length; i++) {
-            if (encodeToHex(data->array + i, 1, hexBuff) == 0) {
+        for (size_t i = 0; i < data->GetLength(); i++) {
+            if (encodeToHex(data->GetArrayAt(i), 1, hexBuff) == 0) {
                 break;
             }
             stream->print(hexBuff[0]);

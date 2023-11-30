@@ -34,6 +34,7 @@ class IBaseGSMHandler
 public:
     virtual bool OnGSMResponse(BaseModemCMD *request, char * response, size_t respLen, MODEM_RESPONSE_TYPE type) = 0;
     virtual bool OnGSMEvent(char * data, size_t dataLen) = 0;
+    virtual bool OnGSMExpectedData(uint8_t * data, size_t dataLen) { return false; };
 };
 
 enum MODEM_BOOT_STATE {
@@ -63,7 +64,7 @@ private:
     uint32_t targetBaudRate = 115200ul;
     uint32_t serialConfig = SERIAL_8N1;
 
-    TimerID modemRebootTimer = 0;
+    Timer modemRebootTimer;
     ModemCommandStack commandStack;
 
     bool ForceCommandInternal(BaseModemCMD *cmd);
@@ -75,8 +76,7 @@ public:
     void SetConfig(uint32_t initBaudRate, uint32_t targetBaudRate, uint32_t serialConfig);
     void StartModem();
 
-	void OnTimerComplete(TimerID timerId, uint8_t data) override;
-	void OnTimerStop(TimerID timerId, uint8_t data) override;
+	void OnTimerComplete(Timer * timer) override;
 
     // Append command to request stack
     virtual bool AddCommand(BaseModemCMD *cmd);

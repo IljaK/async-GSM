@@ -5,6 +5,7 @@
 #include "IGSMSocketManager.h"
 #include "command/BaseModemCMD.h"
 #include "array/ByteStackArray.h"
+#include "common/GSMUtils.h"
 
 constexpr unsigned long SOCKET_CONNECTION_TIMEOUT = 60000000ul;
 constexpr unsigned long SOCKET_CMD_TIMEOUT = 10000000ul;
@@ -29,7 +30,7 @@ protected:
     virtual bool Connect(GSMSocket *socket) = 0;
     virtual bool SetKeepAlive(GSMSocket *socket) = 0;
     virtual bool SetSSL(GSMSocket *socket) = 0;
-    virtual bool Close(GSMSocket *socket) = 0;
+    virtual bool Close(uint8_t socketId) = 0;
     size_t Send(GSMSocket *socket);
     virtual bool SendInternal(GSMSocket *socket, ByteArray *packet) = 0;
     size_t SendNextAvailableData();
@@ -38,8 +39,14 @@ protected:
     void OnKeepAliveConfirm(uint8_t socketId);
     void OnSocketData(uint8_t socketId, uint8_t *data, size_t len);
     void OnSocketClosed(uint8_t socketId);
-    void OnSocketCreated(uint8_t socketId);
-    void OnSocketConnection(uint8_t socketId, bool isSuccess);
+    GSMSocket * OnSocketCreated(uint8_t socketId);
+    void OnSocketConnection(uint8_t socketId, GSM_SOCKET_ERROR error);
+
+    GSMSocket * GetInitialisingSocket();
+    uint8_t GetNextAvailableSocketIndex();
+
+    // Start Socket connection
+    virtual bool ConnectSocketInternal(GSMSocket *socket) = 0;
 
 public:
     GSMSocketManager(GSMModemManager *gsmManager, uint8_t socketsAmount);
@@ -49,7 +56,7 @@ public:
     //bool OnGSMResponse(BaseModemCMD *request, char * response, size_t respLen, MODEM_RESPONSE_TYPE type) override;
     //bool OnGSMEvent(char * data, size_t dataLen) override;
 
-    virtual bool CreateSocket() = 0;
+    //virtual bool CreateSocket() = 0;
     virtual bool CloseSocket(uint8_t socketId);
 
     void OnModemReboot();
@@ -57,4 +64,6 @@ public:
     GSMSocket * GetSocket(uint8_t socketId);
     void PrintDebug(Print *stream);
     bool IsMaxCreated();
+
+    GSMSocket *ConnectSocket(IPAddr ip, uint16_t port);
 };

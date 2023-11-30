@@ -1,16 +1,15 @@
 #pragma once
-#include "BaseModemCMD.h"
+#include "BaseStreamWriteModemCMD.h"
 #include "common/Util.h"
 
-struct SMSSendModemCMD: public BaseModemCMD
+struct SMSSendModemCMD: public BaseStreamWriteModemCMD
 {
     uint8_t customData = 0;
     char phoneNumber[MAX_PHONE_LENGTH] = { 0 };
 
-    SMSSendModemCMD(char *phoneNumber, const char *cmd, uint8_t customData = 0, unsigned long timeout = 5000000UL):BaseModemCMD(cmd, timeout, false, true, false, false) {
+    SMSSendModemCMD(char *phoneNumber, const char *cmd, uint8_t customData = 0, unsigned long timeout = 5000000UL):BaseStreamWriteModemCMD(cmd, timeout) {
         this->customData = customData;
         strncpy(this->phoneNumber, phoneNumber, MAX_PHONE_LENGTH);
-        SetHasExtraTrigger(true);
     }
 
     virtual ~SMSSendModemCMD() {

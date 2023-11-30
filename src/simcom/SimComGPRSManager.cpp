@@ -13,16 +13,6 @@ SimComGPRSManager::~SimComGPRSManager()
 
 }
 
-
-void SimComGPRSManager::OnTimerComplete(TimerID timerId, uint8_t data)
-{
-
-}
-void SimComGPRSManager::OnTimerStop(TimerID timerId, uint8_t data)
-{
-
-}
-
 void SimComGPRSManager::FlushAuthData()
 {
 
@@ -42,8 +32,12 @@ bool SimComGPRSManager::OnGSMResponse(BaseModemCMD *request, char * response, si
     if (strcmp(request->cmd, SIMCOM_RESOLVE_DNS_CMD) == 0) {
         IPResolveModemCMD *ipResolve = (IPResolveModemCMD *)request;
         if (type == MODEM_RESPONSE_DATA) {
-            char *ipString = response + strlen(SIMCOM_RESOLVE_DNS_CMD) + 2;
-            GetAddr(ShiftQuotations(ipString), &ipResolve->ipAddr);
+            // +CDNSGIP: 1,"ac.spinn.ee","139.162.130.136"
+
+            char *cdnsgip = response + strlen(SIMCOM_RESOLVE_DNS_CMD) + 2;
+            char *cdnsgipArgs[3];
+            SplitString(cdnsgip, ',', cdnsgipArgs, 3, false);
+            GetAddr(ShiftQuotations(cdnsgipArgs[2]), &ipResolve->ipAddr);
         } else {
             HandleHostNameResolve(ipResolve->charData, ipResolve->ipAddr);
         }
@@ -95,9 +89,50 @@ bool SimComGPRSManager::OnGSMResponse(BaseModemCMD *request, char * response, si
             SplitString(cgpaddr, ',', cgpaddrArgs, 2, false);
             GetAddr(ShiftQuotations(cgpaddrArgs[1]), &deviceAddr);
         } else if (type == MODEM_RESPONSE_OK) {
-            HandleAPNUpdate(GSM_APN_ACTIVE);
+
+            gsmManager->ForceCommand(new BaseModemCMD(GSM_ACTIVATE_IP_CONTEXT_CMD, 10000000ul, true));
+
+            //HandleAPNUpdate(GSM_APN_ACTIVE);
+            // TODO: check
+
         } else if (type >= MODEM_RESPONSE_ERROR) {
             ForceDeactivate();
+        }
+        return true;
+    }
+
+    if (strcmp(request->cmd, GSM_ACTIVATE_IP_CONTEXT_CMD) == 0) {
+        if (request->GetIsCheck()) {
+            // Verify that IP functionality is active
+            if (type == MODEM_RESPONSE_DATA) {
+                // +NETOPEN: <net_state>
+                // Integer type, indicates the state of PDP context activation. 0 network close (deactivated)
+                // 1 network open(activated)
+                char *stateChar = response + strlen(GSM_ACTIVATE_IP_CONTEXT_CMD) + 2;
+                uint8_t state = atoi(stateChar);
+                if (state == 1) {
+                    // Enabled, continue to create socket
+                    HandleAPNUpdate(GSM_APN_ACTIVE);
+                } else {
+                    gsmManager->ForceCommand(new BaseModemCMD(GSM_ACTIVATE_IP_CONTEXT_CMD));
+                }
+            } else if (type >= MODEM_RESPONSE_ERROR) {
+                // Failed to fetch status?
+                ForceDeactivate();
+                
+            }
+        } else {
+            //ByteModemCMD *enableSocket = (ByteModemCMD *)request;
+            if (type == MODEM_RESPONSE_OK) {
+                // TODO: Continue socket connection
+                // HandleAPNUpdate(GSM_APN_ACTIVE);
+                // Wait for apn activation event!
+                
+            } else if (type >= MODEM_RESPONSE_ERROR) {
+                // Failed to enable socket service
+                ForceDeactivate();
+                
+            }
         }
         return true;
     }
@@ -107,6 +142,25 @@ bool SimComGPRSManager::OnGSMResponse(BaseModemCMD *request, char * response, si
 }
 bool SimComGPRSManager::OnGSMEvent(char * data, size_t dataLen)
 {
+    if (IsEvent(GSM_ACTIVATE_IP_CONTEXT_CMD, data, dataLen)) {
+        char *netopen = data + strlen(GSM_ACTIVATE_IP_CONTEXT_CMD) + 2;
+        //uint8_t err = atoi(netopen);
+
+        if (GetApnState() == GSM_APN_ACTIVATING) {
+            if (atoi(netopen) == 0) {
+                // NO ERROR, succeeded
+                HandleAPNUpdate(GSM_APN_ACTIVE);
+            } else {
+                // TODO: ?
+                ForceDeactivate();
+            }
+        }
+        return true;
+    }
+    if (IsEvent(GSM_SIMCOM_NETWORK_CLOSE_EVENT, data, dataLen)) {
+        ForceDeactivate();
+        return true;
+    }
     return GPRSManager::OnGSMEvent(data, dataLen);
 }
 

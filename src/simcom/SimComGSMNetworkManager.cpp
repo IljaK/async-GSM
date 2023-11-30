@@ -1,6 +1,7 @@
 #include "SimComGSMNetworkManager.h"
 #include "common/GSMUtils.h"
 #include "command/ULong2ModemCMD.h"
+#include "command/LongArrayModemCMD.h"
 
 SimComGSMNetworkManager::SimComGSMNetworkManager(GSMModemManager *modemManager):
     GSMNetworkManager(modemManager)
@@ -111,6 +112,18 @@ bool SimComGSMNetworkManager::OnGSMResponse(BaseModemCMD *request, char *respons
         NextSimComConfigurationStep();
         return true;
     }
+    if (strcmp(request->cmd, GSM_SIMCOM_ATH_FIX_CMD) == 0) {
+        NextSimComConfigurationStep();
+        return true;
+    }
+    if (strcmp(request->cmd, GSM_SIMCOM_SOCKET_CONFIG_CMD) == 0) {
+        NextSimComConfigurationStep();
+        return true;
+    }
+    if (strcmp(request->cmd, GSM_SIMCOM_SOCKET_TIMEOUT_CMD) == 0) {
+        NextSimComConfigurationStep();
+        return true;
+    }
 
     return false;
 }
@@ -123,7 +136,7 @@ void SimComGSMNetworkManager::FetchModemStats()
 
 void SimComGSMNetworkManager::ContinueConfigureModem()
 {
-    Serial.println("SimComGSMNetworkManager::ContinueConfigureModem()");
+    simcomConfigurationStep = GSM_SIMCOM_CONFIGURATION_STEP_NONE;
     // SimCom Specific configuration
     NextSimComConfigurationStep();
 }
@@ -146,6 +159,26 @@ void SimComGSMNetworkManager::NextSimComConfigurationStep()
             break;
         case GSM_SIMCOM_CONFIGURATION_STEP_CNSMOD:
             modemManager->ForceCommand(new ByteModemCMD(1, SIMCOM_NETWORK_TYPE_STATUS));
+            break;
+        case GSM_SIMCOM_CONFIGURATION_STEP_CVHU:
+            modemManager->ForceCommand(new ByteModemCMD(0, GSM_SIMCOM_ATH_FIX_CMD));
+            break;
+
+        case GSM_SIMCOM_CONFIGURATION_STEP_CIPCCFG:
+            {
+                // <NmRetry>,<DelayTm>,<Ack>,<errMode>,<Header-Type>,<AsyncMode>,<TimeoutVal>
+                long vals[7] = { 10, 0, 0, 1, 1, 0, 500 };
+                modemManager->ForceCommand(new LongArrayModemCMD(vals, (uint8_t)(sizeof(vals) / sizeof(long)), GSM_SIMCOM_SOCKET_CONFIG_CMD));
+            }
+            break;
+        case GSM_SIMCOM_CONFIGURATION_STEP_CIPTIMEOUT:
+            {
+                // <netopen_timeout>,<cipopen_timeout>,<cipsend_timeout>
+                long vals[3] = { 120000, 10000, 10000 };
+                modemManager->ForceCommand(new LongArrayModemCMD(vals, (uint8_t)(sizeof(vals) / sizeof(long)), GSM_SIMCOM_SOCKET_TIMEOUT_CMD));
+            }
+            break;
+        default:
             break;
 
     }

@@ -56,3 +56,12 @@ bool SimComGSMManager::OnGSMEvent(char * data, size_t dataLen)
     }
     return false;
 }
+
+
+bool SimComGSMManager::OnGSMExpectedData(uint8_t * data, size_t dataLen)
+{
+    if (socketManager.OnGSMExpectedData(data, dataLen)) {
+        return true;
+    }
+    return false;
+}

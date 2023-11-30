@@ -27,11 +27,19 @@ constexpr char SIMCOM_ACTIVATE_PDP[] = "+CGACT";
 // AT+CGPADDR=1
 constexpr char SIMCOM_GET_PDP_IP[] = "+CGPADDR";
 
+// Step 5
+// AT+NETOPEN is used to start service by activating PDP context. 
+// You must execute AT+NETOPEN beforeany other TCP/UDP related operations.
+constexpr char GSM_ACTIVATE_IP_CONTEXT_CMD[] = "+NETOPEN";
+
 // AT+CDNSGIP - Query the IP Address of Given Domain Name
 constexpr char SIMCOM_RESOLVE_DNS_CMD[] = "+CDNSGIP"; // Get IP of dns name
 
+// +CIPEVENT: NETWORK CLOSED UNEXPECTEDLY
+constexpr char GSM_SIMCOM_NETWORK_CLOSE_EVENT[] = "+CIPEVENT";
 
-class SimComGPRSManager: public GPRSManager, public ITimerCallback
+
+class SimComGPRSManager: public GPRSManager
 {
 private:
 
@@ -47,7 +55,4 @@ public:
 
     bool OnGSMResponse(BaseModemCMD *request, char * response, size_t respLen, MODEM_RESPONSE_TYPE type) override;
     bool OnGSMEvent(char * data, size_t dataLen) override;
-
-    void OnTimerComplete(TimerID timerId, uint8_t data) override;
-	void OnTimerStop(TimerID timerId, uint8_t data) override;
 };

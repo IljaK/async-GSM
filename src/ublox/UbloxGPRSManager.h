@@ -34,7 +34,7 @@ constexpr char GSM_UBLOX_RESOLVE_DNS_CMD[] = "+UDNSRN"; // Get IP of dns name
 //AT+UDYNDNS=<on_off>[,<service_id>,<domain_name>,<username>,<password>]
 constexpr char GSM_DYN_DNS_CMD[] = "+UDYNDNS"; // Enable dynamic dns
 
-enum DYNAMIC_DNS_ID {
+enum DYNAMIC_DNS_ID: uint8_t {
     DYNCMIC_DNS_TZO = 0, // (factory-programmed value): TZO.com
     DYNCMIC_DNS_DYNDNS_ORG, // DynDNS.org
     DYNCMIC_DNS_DYNDNS_IP, // DynDNS.it
@@ -42,14 +42,14 @@ enum DYNAMIC_DNS_ID {
     DYNCMIC_DNS_DUNAMICDNS_ORG, // DynamicDNS.org
 };
 
-enum UPSD_SETTING_INDEX {
+enum UPSD_SETTING_INDEX: uint8_t {
     UPSD_SETTING_APN = 1,
     UPSD_SETTING_LOGIN = 2,
     UPSD_SETTING_PSWD = 3,
     UPSD_SETTING_ASSIGNED_IP = 7
 };
 
-enum UPSDN_SETTING_INDEX {
+enum UPSDN_SETTING_INDEX: uint8_t {
     UPSDN_SETTING_IP = 0,
     UPSDN_SETTING_STATUS = 8
 };
@@ -57,9 +57,10 @@ enum UPSDN_SETTING_INDEX {
 class UbloxGPRSManager: public GPRSManager, public ITimerCallback
 {
 private:
-    TimerID checkTimer = 0;
-    UPSD_SETTING_INDEX GetNextSetting(int index);
+    Timer checkTimer;
+    UPSD_SETTING_INDEX GetNextSetting(uint8_t index);
     void SendSetting(UPSD_SETTING_INDEX setting);
+    inline void StartIpFetchTimer();
 
 protected:
 
@@ -74,6 +75,5 @@ public:
     bool OnGSMResponse(BaseModemCMD *request, char * response, size_t respLen, MODEM_RESPONSE_TYPE type) override;
     bool OnGSMEvent(char * data, size_t dataLen) override;
 
-    void OnTimerComplete(TimerID timerId, uint8_t data) override;
-	void OnTimerStop(TimerID timerId, uint8_t data) override;
+    void OnTimerComplete(Timer *timer) override;
 };

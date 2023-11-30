@@ -6,7 +6,7 @@
 #include "command/CharModemCMD.h"
 #include "command/ULong4ModemCMD.h"
 #include "command/ByteShortModemCMD.h"
-#include "command/SocketWriteModemCMD.h"
+#include "command/SocketHEXWriteModemCMD.h"
 #include "command/SockeCreateModemCMD.h"
 
 GSMSocketManager::GSMSocketManager(GSMModemManager *gsmManager, uint8_t socketsAmount)
@@ -26,34 +26,97 @@ void GSMSocketManager::SetSocketHandler(IGSMSocketManager *socketManager)
 }
 
 
-void GSMSocketManager::OnSocketCreated(uint8_t socketId)
+GSMSocket * GSMSocketManager::OnSocketCreated(uint8_t socketId)
 {
-    if (socketId == 255) {
-        socketManager->OnSocketCreateError();
-        return;
+    Serial.print("GSMSocketManager::OnSocketCreated ");
+    // Unshift first not created
+    GSMSocket *socket = socketArray->PeekInitialisingSocket();
+    if (socket == NULL) {
+        Serial.println("ERROR");
+        // No awaiting to create sockets?!
+        // Socket will be destroyed after close commans completes!
+        Close(socketId);
+    } else {
+        Serial.print("OK ");
+        Serial.println((int)socketId);
+        socket->OnSocketID(socketId);
     }
-
-    GSMSocket *sock = new GSMSocket(this, socketId);
-    if (!socketArray->Append(sock)) {
-        sock->Close();
-        delete sock;
-    }
-    socketManager->OnSocketOpen(sock);
+    return socket;
+    
+    // Invalid socket ID, now what?!
+    //if (socketId == GSM_SOCKET_ERROR_ID) {
+        //return;
+    //}
 }
-void GSMSocketManager::OnSocketConnection(uint8_t socketId, bool isSuccess)
+void GSMSocketManager::OnSocketConnection(uint8_t socketId, GSM_SOCKET_ERROR error)
 {
+    Serial.print("OnSocketConnection: ");
+    Serial.print((int)socketId);
+    Serial.print(" ");
+    Serial.println((int)error);
+
+
     GSMSocket *sock = GetSocket(socketId);
     if (sock == NULL) {
         // Shit happens?
-        DestroySocket(socketId);
+        if (socketId != GSM_SOCKET_ERROR_ID) {
+            Close(socketId);
+        } else {
+            DestroySocket(socketId);
+        }
         return;
     }
+    sock->OnSocketConnection(error);
 
-    sock->OnConnectionConfirm(isSuccess);
-    if (socketManager != NULL) {
-        socketManager->OnSocketConnected(sock, isSuccess);
+    if (error == GSM_SOCKET_ERROR_NONE) {
+        if (socketManager != NULL) {
+            socketManager->OnSocketConnected(sock);
+        }
     }
 }
+
+GSMSocket *GSMSocketManager::ConnectSocket(IPAddr ip, uint16_t port)
+{
+    Serial.print("GSMSocketManager::ConnectSocket ");
+    GSMSocket *socket = socketArray->PeekSocket(ip, port);
+    if (socket != NULL) {
+        Serial.print("EXISTS: ");
+        Serial.println((int)socket->GetId());
+        return socket;
+    }
+    if (socketArray->IsFull()) {
+        Serial.println("ERROR->ARRAY FULL");
+        return NULL;
+    }
+
+    socket = new GSMSocket(this, ip, port);
+    socketArray->Append(socket);
+
+    if (!ConnectSocketInternal(socket)) {
+        Serial.println("ERROR->ConnectSocketInternal FAIL");
+        socketArray->Unshift(socket);
+        delete socket;
+        socket = NULL;
+    }
+    Serial.println("OK");
+    return socket;
+}
+
+GSMSocket * GSMSocketManager::GetInitialisingSocket()
+{
+    for (size_t i = 0; i < socketArray->Size(); i++)
+    {
+        GSMSocket * socket = socketArray->Peek(i);
+        if (socket == NULL) {
+            return NULL;
+        }
+        if (socket->IsInitialising()) {
+            return socket;
+        }
+    }
+    return NULL;
+}
+
 /*
 bool GSMSocketManager::OnGSMResponse(BaseModemCMD *request, char * response, size_t respLen, MODEM_RESPONSE_TYPE type)
 {
@@ -69,22 +132,22 @@ bool GSMSocketManager::OnGSMEvent(char * data, size_t dataLen)
 size_t GSMSocketManager::Send(GSMSocket *socket)
 {
     // We have pending send data command, wait till it finished to not overflow command buffer
-    if (pendingSockTransmission != 255) return 0;
+    if (pendingSockTransmission != GSM_SOCKET_ERROR_ID) return 0;
     if (socket == NULL) return 0;
     
     ByteArray *packet = socket->outgoingMessageStack.Peek();
 
-    if (packet == NULL || packet->length == 0) return 0;
+    if (packet == NULL || packet->GetLength() == 0) return 0;
 
     pendingSockTransmission = socket->GetId();
 
     if (!SendInternal(socket, packet)){
-        pendingSockTransmission = 255;
+        pendingSockTransmission = GSM_SOCKET_ERROR_ID;
         return 0;
     }
     // If send added to stack, unshift packet from pending array
-    socket->outgoingMessageStack.UnshiftFirst();
-    return packet->length;
+    socket->outgoingMessageStack.Unshift(packet);
+    return packet->GetLength();
 }
 
 bool GSMSocketManager::CloseSocket(uint8_t socketId)
@@ -110,7 +173,7 @@ size_t GSMSocketManager::SendNextAvailableData()
             continue;
         }
         if (sock->outgoingMessageStack.Size() > 0) {
-            pendingSockTransmission = 255;
+            pendingSockTransmission = GSM_SOCKET_ERROR_ID;
             return Send(sock);
         }
     }
@@ -121,23 +184,26 @@ size_t GSMSocketManager::SendNextAvailableData()
             continue;
         }
         if (sock->outgoingMessageStack.Size() > 0) {
-            pendingSockTransmission = 255;
+            pendingSockTransmission = GSM_SOCKET_ERROR_ID;
             return Send(sock);
         }
     }
     // No data to send
-    pendingSockTransmission = 255;
+    pendingSockTransmission = GSM_SOCKET_ERROR_ID;
     return 0;
 }
 
 bool GSMSocketManager::DestroySocket(uint8_t socketId)
 {
     GSMSocket *sock = socketArray->UnshiftSocket(socketId);
+    Serial.print("GSMSocketManager::DestroySocket ");
     if (sock == NULL) {
+        Serial.println(" NULL");
         return false;
     }
-    if (socketManager != NULL) {
-        socketManager->OnSocketClose(socketId, true);
+    Serial.println(" OK");
+    if (socketManager != NULL && sock != NULL) {
+        socketManager->OnSocketClose(sock);
     }
     socketArray->FreeItem(sock);
     return true;
@@ -145,7 +211,7 @@ bool GSMSocketManager::DestroySocket(uint8_t socketId)
 
 void GSMSocketManager::OnModemReboot()
 {
-    pendingSockTransmission = 255;
+    pendingSockTransmission = GSM_SOCKET_ERROR_ID;
     while(socketArray->Size() > 0) {
         DestroySocket(socketArray->Peek(0)->GetId());
     }
@@ -180,9 +246,12 @@ void GSMSocketManager::PrintDebug(Print *stream)
 
 void GSMSocketManager::OnSocketClosed(uint8_t socketId)
 {
+    Serial.println("GSMSocketManager::OnSocketClosed");
     DestroySocket(socketId);
     if (pendingSockTransmission == socketId) {
+        Serial.print("SendNextAvailableData...");
         SendNextAvailableData();
+        Serial.println(" OK");
     }
 }
 
@@ -196,7 +265,6 @@ void GSMSocketManager::OnSocketData(uint8_t socketId, uint8_t *data, size_t len)
         socketManager->OnSocketData(sock, data, len);
     }
 }
-
 
 void GSMSocketManager::OnKeepAliveConfirm(uint8_t socketId)
 {
@@ -213,4 +281,17 @@ void GSMSocketManager::OnSSLConfirm(uint8_t socketId)
 
 bool GSMSocketManager::IsMaxCreated() { 
     return socketArray->IsFull(); 
+}
+
+
+uint8_t GSMSocketManager::GetNextAvailableSocketIndex()
+{
+    for (size_t i = 0; i < socketArray->MaxSize(); i++)
+    {
+        GSMSocket *sock = socketArray->PeekSocket(i);
+        if (sock == NULL) {
+            return i;
+        }
+    }
+    return GSM_SOCKET_ERROR_ID;
 }

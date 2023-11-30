@@ -2,7 +2,7 @@
 #include "command/ULong2ModemCMD.h"
 #include "command/IPResolveExtraModemCMD.h"
 
-UbloxGPRSManager::UbloxGPRSManager(GSMModemManager *gsmManager):GPRSManager(gsmManager)
+UbloxGPRSManager::UbloxGPRSManager(GSMModemManager *gsmManager):GPRSManager(gsmManager), checkTimer(this)
 {
 
 }
@@ -29,8 +29,7 @@ bool UbloxGPRSManager::OnGSMResponse(BaseModemCMD *request, char * response, siz
         // "AT+UPSDA=0,3"
         if (upsda->valueData2 == 3) { // Connect command
             if (type == MODEM_RESPONSE_OK) {
-                Timer::Stop(checkTimer);
-                checkTimer = Timer::Start(this, APN_STATUS_CHECK_DELAY);
+                StartIpFetchTimer();
             } else if (type >= MODEM_RESPONSE_ERROR) {
                 Deactivate();
             }
@@ -54,8 +53,7 @@ bool UbloxGPRSManager::OnGSMResponse(BaseModemCMD *request, char * response, siz
                     // Fetch status
                     gsmManager->ForceCommand(new ULong2ModemCMD(0,0,GSM_APN_FETCH_DATA_CMD));
                 } else {
-                    Timer::Stop(checkTimer);
-                    checkTimer = Timer::Start(this, APN_STATUS_CHECK_DELAY);
+                    StartIpFetchTimer();
                 }
             } else if (upsnd->valueData2 == UPSDN_SETTING_IP) { // ADDR
                 GetAddr(ShiftQuotations(upsndRespArgs[2]), &deviceAddr);
@@ -63,8 +61,7 @@ bool UbloxGPRSManager::OnGSMResponse(BaseModemCMD *request, char * response, siz
         }
         else if (type >= MODEM_RESPONSE_ERROR) {
             if (upsnd->valueData2 == UPSDN_SETTING_STATUS) { // Connection
-                Timer::Stop(checkTimer);
-                checkTimer = Timer::Start(this, APN_STATUS_CHECK_DELAY);
+                StartIpFetchTimer();
             } else if (upsnd->valueData2 == UPSDN_SETTING_IP) {
                 // TODO: error on ip fetch?
                 Deactivate();
@@ -116,12 +113,12 @@ bool UbloxGPRSManager::OnGSMEvent(char * data, size_t dataLen)
     return GPRSManager::OnGSMEvent(data, dataLen);
 }
 
-UPSD_SETTING_INDEX UbloxGPRSManager::GetNextSetting(int index)
+UPSD_SETTING_INDEX UbloxGPRSManager::GetNextSetting(uint8_t index)
 {
     index++;
     if (index < UPSD_SETTING_APN) {
         index = UPSD_SETTING_APN;
-    } else if (index > UPSD_SETTING_PSWD) {
+    } else if (index > UPSD_SETTING_ASSIGNED_IP) {
         index = UPSD_SETTING_ASSIGNED_IP;
     }
     return (UPSD_SETTING_INDEX)index;
@@ -132,41 +129,41 @@ void UbloxGPRSManager::SendSetting(UPSD_SETTING_INDEX setting)
     switch (setting)
     {
     case UPSD_SETTING_APN:
-        gsmManager->ForceCommand(new ULong2StringModemCMD(0, 1, apn, GSM_APN_CONFIG_CMD));
+        gsmManager->ForceCommand(new ULong2StringModemCMD(0, UPSD_SETTING_APN, apn, GSM_APN_CONFIG_CMD));
         break;
     case UPSD_SETTING_LOGIN:
-        gsmManager->ForceCommand(new ULong2StringModemCMD(0, 2, login, GSM_APN_CONFIG_CMD));
+        gsmManager->ForceCommand(new ULong2StringModemCMD(0, UPSD_SETTING_LOGIN, login, GSM_APN_CONFIG_CMD));
         break;
     case UPSD_SETTING_PSWD:
-        gsmManager->ForceCommand(new ULong2StringModemCMD(0, 3, password, GSM_APN_CONFIG_CMD));
+        gsmManager->ForceCommand(new ULong2StringModemCMD(0, UPSD_SETTING_PSWD, password, GSM_APN_CONFIG_CMD));
         break;
+    case UPSD_SETTING_ASSIGNED_IP:
     default:
-        gsmManager->ForceCommand(new ULong2StringModemCMD(0, 7, (char *)"0.0.0.0", GSM_APN_CONFIG_CMD));
+        gsmManager->ForceCommand(new ULong2StringModemCMD(0, UPSD_SETTING_ASSIGNED_IP, (char *)"0.0.0.0", GSM_APN_CONFIG_CMD));
         break;
     }
 }
 
 bool UbloxGPRSManager::ResolveHostNameCMD(const char *hostName)
 {
-    return gsmManager->AddCommand(new IPResolveExtraModemCMD(0, hostName, GSM_UBLOX_RESOLVE_DNS_CMD, APN_CONNECT_CMD_TIMEOUT));
+    return gsmManager->ForceCommand(new IPResolveExtraModemCMD(0, hostName, GSM_UBLOX_RESOLVE_DNS_CMD, APN_CONNECT_CMD_TIMEOUT));
 }
 
-void UbloxGPRSManager::OnTimerComplete(TimerID timerId, uint8_t data)
+void UbloxGPRSManager::OnTimerComplete(Timer *timer)
 {
-    if (timerId == checkTimer) {
-        checkTimer = 0;
+    if (timer == &checkTimer) {
         gsmManager->ForceCommand(new ULong2ModemCMD(0,8, GSM_APN_FETCH_DATA_CMD));
-    }
-}
-void UbloxGPRSManager::OnTimerStop(TimerID timerId, uint8_t data)
-{
-    if (timerId == checkTimer) {
-        checkTimer = 0;
     }
 }
 
 void UbloxGPRSManager::FlushAuthData()
 {
     GPRSManager::FlushAuthData();
-    Timer::Stop(checkTimer);
+    checkTimer.Stop();
+}
+
+
+void UbloxGPRSManager::StartIpFetchTimer()
+{
+    checkTimer.StartMicros(APN_STATUS_CHECK_DELAY);
 }

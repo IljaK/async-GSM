@@ -31,6 +31,8 @@ constexpr unsigned long GSM_DATA_COLLISION_DELAY = 30000ul;
 
 enum MODEM_RESPONSE_TYPE {
     MODEM_RESPONSE_EVENT,
+    MODEM_RESPONSE_EXTRA_TRIGGER,
+    MODEM_RESPONSE_EXPECT_DATA,
     MODEM_RESPONSE_DATA,
     MODEM_RESPONSE_OK,
     MODEM_RESPONSE_ERROR,
@@ -43,16 +45,15 @@ enum MODEM_RESPONSE_TYPE {
 class GSMSerialModem : protected SerialCharResponseHandler
 {
 protected:
+    bool isExpectingFixedSize = false;
     int8_t resetPin = -1;
     BaseModemCMD *pendingCMD = NULL;
-    TimerID eventBufferTimeout = 0;
-    TimerID cmdReleaseTimer = 0;
+    Timer cmdReleaseTimer;
     Print *debugPrint = NULL;
     
 	void OnResponseReceived(bool IsTimeOut, bool isOverFlow = false) override;
 	virtual void OnModemResponse(BaseModemCMD *cmd, char *data, size_t dataLen, MODEM_RESPONSE_TYPE type) = 0;
     void FlushIncoming();
-    void StartEventBufferTimer();
     //void Reboot(uint32_t baud, uint32_t config, bool hardReset);
     HardwareSerial *GetSerial();
     // For Uart pin reassignment
@@ -64,8 +65,7 @@ public:
 
     void Loop() override;
 
-	void OnTimerComplete(TimerID timerId, uint8_t data) override;
-	void OnTimerStop(TimerID timerId, uint8_t data) override;
+	void OnTimerComplete(Timer *timer) override;
 
 	//void FlushData() override;
 	bool IsBusy() override;
@@ -73,7 +73,8 @@ public:
 
     bool virtual Send(BaseModemCMD *modemCMD);
 
-    
+    void SetExpectFixedLength(size_t expectFixedLength, uint32_t timeout = GSM_BUFFER_FILL_TIMEOUT);
+
     // Helper for ublox sara u2 modem
     //void virtual BootSaraU2(bool hardReset);
     //void virtual BootSimA7670(bool hardReset);

@@ -1,6 +1,6 @@
 #include "GSMSerialModem.h"
 
-GSMSerialModem::GSMSerialModem(HardwareSerial *serial, int8_t resetPin):SerialCharResponseHandler(MODEM_SERIAL_BUFFER_SIZE, "\r\n", serial)
+GSMSerialModem::GSMSerialModem(HardwareSerial *serial, int8_t resetPin):SerialCharResponseHandler(MODEM_SERIAL_BUFFER_SIZE, "\r\n", serial),cmdReleaseTimer(this)
 {
     this->resetPin = resetPin;
 }
@@ -24,12 +24,26 @@ void GSMSerialModem::ResetSerial(uint32_t baud, uint32_t config)
 
 void GSMSerialModem::OnResponseReceived(bool IsTimeOut, bool isOverFlow)
 {
-    Timer::Stop(cmdReleaseTimer);
+    cmdReleaseTimer.Stop();
     if (!IsTimeOut) {
-        cmdReleaseTimer = Timer::Start(this, GSM_DATA_COLLISION_DELAY);
+        cmdReleaseTimer.StartMicros(GSM_DATA_COLLISION_DELAY);
+    }
+
+    if (isExpectingFixedSize) {
+        debugPrint->print("EXPECTED: ");
+        debugPrint->print((int)bufferLength);
+        debugPrint->print(" ");
+        debugPrint->print((int)IsTimeOut);
+        debugPrint->print(" ");
+        debugPrint->print((int)isOverFlow);
+        debugPrint->println(" ");
+        isExpectingFixedSize = false;
+        OnModemResponse(NULL, buffer, bufferLength, MODEM_RESPONSE_EXPECT_DATA);
+        return;
     }
 
     if (!IsTimeOut && !isOverFlow) {
+
         if (pendingCMD != NULL) {
             //StartTimeoutTimer(pendingCMD->timeout);
             if (bufferLength == 0) {
@@ -39,13 +53,20 @@ void GSMSerialModem::OnResponseReceived(bool IsTimeOut, bool isOverFlow)
                 return;
             }
             if (!pendingCMD->GetIsRespStarted()) {
-                if (bufferLength > 0) {
-                    if (buffer[bufferLength - 1] == 13) {
+                if (bufferLength >= 2 + pendingCMD->cmdLen) {
+                    if (strncmp(buffer, GSM_PREFIX_CMD, strlen(GSM_PREFIX_CMD)) == 0 && 
+                        (pendingCMD->cmdLen == 0 || 
+                            strncmp(buffer + strlen(GSM_PREFIX_CMD), pendingCMD->cmd, pendingCMD->cmdLen) == 0)) {
+                    //if (buffer[bufferLength - 1] == 13) {
                         // Got cmd trace back
                         pendingCMD->SetIsRespStarted(true);
                         if (debugPrint != NULL) {
                             debugPrint->print("CMD: [");
-                            debugPrint->write(buffer, bufferLength - 1);
+                            if (buffer[bufferLength - 1] == 13) {
+                                debugPrint->write(buffer, bufferLength - 1);
+                            } else {
+                                debugPrint->write(buffer, bufferLength);
+                            }
                             debugPrint->println("]");
                         }
                         return;
@@ -88,8 +109,10 @@ void GSMSerialModem::OnResponseReceived(bool IsTimeOut, bool isOverFlow)
         } else {
             debugPrint->print("Response: [");
         }
-        debugPrint->print(buffer);
-        debugPrint->print("] ");
+        debugPrint->write((uint8_t *)buffer, bufferLength);
+        debugPrint->print("] (");
+        debugPrint->print((int)bufferLength);
+        debugPrint->print(") ");
         debugPrint->print(IsTimeOut);
         debugPrint->print(" ");
         debugPrint->print(isOverFlow);
@@ -137,16 +160,17 @@ void GSMSerialModem::Loop()
 {
     SerialCharResponseHandler::Loop();
     if (pendingCMD != NULL) {
-        if (pendingCMD->GetHasExtraTrigger()) {
+        if (pendingCMD->GetHasExtraTrigger() && pendingCMD->GetIsRespStarted()) {
             size_t extraLen = strlen(pendingCMD->ExtraTriggerValue());
             if (bufferLength >= extraLen) {
                 if (strncmp(buffer, pendingCMD->ExtraTriggerValue(), extraLen) == 0) {
-                    OnResponseReceived(false, false);
+                    pendingCMD->SetHasExtraTrigger(false);
+                    OnModemResponse(pendingCMD, buffer, bufferLength, MODEM_RESPONSE_EXTRA_TRIGGER);
                     ResetBuffer();
                 }
             }
         }
-    } else if (bufferLength > 0 && eventBufferTimeout == 0) {
+    } else if (bufferLength > 0 && !responseTimeoutTimer.IsRunning()) {
         /* For collision testing
         serial->println(".");
         if (debugPrint != NULL) {
@@ -157,16 +181,17 @@ void GSMSerialModem::Loop()
             debugPrint->println("]");
         }
         */
-        StartEventBufferTimer();
+        // Event buffer timer
+        StartTimeoutTimer(GSM_BUFFER_FILL_TIMEOUT);
     }
 }
 
 bool GSMSerialModem::IsBusy()
 {
     return pendingCMD != NULL || 
-        cmdReleaseTimer != 0 ||
+        cmdReleaseTimer.IsRunning() ||
         bufferLength != 0 || 
-        eventBufferTimeout != 0 ||
+        responseTimeoutTimer.IsRunning() ||
         serial->available() > 0 || 
         SerialCharResponseHandler::IsBusy();
 }
@@ -177,7 +202,7 @@ bool GSMSerialModem::Send(BaseModemCMD *modemCMD)
     // No need to double check here
     // if (IsBusy()) return false;
 
-    ResetBuffer();
+    //ResetBuffer();
 
     if (serial == NULL) {
         return false;
@@ -233,10 +258,7 @@ void GSMSerialModem::SetDebugPrint(Print *debugPrint)
 }
 void GSMSerialModem::FlushIncoming()
 {
-    if (cmdReleaseTimer != 0) {
-        Timer::Stop(cmdReleaseTimer);
-        cmdReleaseTimer = 0;
-    }
+    cmdReleaseTimer.Stop();
     StopTimeoutTimer();
     if (pendingCMD != NULL) {
         delete pendingCMD;
@@ -245,44 +267,23 @@ void GSMSerialModem::FlushIncoming()
     FlushData();
 }
 
-void GSMSerialModem::OnTimerComplete(TimerID timerId, uint8_t data)
+void GSMSerialModem::OnTimerComplete(Timer * timer)
 {
-    if (timerId == eventBufferTimeout) {
-        eventBufferTimeout = 0;
-        OnModemResponse(NULL, buffer, bufferLength, MODEM_RESPONSE_EVENT);
-        ResetBuffer();
+    if (timer == &cmdReleaseTimer) {
+        // Nothing todo here
         return;
     }
-    if (timerId == cmdReleaseTimer) { 
-        cmdReleaseTimer = 0;
-        return;
-    }
-    SerialCharResponseHandler::OnTimerComplete(timerId, data);
-}
-
-void GSMSerialModem::OnTimerStop(TimerID timerId, uint8_t data)
-{
-    if (timerId == eventBufferTimeout) {
-        eventBufferTimeout = 0;
-        return;
-    }
-    if (timerId == cmdReleaseTimer) { 
-        cmdReleaseTimer = 0;
-        return;
-    }
-    
-    SerialCharResponseHandler::OnTimerStop(timerId, data);
-}
-
-void GSMSerialModem::StartEventBufferTimer()
-{
-    if (eventBufferTimeout != 0) {
-        Timer::Stop(eventBufferTimeout);
-    }
-    eventBufferTimeout = Timer::Start(this, GSM_BUFFER_FILL_TIMEOUT);
+    SerialCharResponseHandler::OnTimerComplete(timer);
 }
 
 HardwareSerial *GSMSerialModem::GetSerial()
 {
     return (HardwareSerial *)serial;
+}
+
+
+void GSMSerialModem::SetExpectFixedLength(size_t expectFixedLength, uint32_t timeout)
+{
+    isExpectingFixedSize = true;
+    SerialCharResponseHandler::SetExpectFixedLength(expectFixedLength, timeout);
 }

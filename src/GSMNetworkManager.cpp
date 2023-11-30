@@ -7,7 +7,11 @@
 #include "command/PinModemCMD.h"
 #include "common/GSMUtils.h"
 
-GSMNetworkManager::GSMNetworkManager(GSMModemManager *modemManager)
+GSMNetworkManager::GSMNetworkManager(GSMModemManager *modemManager):
+    gsmReconnectTimer(this),
+    gsmSimTimer(this),
+    gsmNetStatsTimer(this),
+    gsmCREGTimer(this)
 {
     this->modemManager = modemManager;
     gsmStats.regState = GSM_REG_STATE_UNKNOWN;
@@ -31,7 +35,7 @@ void GSMNetworkManager::Connect(const char *simPin)
     this->simPin = simPin;
     gsmStats.regState = GSM_REG_STATE_UNKNOWN;
     initState = GSM_STATE_PIN;
-    Timer::Stop(gsmReconnectTimer);
+    gsmReconnectTimer.Stop();
 
     modemManager->ForceCommand(new PinStatusModemCMD(GSM_SIM_PIN_CMD, MODEM_COMMAND_TIMEOUT));
 }
@@ -67,10 +71,7 @@ bool GSMNetworkManager::OnGSMEvent(char * data, size_t dataLen)
         return true;
     }
     if (IsEvent(GSM_CMD_NETWORK_REG, data, dataLen)) {
-        if (gsmReconnectTimer != 0) {
-            // Stop timer if it is for modem reboot
-            Timer::Stop(gsmReconnectTimer);
-        }
+        gsmReconnectTimer.Stop();
         gsmStats.regState = GetCregState(data, dataLen);
         UpdateCregResult();
         return true;
@@ -99,8 +100,8 @@ bool GSMNetworkManager::OnGSMResponse(BaseModemCMD *request, char *response, siz
                 pinStatusCMD->HandleDataContent(response, respLen);
             } else if (type >= MODEM_RESPONSE_ERROR && type <= MODEM_RESPONSE_CANCELED) {
                 // Resend cmd, pin module not ready
-                gsmSimTimer = Timer::Start(this, GSM_MODEM_SIM_PIN_DELAY, 0);
-                //modemManager->ForceCommand(new PinStatusModemCMD(GSM_SIM_PIN_CMD, MODEM_COMMAND_TIMEOUT));
+                //gsmSimTimer = Timer::Start(this, GSM_MODEM_SIM_PIN_DELAY, 0);
+                gsmSimTimer.StartMicros(GSM_MODEM_SIM_PIN_DELAY);
             }
             return true;
         } else {
@@ -124,6 +125,10 @@ bool GSMNetworkManager::OnGSMResponse(BaseModemCMD *request, char *response, siz
             if (type== MODEM_RESPONSE_DATA) {
                 gsmStats.regState = GetCregState(response, respLen);
             } else if (type== MODEM_RESPONSE_OK) {
+                gsmCREGTimer.StartMicros(GSM_NETWORG_CREG_INTERVAL);
+                //Timer::Stop(gsmCREGTimer);
+                //gsmCREGTimer = Timer::Start(this, GSM_NETWORG_CREG_INTERVAL, 0);
+
                 UpdateCregResult();
             } else if (type >= MODEM_RESPONSE_ERROR) {
                 modemManager->StartModem();
@@ -197,18 +202,12 @@ bool GSMNetworkManager::OnGSMResponse(BaseModemCMD *request, char *response, siz
 
     if (strcmp(request->cmd, GSM_CMD_SMS_SEND) == 0) {
         SMSSendModemCMD *sendSMSCmd = (SMSSendModemCMD *)request;
-        if (type == MODEM_RESPONSE_DATA) {
-            if (strcmp(request->ExtraTriggerValue(), response) == 0) {
-                request->SetHasExtraTrigger(false);
-                Stream *modemStream = modemManager->GetModemStream();
-                if (listener != NULL && listener->OnSMSSendStream(modemStream, sendSMSCmd->phoneNumber, sendSMSCmd->customData)) {
-                    //Send message end
-                    modemStream->write(CRTLZ_ASCII_SYMBOL);
-                } else {
-                    // Send message cancel callback
-                    modemStream->write(ESC_ASCII_SYMBOL);
-                }
-            } else if (strcmp(GSM_CMD_SMS_SEND, response) == 0) {
+        if (type == MODEM_RESPONSE_EXTRA_TRIGGER) {
+            Stream *modemStream = modemManager->GetModemStream();
+            bool success = (listener != NULL && listener->OnSMSSendStream(modemStream, sendSMSCmd->phoneNumber, sendSMSCmd->customData));
+            sendSMSCmd->EndStream(modemStream, !success);
+        } else if (type == MODEM_RESPONSE_DATA) {
+            if (strncmp(GSM_CMD_SMS_SEND, response, strlen(GSM_CMD_SMS_SEND)) == 0) {
                 // Got result message reference
                 // +CMGS: 1
                 // Have nothing to do with that
@@ -287,8 +286,9 @@ void GSMNetworkManager::ContinueConfigureModem()
 // Trigger when configuration completes
 void GSMNetworkManager::ConfigureModemCompleted()
 {
-    Timer::Stop(gsmCREGTimer);
-    gsmCREGTimer = Timer::Start(this, GSM_NETWORG_CREG_INTERVAL, 0);
+    //Timer::Stop(gsmCREGTimer);
+    //gsmCREGTimer = Timer::Start(this, GSM_NETWORG_CREG_INTERVAL, 0);
+    gsmCREGTimer.StartMicros(GSM_NETWORG_CREG_INTERVAL);
     modemManager->ForceCommand(new ByteModemCMD(1, GSM_CMD_NETWORK_REG));
 }
 
@@ -311,8 +311,9 @@ void GSMNetworkManager::UpdateCregResult()
     switch (gsmStats.regState) {
         case GSM_REG_STATE_CONNECTING_HOME:
         case GSM_REG_STATE_CONNECTING_OTHER:
-            Timer::Stop(gsmReconnectTimer);
-            gsmReconnectTimer = Timer::Start(this, GSM_NETWORG_REG_TIMEOUT, 0);
+            gsmReconnectTimer.StartMicros(GSM_NETWORG_REG_TIMEOUT);
+            //Timer::Stop(gsmReconnectTimer);
+            //gsmReconnectTimer = Timer::Start(this, GSM_NETWORG_REG_TIMEOUT, 0);
             break;
         case GSM_REG_STATE_CONNECTED_HOME:
         case GSM_REG_STATE_CONNECTED_ROAMING:
@@ -340,50 +341,28 @@ void GSMNetworkManager::UpdateCregResult()
     }
 }
 
-void GSMNetworkManager::OnTimerComplete(TimerID timerId, uint8_t data)
+void GSMNetworkManager::OnTimerComplete(Timer * timer)
 {
-    if (timerId == gsmReconnectTimer) {
-        gsmReconnectTimer = 0;
+    if (timer == &gsmReconnectTimer) {
         modemManager->StartModem();
         return;
     }
-    if (timerId == gsmSimTimer) {
-        gsmSimTimer = 0;
+    if (timer == &gsmSimTimer) {
         modemManager->ForceCommand(new PinStatusModemCMD(GSM_SIM_PIN_CMD, MODEM_COMMAND_TIMEOUT));
         return;
     }
-    if (timerId == gsmNetStatsTimer) {
-        gsmNetStatsTimer = 0;
+    if (timer == &gsmNetStatsTimer) {
         FetchModemStats();
         return;
     }
-    if (timerId == gsmCREGTimer) {
+    if (timer == &gsmCREGTimer) {
         modemManager->ForceCommand(new BaseModemCMD(GSM_CMD_NETWORK_REG, MODEM_COMMAND_TIMEOUT, true));
-    }
-}
-void GSMNetworkManager::OnTimerStop(TimerID timerId, uint8_t data)
-{
-    if (timerId == gsmReconnectTimer) {
-        gsmReconnectTimer = 0;
-        return;
-    }
-    if (timerId == gsmSimTimer) {
-        gsmSimTimer = 0;
-        return;
-    }
-    if (timerId == gsmNetStatsTimer) {
-        gsmNetStatsTimer = 0;
-        return;
-    }
-    if (timerId == gsmCREGTimer) {
-        gsmCREGTimer = 0;
         return;
     }
 }
 
 void GSMNetworkManager::FetchModemStats() {
-    Timer::Stop(gsmNetStatsTimer);
-    gsmNetStatsTimer = Timer::Start(this, QUALITY_CHECK_DURATION, 0);
+    gsmNetStatsTimer.StartMicros(QUALITY_CHECK_DURATION);
     modemManager->AddCommand(new BaseModemCMD(GSM_CMD_TIME, MODEM_COMMAND_TIMEOUT, true));
     modemManager->AddCommand(new BaseModemCMD(GSM_CMD_NETWORK_QUALITY));
 }
@@ -443,10 +422,10 @@ void GSMNetworkManager::FlushIncomingSMS()
 
 void GSMNetworkManager::StopTimers()
 {
-    Timer::Stop(gsmNetStatsTimer);
-    Timer::Stop(gsmReconnectTimer);
-    Timer::Stop(gsmSimTimer);
-    Timer::Stop(gsmCREGTimer);
+    gsmNetStatsTimer.Stop();
+    gsmReconnectTimer.Stop();
+    gsmSimTimer.Stop();
+    gsmCREGTimer.Stop();
 }
 
 void GSMNetworkManager::HandleGSMFail(GSM_FAIL_STATE failState)

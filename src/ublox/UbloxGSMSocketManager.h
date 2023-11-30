@@ -25,8 +25,9 @@ protected:
     bool Connect(GSMSocket *sock) override;
     bool SetKeepAlive(GSMSocket *sock) override;
     bool SetSSL(GSMSocket *sock) override;
-    bool Close(GSMSocket *socket) override;
+    bool Close(uint8_t socketId) override;
     bool SendInternal(GSMSocket *socket, ByteArray *packet) override;
+    bool ConnectSocketInternal(GSMSocket *socket) override;
 
 public:
     UbloxGSMSocketManager(GSMModemManager *gsmManager);
@@ -34,7 +35,5 @@ public:
 
     bool OnGSMResponse(BaseModemCMD *request, char * response, size_t respLen, MODEM_RESPONSE_TYPE type) override;
     bool OnGSMEvent(char * data, size_t dataLen) override;
-
-    bool CreateSocket() override;
 
 };

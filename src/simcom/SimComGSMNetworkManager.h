@@ -24,13 +24,27 @@ constexpr char SIMCOM_TEMP_CMD[] = "+CPMUTEMP"; // +CPMUTEMP: 15
 // 7 HSPA (HSDPA and HSUPA, WCDMA)
 // 8 LTE
 constexpr char SIMCOM_NETWORK_TYPE_STATUS[] = "+CNSMOD"; 
-// TODO: DTMF, socket data HEX
+// TODO: DTMF
+
+// AT+CIPCCFG Configure Parameters of Socket
+constexpr char GSM_SIMCOM_SOCKET_CONFIG_CMD[] = "+CIPCCFG";
+// AT+CIPTIMEOUT is used to set timeout value for AT+NETOPEN/AT+CIPOPEN/AT+CIPSEND.
+// AT+CIPTIMEOUT: <netopen_timeout>,<cipopen_timeout>,<cipsend_timeout>
+constexpr char GSM_SIMCOM_SOCKET_TIMEOUT_CMD[] = "+CIPTIMEOUT";
+
+// set AT+CVHU=0. Otherwise, ATH command will be ignored and "OK" response is given only
+constexpr char GSM_SIMCOM_ATH_FIX_CMD[] = "+CVHU";
+
 
 enum GSM_SIMCOM_CONFIGURATION_STEP {
     GSM_SIMCOM_CONFIGURATION_STEP_NONE = 0,
 
-     GSM_SIMCOM_CONFIGURATION_STEP_CMTE,
-     GSM_SIMCOM_CONFIGURATION_STEP_CNSMOD,
+    GSM_SIMCOM_CONFIGURATION_STEP_CMTE,
+    GSM_SIMCOM_CONFIGURATION_STEP_CNSMOD,
+    GSM_SIMCOM_CONFIGURATION_STEP_CVHU,
+
+    GSM_SIMCOM_CONFIGURATION_STEP_CIPCCFG,
+    GSM_SIMCOM_CONFIGURATION_STEP_CIPTIMEOUT,
 
     GSM_SIMCOM_CONFIGURATION_STEP_COMPLETE
 };
@@ -43,7 +57,6 @@ private:
 
 protected:
     void FetchModemStats() override;
-
     void ContinueConfigureModem() override;
 
 public:

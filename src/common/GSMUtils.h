@@ -14,5 +14,5 @@ inline bool IsEvent(const char *evName, char *data, size_t dataLen)
     if (evLen >= dataLen) {
         return false;
     }
-    return strncmp(data, evName, evLen) == 0 && data[evLen] == ':';
+    return strncmp(data, evName, evLen) == 0;
 }

@@ -1,19 +1,45 @@
 #include "GSMSocket.h"
 
 
-GSMSocket::GSMSocket(GSMSocketManager * socketManager, uint8_t socketId):
+GSMSocket::GSMSocket(GSMSocketManager * socketManager, IPAddr ip, uint16_t port, bool keepAlive, GSM_SOCKET_SSL sslType):
+    closeTimer(this),
     outgoingMessageStack(16, 128)
 {
     this->socketManager = socketManager;
-    this->socketId = socketId;
+    this->ip = ip;
+    this->port = port;
+    this->keepAlive = keepAlive;
+    this->sslType = sslType;
 }
 GSMSocket::~GSMSocket()
 {
-    if (domain != NULL) {
-        free(domain);
-        domain = NULL;
-    }
+    /*
+    if (closeTimer != 0) {
+        Timer::Stop(closeTimer);
+        closeTimer = 0;
+    }*/
     outgoingMessageStack.Clear();
+}
+
+
+void GSMSocket::OnSocketID(uint8_t socketId)
+{
+    this->socketId = socketId;
+    state = GSM_SOCKET_STATE_CONNECTING;
+}
+
+
+void GSMSocket::OnSocketConnection(GSM_SOCKET_ERROR error)
+{
+    this->error = error;
+    if (error != GSM_SOCKET_ERROR_NONE) {
+        socketManager->Close(socketId);
+        state = GSM_SOCKET_STATE_CLOSING_DELAY;
+        // Self destruction...
+        closeTimer.StartMicros(SOCKET_CLOSE_CONNECT_FAIL_TIMEOUT);
+        return;
+    }
+    state = GSM_SOCKET_STATE_READY;
 }
 
 void GSMSocket::OnKeepAliveConfirm()
@@ -30,55 +56,13 @@ void GSMSocket::OnSSLConfirm()
     socketManager->Connect(this);
 }
 
-void GSMSocket::OnConnectionConfirm(bool isSuccess)
-{
-    if (!isSuccess) {
-        state = GSM_SOCKET_STATE_CLOSING_DELAY;
-        closeTimer = Timer::Start(this, SOCKET_CLOSE_CONNECT_FAIL_TIMEOUT);
-        return;
-    }
-    state = GSM_SOCKET_STATE_READY;
-}
-
-bool GSMSocket::Connect(char *ip, uint16_t port, bool keepAlive, GSM_SOCKET_SSL sslType)
-{
-    if (state != GSM_SOCKET_STATE_DISCONNECTED) {
-        return false;
-    }
-    
-    GetAddr(ip, &this->ip);
-
-    return Connect(this->ip, port, keepAlive, sslType);
-}
-
-bool GSMSocket::Connect(IPAddr ip, uint16_t port, bool keepAlive, GSM_SOCKET_SSL sslType)
-{
-    if (state != GSM_SOCKET_STATE_DISCONNECTED) {
-        return false;
-    }
-    state = GSM_SOCKET_STATE_CONNECTING;
-    this->keepAlive = keepAlive;
-    this->sslType = sslType;
-    this->port = port;
-    this->ip = ip;
-
-    if (keepAlive) {
-        return socketManager->SetKeepAlive(this);
-    }
-    if (sslType != GSM_SOCKET_SSL_DISABLE) {
-        return socketManager->SetSSL(this);
-    }
-
-    return socketManager->Connect(this);
-}
-
 bool GSMSocket::Close()
 {
     if (state == GSM_SOCKET_STATE_CLOSING || state == GSM_SOCKET_STATE_CLOSING_DELAY) {
         return false;
     }
     state = GSM_SOCKET_STATE_CLOSING;
-    return socketManager->Close(this);
+    return socketManager->Close(socketId);
 }
 
 bool GSMSocket::StartListen(uint16_t port)
@@ -128,17 +112,13 @@ bool GSMSocket::IsConnected() {
     return state == GSM_SOCKET_STATE_READY;
 }
 
-void GSMSocket::OnTimerComplete(TimerID timerId, uint8_t data)
+void GSMSocket::OnTimerComplete(Timer * timer)
 {
-    if (timerId == closeTimer) {
-        closeTimer = 0;
+    if (timer == &closeTimer) {
         socketManager->DestroySocket(socketId);
     }
 }
 
-void GSMSocket::OnTimerStop(TimerID timerId, uint8_t data)
-{
-    if (timerId == closeTimer) {
-        closeTimer = 0;
-    }
+bool GSMSocket::IsInitialising() {
+    return GetId() == GSM_SOCKET_ERROR_ID && GetState() == GSM_SOCKET_STATE_CREATING;
 }

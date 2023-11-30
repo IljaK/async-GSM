@@ -3,6 +3,7 @@
 #include "IGSMNetworkManager.h"
 #include "command/PinModemCMD.h"
 #include "common/TimeUtil.h"
+#include "common/Timer.h"
 
 constexpr unsigned long QUALITY_CHECK_DURATION = 20000000ul;
 
@@ -47,10 +48,10 @@ private:
     GSMNetworkStats gsmStats;
 
     bool isSimUnlocked = false;
-    TimerID gsmReconnectTimer = 0;
-    TimerID gsmSimTimer = 0;
-    TimerID gsmNetStatsTimer = 0;
-    TimerID gsmCREGTimer = 0;
+    Timer gsmReconnectTimer;
+    Timer gsmSimTimer;
+    Timer gsmNetStatsTimer;
+    Timer gsmCREGTimer;
 
     IGSMNetworkManager *listener = NULL;
     IncomingSMSInfo *incomingSms = NULL;
@@ -87,8 +88,7 @@ public:
     bool OnGSMResponse(BaseModemCMD *request, char * response, size_t respLen, MODEM_RESPONSE_TYPE type) override;
     bool OnGSMEvent(char * data, size_t dataLen) override;
 
-	void OnTimerComplete(TimerID timerId, uint8_t data) override;
-	void OnTimerStop(TimerID timerId, uint8_t data) override;
+	void OnTimerComplete(Timer *timer) override;
 
     void Connect(const char *simPin);
     void SetGSMListener(IGSMNetworkManager *listener);
