@@ -35,6 +35,8 @@ constexpr char GSM_SIMCOM_SOCKET_TIMEOUT_CMD[] = "+CIPTIMEOUT";
 // set AT+CVHU=0. Otherwise, ATH command will be ignored and "OK" response is given only
 constexpr char GSM_SIMCOM_ATH_FIX_CMD[] = "+CVHU";
 
+// TODO: Time zone reporting?
+
 
 enum GSM_SIMCOM_CONFIGURATION_STEP {
     GSM_SIMCOM_CONFIGURATION_STEP_NONE = 0,

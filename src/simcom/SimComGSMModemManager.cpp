@@ -2,7 +2,7 @@
 
 SimComGSMModemManager::SimComGSMModemManager(HardwareSerial *serial, int8_t resetPin):GSMModemManager(serial, resetPin)
 {
-
+    SetConfig(115200ul, 921600ul, SERIAL_8N1);
 }
 
 SimComGSMModemManager::~SimComGSMModemManager()
