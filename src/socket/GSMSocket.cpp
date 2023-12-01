@@ -13,11 +13,6 @@ GSMSocket::GSMSocket(GSMSocketManager * socketManager, IPAddr ip, uint16_t port,
 }
 GSMSocket::~GSMSocket()
 {
-    /*
-    if (closeTimer != 0) {
-        Timer::Stop(closeTimer);
-        closeTimer = 0;
-    }*/
     outgoingMessageStack.Clear();
 }
 
