@@ -73,7 +73,7 @@ public:
 
     bool virtual Send(BaseModemCMD *modemCMD);
 
-    void SetExpectFixedLength(size_t expectFixedLength, uint32_t timeout = GSM_BUFFER_FILL_TIMEOUT);
+    void SetExpectFixedLength(size_t expectFixedLength, uint32_t timeout = GSM_BUFFER_FILL_TIMEOUT) override;
 
     // Helper for ublox sara u2 modem
     //void virtual BootSaraU2(bool hardReset);

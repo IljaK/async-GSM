@@ -6,7 +6,10 @@ include_dir(${CMAKE_CURRENT_LIST_DIR}/gtest)
 file(GLOB temp_src_code_list 
 "${CMAKE_CURRENT_LIST_DIR}/src/*.h" "${CMAKE_CURRENT_LIST_DIR}/src/*.cpp"
 "${CMAKE_CURRENT_LIST_DIR}/src/socket/*.h" "${CMAKE_CURRENT_LIST_DIR}/src/socket/*.cpp"
-"${CMAKE_CURRENT_LIST_DIR}/src/common/*.h" "${CMAKE_CURRENT_LIST_DIR}/src/common/*.cpp")
+"${CMAKE_CURRENT_LIST_DIR}/src/common/*.h" "${CMAKE_CURRENT_LIST_DIR}/src/common/*.cpp"
+"${CMAKE_CURRENT_LIST_DIR}/src/command/*.h" "${CMAKE_CURRENT_LIST_DIR}/src/command/*.cpp"
+"${CMAKE_CURRENT_LIST_DIR}/src/ublox/*.h" "${CMAKE_CURRENT_LIST_DIR}/src/ublox/*.cpp"
+"${CMAKE_CURRENT_LIST_DIR}/src/simcom/*.h" "${CMAKE_CURRENT_LIST_DIR}/src/simcom/*.cpp")
 
 add_source("${temp_src_code_list}")
 

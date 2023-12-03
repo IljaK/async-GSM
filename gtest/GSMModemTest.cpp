@@ -2,8 +2,7 @@
 #include "common/Timer.h"
 #include <Arduino.h>
 #include "socket/GSMSocketManager.h"
-#include "mock/TimerMock.h"
-#include "mock/GSMHandlerMock.h"
+#include "mock/UbloxGSMHandlerMock.h"
 
 
 TEST(GSMModemTest, BaseModemCMDTest)

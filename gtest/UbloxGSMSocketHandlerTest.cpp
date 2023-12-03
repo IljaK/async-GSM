@@ -1,13 +1,19 @@
 #include <gtest/gtest.h>
 #include "common/Timer.h"
 #include <Arduino.h>
-#include "socket/GSMSocketManager.h"
-#include "mock/TimerMock.h"
-#include "mock/GSMHandlerMock.h"
+#include "ublox/UbloxGSMSocketManager.h"
+#include "mock/UbloxGSMHandlerMock.h"
 #include "IGSMNetworkManager.h"
 
-void createConfigSocket(GSMSocketManager *socketManager, GSMHandlerMock *gsmHandler) {
-    socketManager->CreateSocket();
+void createConfigSocket(UbloxGSMSocketManager *socketManager, UbloxGSMHandlerMock *gsmHandler) {
+    
+    IPAddr ip;
+    ip.octet[0] = 123;
+    ip.octet[1] = 123;
+    ip.octet[2] = 123;
+    ip.octet[3] = 123;
+    
+    socketManager->ConnectSocket(ip, 123);
     // AT+USOCR=6
     gsmHandler->Loop();
 
@@ -23,7 +29,8 @@ void createConfigSocket(GSMSocketManager *socketManager, GSMHandlerMock *gsmHand
 
     EXPECT_EQ(socket->GetId(), 0);
 
-    socket->Connect((char*)"127.0.0.1", 2234, true);
+    // TODO:
+    // socket->Connect((char*)"127.0.0.1", 2234, true);
 
     // AT+USOSO=0,65535,8,1
     gsmHandler->ReadResponse((char*)"AT+USOSO=0,65535,8,1\r\r\nOK\r\n");
@@ -38,7 +45,7 @@ void createConfigSocket(GSMSocketManager *socketManager, GSMHandlerMock *gsmHand
     gsmHandler->Loop();
 }
 
-void createConnectSocket(GSMSocketManager *socketManager, GSMHandlerMock *gsmHandler) {
+void createConnectSocket(UbloxGSMSocketManager *socketManager, UbloxGSMHandlerMock *gsmHandler) {
     createConfigSocket(socketManager, gsmHandler);
 
     //AT+USOCO=0,"127.0.0.1",2234
@@ -56,13 +63,12 @@ void createConnectSocket(GSMSocketManager *socketManager, GSMHandlerMock *gsmHan
     EXPECT_TRUE(socket->IsConnected());
 }
 
-TEST(GSMSocketManagerTest, SocketConnectionTest)
+TEST(UbloxGSMSocketManagerTest, SocketConnectionTest)
 {
 	timeOffset = 0;
-	TimerMock::Reset();
 
-    GSMHandlerMock gsmHandler;
-    GSMSocketManager *socketManager;
+    UbloxGSMHandlerMock gsmHandler;
+    UbloxGSMSocketManager *socketManager;
     socketManager = gsmHandler.GetSocketHandler();
 
     gsmHandler.SetReady();
@@ -71,13 +77,12 @@ TEST(GSMSocketManagerTest, SocketConnectionTest)
     createConnectSocket(socketManager, &gsmHandler);
 }
 
-TEST(GSMSocketManagerTest, SocketConnectionFailTest)
+TEST(UbloxGSMSocketManagerTest, SocketConnectionFailTest)
 {
 	timeOffset = 0;
-	TimerMock::Reset();
 
-    GSMHandlerMock gsmHandler;
-    GSMSocketManager *socketManager;
+    UbloxGSMHandlerMock gsmHandler;
+    UbloxGSMSocketManager *socketManager;
     socketManager = gsmHandler.GetSocketHandler();
 
     gsmHandler.SetReady();
@@ -94,13 +99,12 @@ TEST(GSMSocketManagerTest, SocketConnectionFailTest)
     EXPECT_TRUE(socket == NULL);
 }
 
-TEST(GSMSocketManagerTest, SocketConnectionCorruptionFailTest)
+TEST(UbloxGSMSocketManagerTest, SocketConnectionCorruptionFailTest)
 {
 	timeOffset = 0;
-	TimerMock::Reset();
 
-    GSMHandlerMock gsmHandler;
-    GSMSocketManager *socketManager;
+    UbloxGSMHandlerMock gsmHandler;
+    UbloxGSMSocketManager *socketManager;
     socketManager = gsmHandler.GetSocketHandler();
 
     gsmHandler.SetReady();
@@ -121,13 +125,12 @@ TEST(GSMSocketManagerTest, SocketConnectionCorruptionFailTest)
     EXPECT_TRUE(socket == NULL);
 }
 
-TEST(GSMSocketManagerTest, SocketWriteErrorTest)
+TEST(UbloxGSMSocketManagerTest, SocketWriteErrorTest)
 {
     timeOffset = 0;
-	TimerMock::Reset();
 
-    GSMHandlerMock gsmHandler;
-    GSMSocketManager *socketManager;
+    UbloxGSMHandlerMock gsmHandler;
+    UbloxGSMSocketManager *socketManager;
     socketManager = gsmHandler.GetSocketHandler();
 
     gsmHandler.SetReady();
@@ -162,13 +165,12 @@ TEST(GSMSocketManagerTest, SocketWriteErrorTest)
 }
 
 
-TEST(GSMSocketManagerTest, SocketWriteErrorTimeoutCloseTest)
+TEST(UbloxGSMSocketManagerTest, SocketWriteErrorTimeoutCloseTest)
 {
     timeOffset = 0;
-	TimerMock::Reset();
 
-    GSMHandlerMock gsmHandler;
-    GSMSocketManager *socketManager;
+    UbloxGSMHandlerMock gsmHandler;
+    UbloxGSMSocketManager *socketManager;
     socketManager = gsmHandler.GetSocketHandler();
 
     gsmHandler.SetReady();

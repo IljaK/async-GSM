@@ -2,291 +2,289 @@
 #include "common/Timer.h"
 #include <Arduino.h>
 #include "socket/GSMSocketManager.h"
-#include "mock/TimerMock.h"
-#include "mock/GSMHandlerMock.h"
+#include "mock/UbloxGSMHandlerMock.h"
 
-void urcCollisionCooldownCheck(GSMHandler *gsmHandler) {
-    ASSERT_TRUE(gsmHandler->IsBusy());
+void urcCollisionCooldownCheck(GSMSerialModem *gsmManager) {
+    ASSERT_TRUE(gsmManager->IsBusy());
 
     timeOffset += GSM_DATA_COLLISION_DELAY - 1;
 
-    TimerMock::Loop();
-    gsmHandler->Loop();
+    //Timer::Loop();
+    gsmManager->Loop();
 
-    ASSERT_TRUE(gsmHandler->IsBusy());
+    ASSERT_TRUE(gsmManager->IsBusy());
 
     timeOffset += 1;
 
-    TimerMock::Loop();
-    gsmHandler->Loop();
+    Timer::Loop();
+    gsmManager->Loop();
 
-    ASSERT_FALSE(gsmHandler->IsBusy());
+    ASSERT_FALSE(gsmManager->IsBusy());
 }
 
 TEST(GSMHandlerTest, EventReadTest)
 {
     timeOffset = 0;
-	TimerMock::Reset();
 
-    GSMHandlerMock gsmHandler;
-    gsmHandler.SetReady();
+    UbloxGSMHandlerMock gsmManager;
+    gsmManager.SetReady();
 
-    TimerMock::Loop();
-    gsmHandler.Loop();
+    Timer::Loop();
+    gsmManager.Loop();
 
-    ASSERT_FALSE(gsmHandler.IsBusy());
+    ASSERT_FALSE(gsmManager.IsBusy());
 
-    gsmHandler.ReadResponse((char*)"+TEST_EVENT: blah\r\n");
+    gsmManager.ReadResponse((char*)"+TEST_EVENT: blah\r\n");
 
-    ASSERT_STREQ(gsmHandler.GetLastEvent(), "+TEST_EVENT: blah");
+    ASSERT_STREQ(gsmManager.GetLastEvent(), "+TEST_EVENT: blah");
 
-    urcCollisionCooldownCheck(&gsmHandler);
+    urcCollisionCooldownCheck(&gsmManager);
 }
 
 TEST(GSMHandlerTest, EventFillTimeoutTest)
 {
     timeOffset = 0;
-	TimerMock::Reset();
 
-    GSMHandlerMock gsmHandler;
-    gsmHandler.SetReady();
+    UbloxGSMHandlerMock gsmManager;
+    gsmManager.SetReady();
 
-    TimerMock::Loop();
-    gsmHandler.Loop();
+    Timer::Loop();
+    gsmManager.Loop();
 
-    ASSERT_FALSE(gsmHandler.IsBusy());
+    ASSERT_FALSE(gsmManager.IsBusy());
 
-    gsmHandler.ReadResponse((char*)"\r\n+TEST_EVENT: ");
+    gsmManager.ReadResponse((char*)"\r\n+TEST_EVENT: ");
 
-    ASSERT_TRUE(gsmHandler.IsBusy());
+    ASSERT_TRUE(gsmManager.IsBusy());
 
     timeOffset = GSM_BUFFER_FILL_TIMEOUT / 2;
 
-    TimerMock::Loop();
-    gsmHandler.Loop();
+    Timer::Loop();
+    gsmManager.Loop();
 
-    ASSERT_TRUE(gsmHandler.IsBusy());
+    ASSERT_TRUE(gsmManager.IsBusy());
 
     timeOffset = GSM_BUFFER_FILL_TIMEOUT;
 
-    TimerMock::Loop();
-    gsmHandler.Loop();
+    Timer::Loop();
+    gsmManager.Loop();
 
-    ASSERT_STREQ(gsmHandler.GetLastEvent(), "+TEST_EVENT: ");
+    ASSERT_STREQ(gsmManager.GetLastEvent(), "+TEST_EVENT: ");
 
-    ASSERT_FALSE(gsmHandler.IsBusy());
+    ASSERT_FALSE(gsmManager.IsBusy());
 }
 
 TEST(GSMHandlerTest, ResponseReadTest)
 {
     timeOffset = 0;
-	TimerMock::Reset();
 
-    GSMHandlerMock gsmHandler;
-    gsmHandler.SetReady();
+    UbloxGSMHandlerMock gsmManager;
+    gsmManager.SetReady();
 
-    TimerMock::Loop();
-    gsmHandler.Loop();
+    Timer::Loop();
+    gsmManager.Loop();
 
-    ASSERT_FALSE(gsmHandler.IsBusy());
+    ASSERT_FALSE(gsmManager.IsBusy());
 
-    gsmHandler.ForceCommand(new ByteModemCMD(1, "+TEST_CMD", 1));
+    gsmManager.ForceCommand(new ByteModemCMD(1, "+TEST_CMD", 1));
 
-    TimerMock::Loop();
-    gsmHandler.Loop();
+    Timer::Loop();
+    gsmManager.Loop();
 
-    ASSERT_EQ(gsmHandler.GetCommandStackCount(), 0);
-    ASSERT_TRUE(gsmHandler.IsBusy());
+    ASSERT_EQ(gsmManager.GetCommandStackCount(), 0);
+    ASSERT_TRUE(gsmManager.IsBusy());
 
-    gsmHandler.ReadResponse((char*)"AT+TEST_CMD\r\r\n+TEST_CMD: blah\r\n");
+    gsmManager.ReadResponse((char*)"AT+TEST_CMD\r\r\n+TEST_CMD: blah\r\n");
 
-    ASSERT_STREQ(gsmHandler.GetLastResponse(), "+TEST_CMD: blah");
+    ASSERT_STREQ(gsmManager.GetLastResponse(), "+TEST_CMD: blah");
 
-    gsmHandler.ReadResponse((char*)"\r\nOK\r\n");
+    gsmManager.ReadResponse((char*)"\r\nOK\r\n");
 
-    urcCollisionCooldownCheck(&gsmHandler);
+    urcCollisionCooldownCheck(&gsmManager);
 }
 
 TEST(GSMHandlerTest, EventTimeoutAndResponseTest)
 {
     timeOffset = 0;
-	TimerMock::Reset();
 
-    GSMHandlerMock gsmHandler;
-    gsmHandler.SetReady();
+    UbloxGSMHandlerMock gsmManager;
+    gsmManager.SetReady();
 
-    TimerMock::Loop();
-    gsmHandler.Loop();
+    Timer::Loop();
+    gsmManager.Loop();
 
-    ASSERT_FALSE(gsmHandler.IsBusy());
+    ASSERT_FALSE(gsmManager.IsBusy());
 
-    gsmHandler.ReadResponse((char*)"\r\n+TEST_EVENT: ");
+    gsmManager.ReadResponse((char*)"\r\n+TEST_EVENT: ");
 
-    TimerMock::Loop();
-    gsmHandler.Loop();
-    ASSERT_TRUE(gsmHandler.IsBusy());
+    Timer::Loop();
+    gsmManager.Loop();
+    ASSERT_TRUE(gsmManager.IsBusy());
 
-    gsmHandler.ForceCommand(new ByteModemCMD(1, "+TEST_CMD", 1));
+    gsmManager.ForceCommand(new ByteModemCMD(1, "+TEST_CMD", 1));
 
-    TimerMock::Loop();
-    gsmHandler.Loop();
+    Timer::Loop();
+    gsmManager.Loop();
 
-    ASSERT_EQ(gsmHandler.GetCommandStackCount(), 1);
-    ASSERT_TRUE(gsmHandler.IsBusy());
+    ASSERT_EQ(gsmManager.GetCommandStackCount(), 1);
+    ASSERT_TRUE(gsmManager.IsBusy());
 
-    gsmHandler.ReadResponse((char*)"blah");
+    gsmManager.ReadResponse((char*)"blah");
 
-    ASSERT_EQ(gsmHandler.GetCommandStackCount(), 1);
-    ASSERT_TRUE(gsmHandler.IsBusy());
+    ASSERT_EQ(gsmManager.GetCommandStackCount(), 1);
+    ASSERT_TRUE(gsmManager.IsBusy());
 
-    TimerMock::Loop();
-    gsmHandler.Loop();
+    Timer::Loop();
+    gsmManager.Loop();
 
-    ASSERT_EQ(gsmHandler.GetCommandStackCount(), 1);
-    ASSERT_TRUE(gsmHandler.IsBusy());
+    ASSERT_EQ(gsmManager.GetCommandStackCount(), 1);
+    ASSERT_TRUE(gsmManager.IsBusy());
 
     timeOffset = GSM_BUFFER_FILL_TIMEOUT / 2;
 
-    TimerMock::Loop();
-    gsmHandler.Loop();
+    Timer::Loop();
+    gsmManager.Loop();
 
-    ASSERT_EQ(gsmHandler.GetCommandStackCount(), 1);
-    ASSERT_TRUE(gsmHandler.IsBusy());
+    ASSERT_EQ(gsmManager.GetCommandStackCount(), 1);
+    ASSERT_TRUE(gsmManager.IsBusy());
 
     timeOffset = GSM_BUFFER_FILL_TIMEOUT;
 
-    TimerMock::Loop();
-    gsmHandler.Loop();
+    Timer::Loop();
+    gsmManager.Loop();
 
-    ASSERT_TRUE(gsmHandler.IsBusy());
-    ASSERT_EQ(gsmHandler.GetCommandStackCount(), 0);
+    ASSERT_TRUE(gsmManager.IsBusy());
+    ASSERT_EQ(gsmManager.GetCommandStackCount(), 0);
 
-    gsmHandler.ReadResponse((char*)"AT+TEST_CMD\r\r\nOK\r\n");
+    gsmManager.ReadResponse((char*)"AT+TEST_CMD\r\r\nOK\r\n");
 
-    TimerMock::Loop();
-    gsmHandler.Loop();
+    Timer::Loop();
+    gsmManager.Loop();
 
-    urcCollisionCooldownCheck(&gsmHandler);
+    urcCollisionCooldownCheck(&gsmManager);
 }
 
 TEST(GSMHandlerTest, TimeoutResponseTest)
 {
 	timeOffset = 0;
-	TimerMock::Reset();
 
-    GSMHandlerMock gsmHandler;
-    gsmHandler.SetReady();
+    UbloxGSMHandlerMock gsmManager;
+    gsmManager.SetReady();
 
-    ASSERT_FALSE(gsmHandler.IsBusy());
+    ASSERT_FALSE(gsmManager.IsBusy());
 
-    gsmHandler.ForceCommand(new ByteModemCMD(1, "+TEST_CMD", 1));
+    gsmManager.ForceCommand(new ByteModemCMD(1, "+TEST_CMD", 1));
 
-    TimerMock::Loop();
-    gsmHandler.Loop();
+    Timer::Loop();
+    gsmManager.Loop();
 
-    EXPECT_TRUE(gsmHandler.IsBusy());
+    EXPECT_TRUE(gsmManager.IsBusy());
 
-    BaseModemCMD *cmd = gsmHandler.GetPendingCMD();
+    BaseModemCMD *cmd = gsmManager.GetPendingCMD();
 
     EXPECT_TRUE(cmd != NULL);
 
     timeOffset+=1;
 
-    TimerMock::Loop();
+    Timer::Loop();
     // Will trigger next command
-    // gsmHandler.Loop();
+    // gsmManager.Loop();
     
-    EXPECT_FALSE(gsmHandler.IsBusy());
+    EXPECT_FALSE(gsmManager.IsBusy());
 }
 
 TEST(GSMHandlerTest, TimeoutResponseDataTest)
 {
 	timeOffset = 0;
-	TimerMock::Reset();
 
-    GSMHandlerMock gsmHandler;
-    gsmHandler.SetReady();
+    UbloxGSMHandlerMock gsmManager;
+    gsmManager.SetReady();
 
-    TimerMock::Loop();
-    gsmHandler.Loop();
+    Timer::Loop();
+    gsmManager.Loop();
 
-    ASSERT_FALSE(gsmHandler.IsBusy());
+    ASSERT_FALSE(gsmManager.IsBusy());
 
-    gsmHandler.ForceCommand(new ByteModemCMD(1, "+TEST_CMD", 10));
+    gsmManager.ForceCommand(new ByteModemCMD(1, "+TEST_CMD", 10));
 
-    TimerMock::Loop();
-    gsmHandler.Loop();
+    Timer::Loop();
+    gsmManager.Loop();
 
-    EXPECT_TRUE(gsmHandler.IsBusy());
+    EXPECT_TRUE(gsmManager.IsBusy());
 
-    gsmHandler.ReadResponse((char*)"AT+TEST_CMD\r\r\n+TEST_CMD: some data\r\n");
+    gsmManager.ReadResponse((char*)"AT+TEST_CMD\r\r\n+TEST_CMD: some data\r\n");
 
-    BaseModemCMD *cmd = gsmHandler.GetPendingCMD();
+    BaseModemCMD *cmd = gsmManager.GetPendingCMD();
 
     EXPECT_TRUE(cmd != NULL);
 
     timeOffset+=5;
 
-    gsmHandler.ReadResponse((char*)"\r\n");
+    gsmManager.ReadResponse((char*)"\r\n");
 
-    TimerMock::Loop();
-    gsmHandler.Loop();
-    EXPECT_TRUE(gsmHandler.IsBusy());
+    Timer::Loop();
+    gsmManager.Loop();
+    EXPECT_TRUE(gsmManager.IsBusy());
 
     // CMD timer has been restarted, so +10
     timeOffset += 10;
 
-    TimerMock::Loop();
-    // Prevent reboot modem and send AT cmd after timeout
-    // gsmHandler.Loop();
+    Timer::Loop();
+    EXPECT_TRUE(gsmManager.IsBusy());
 
-    EXPECT_FALSE(gsmHandler.IsBusy());
+    // Prevent reboot modem and send AT cmd after timeout
+    // gsmManager.Loop();
+    gsmManager.ReadResponse((char*)"OK\r\n");
+    gsmManager.Loop();
+    timeOffset += 10;
+    Timer::Loop();
+
+    EXPECT_FALSE(gsmManager.IsBusy());
 }
 
 TEST(GSMHandlerTest, CMDResponseEventCollisionTest)
 {
 	timeOffset = 0;
-	TimerMock::Reset();
 
-    GSMHandlerMock gsmHandler;
-    gsmHandler.SetReady();
+    UbloxGSMHandlerMock gsmManager;
+    gsmManager.SetReady();
 
-    TimerMock::Loop();
-    gsmHandler.Loop();
+    Timer::Loop();
+    gsmManager.Loop();
 
-    ASSERT_FALSE(gsmHandler.IsBusy());
+    ASSERT_FALSE(gsmManager.IsBusy());
 
-    gsmHandler.ForceCommand(new ByteModemCMD(1, "+TEST_CMD"));
+    gsmManager.ForceCommand(new ByteModemCMD(1, "+TEST_CMD"));
 
-    TimerMock::Loop();
-    gsmHandler.Loop();
+    Timer::Loop();
+    gsmManager.Loop();
 
-    EXPECT_TRUE(gsmHandler.IsBusy());
+    EXPECT_TRUE(gsmManager.IsBusy());
 
-    gsmHandler.ReadResponse((char*)"\r\n+UREG: 6\r\n");
+    gsmManager.ReadResponse((char*)"\r\n+UREG: 6\r\n");
 
-    ASSERT_STREQ(gsmHandler.GetLastResponse(), GSM_ERROR_RESPONSE);
+    ASSERT_STREQ(gsmManager.GetLastEvent(), "+UREG: 6");
 
-    BaseModemCMD *cmd = gsmHandler.GetPendingCMD();
+    ASSERT_STREQ(gsmManager.GetLastResponse(), NULL);
+
+    BaseModemCMD *cmd = gsmManager.GetPendingCMD();
     
-    EXPECT_TRUE(gsmHandler.IsBusy());
+    EXPECT_TRUE(gsmManager.IsBusy());
 
-    EXPECT_TRUE(cmd == NULL);
-
-    TimerMock::Loop();
-    EXPECT_TRUE(gsmHandler.IsBusy());
+    Timer::Loop();
+    EXPECT_TRUE(gsmManager.IsBusy());
 
     timeOffset += GSM_BUFFER_FILL_TIMEOUT - 1;
 
-    TimerMock::Loop();
-    gsmHandler.Loop();
+    Timer::Loop();
+    gsmManager.Loop();
 
-    ASSERT_TRUE(gsmHandler.IsBusy());
+    ASSERT_TRUE(gsmManager.IsBusy());
 
     timeOffset += 1;
 
-    TimerMock::Loop();
-    gsmHandler.Loop();
+    Timer::Loop();
+    gsmManager.Loop();
 
-    ASSERT_FALSE(gsmHandler.IsBusy());
+    ASSERT_FALSE(gsmManager.IsBusy());
 }

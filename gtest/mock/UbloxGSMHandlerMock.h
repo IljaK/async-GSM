@@ -1,31 +1,29 @@
 #pragma once
 #include <Arduino.h>
-#include "UbloxGSMManager.h"
-#include "socket/GSMSocketManager.h"
+#include "ublox/UbloxGSMManager.h"
+#include "ublox/UbloxGSMSocketManager.h"
 #include "GSMExpectation.h"
 
 typedef void (*gsmEventCb)(char * data, size_t dataLen);
 typedef void (*gsmResponseCb)(BaseModemCMD *request, char * response, size_t respLen, MODEM_RESPONSE_TYPE type);
 
-class GSMHandlerMock: public UbloxGSMManager, public IGSMSocketManager
+class UbloxGSMHandlerMock: public UbloxGSMManager, public IGSMSocketManager
 {
 private:
     char *lastResponse = NULL;
     char *lastEvent = NULL;
     /* data */
 public:
-    GSMHandlerMock();
-    virtual ~GSMHandlerMock();
+    UbloxGSMHandlerMock();
+    virtual ~UbloxGSMHandlerMock();
 
     void OnModemBooted() override;
     void OnModemFailedBoot() override;
-    void OnModemReboot() override;
+    void OnModemStartReboot() override;
 
-    void OnSocketCreateError() override;
-    void OnSocketOpen(GSMSocket * socket) override;
-    void OnSocketClose(uint8_t sockedId, bool isSuccess) override;
+    void OnSocketConnected(GSMSocket * socket) override;
+    void OnSocketClose(GSMSocket * socket) override;
 
-    void OnSocketConnected(GSMSocket * socket, int error) override;
     void OnSocketData(GSMSocket * socket, uint8_t *data, size_t len) override;
     void OnSocketStartListen(GSMSocket * socket) override;
 
@@ -36,8 +34,8 @@ public:
     void SetReady();
 
     UbloxGPRSManager *GetGprsHandler();
-    GSMNetworkHandler *GetGsmHandler();
-    GSMSocketManager * GetSocketHandler();
+    UbloxGSMNetworkManager *GetGsmHandler();
+    UbloxGSMSocketManager * GetSocketHandler();
 
     BaseModemCMD *GetPendingCMD();
 
