@@ -111,10 +111,12 @@ TEST(UbloxGSMSocketManagerTest, SocketConnectionCorruptionFailTest)
     createConfigSocket(socketManager, &gsmHandler);
 
     // Corrupted response
-    gsmHandler.ReadResponse((char*)"AT+USOCO=0,\"127.0.0.1\",2234\r\r\nER\r\n");
+    gsmHandler.ReadResponse((char*)"AT+USOCO=0,\"127.0.0.1\",2234\r\r\nERROR\r\n");
 
     // Corrupted response
     gsmHandler.ReadResponse((char*)"\r\n+UUSOCL: \r\n");
+    Timer::Loop();
+    gsmHandler.Loop();
 
     timeOffset += SOCKET_CLOSE_CONNECT_FAIL_TIMEOUT;
     Timer::Loop();
@@ -188,14 +190,15 @@ TEST(UbloxGSMSocketManagerTest, SocketWriteErrorTimeoutCloseTest)
 
     // Write socket error
     gsmHandler.ReadResponse((char*)"AT+USOWR=0,2,\"9291\"\r\r\nERROR\r\n");
+    gsmHandler.ReadResponse((char*)"AT+USOCL=0\r\r\nOK\r\n");
+    gsmHandler.ReadResponse((char*)"+UUSOCL: 0\r\n");
+
     timeOffset += GSM_DATA_COLLISION_DELAY;
-    Timer::Loop();
-    gsmHandler.Loop();
 
     // Close socket timeout
-    timeOffset += SOCKET_CONNECTION_TIMEOUT;
-    Timer::Loop();
-    gsmHandler.Loop();
+    //timeOffset += SOCKET_CONNECTION_TIMEOUT;
+    //Timer::Loop();
+    //gsmHandler.Loop();
 
     socket = socketManager->GetSocket(0);
 

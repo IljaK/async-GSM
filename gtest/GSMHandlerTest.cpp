@@ -236,9 +236,16 @@ TEST(GSMHandlerTest, TimeoutResponseDataTest)
     // gsmManager.Loop();
     gsmManager.ReadResponse((char*)"OK\r\n");
     gsmManager.Loop();
+
     timeOffset += 10;
     Timer::Loop();
+    EXPECT_TRUE(gsmManager.IsBusy());
 
+    timeOffset += GSM_DATA_COLLISION_DELAY;
+
+    gsmManager.Loop();
+    Timer::Loop();
+    
     EXPECT_FALSE(gsmManager.IsBusy());
 }
 
@@ -283,8 +290,16 @@ TEST(GSMHandlerTest, CMDResponseEventCollisionTest)
 
     timeOffset += 1;
 
+
     Timer::Loop();
     gsmManager.Loop();
+
+    gsmManager.ReadResponse((char*)"AT+TEST_CMD\r\r\nOK\r\n");
+
+    timeOffset += GSM_DATA_COLLISION_DELAY;
+
+    gsmManager.Loop();
+    Timer::Loop();
 
     ASSERT_FALSE(gsmManager.IsBusy());
 }
