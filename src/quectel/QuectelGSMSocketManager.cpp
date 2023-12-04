@@ -2,7 +2,7 @@
 #include "command/ByteModemCMD.h"
 #include "command/Byte2ModemCMD.h"
 #include "command/Byte3ModemCMD.h"
-#include "command/SocketConnectCMD2.h"
+#include "command/SocketConnectContextCMD.h"
 #include "command/CharModemCMD.h"
 #include "command/ULong4ModemCMD.h"
 #include "command/ByteShortModemCMD.h"
@@ -23,7 +23,7 @@ bool QuectelGSMSocketManager::OnGSMResponse(BaseModemCMD *request, char * respon
 {
 
     if (strcmp(request->cmd, GSM_QUECTEL_SOCKET_CONNECT_CMD) == 0) {
-        SocketConnectCMD2 *cipopen = (SocketConnectCMD2 *)request;
+        SocketConnectContextCMD *cipopen = (SocketConnectContextCMD *)request;
         if (type == MODEM_RESPONSE_OK) {
             // OnSocketConnection(cipopen->socketId, GSM_SOCKET_ERROR_NONE);
             // Wait till event ocures
@@ -33,6 +33,7 @@ bool QuectelGSMSocketManager::OnGSMResponse(BaseModemCMD *request, char * respon
         return true;
     }
 
+    // Buffer access mode:
     if (strcmp(request->cmd, GSM_QUECTEL_SOCKET_READ_CMD) == 0) {
         ByteShortModemCMD *usordCMD = (ByteShortModemCMD*)request;
         //GSMSocket *sock = GetSocket(usordCMD->byteData);
@@ -83,6 +84,7 @@ bool QuectelGSMSocketManager::OnGSMResponse(BaseModemCMD *request, char * respon
 
 bool QuectelGSMSocketManager::OnGSMEvent(char * data, size_t dataLen)
 {
+
     // +CIPOPEN: 0,0
     if (IsEvent(GSM_QUECTEL_SOCKET_CONNECT_CMD, data, dataLen)) {
         char *cipopen = data + strlen(GSM_QUECTEL_SOCKET_CONNECT_CMD) + 2;
@@ -95,42 +97,6 @@ bool QuectelGSMSocketManager::OnGSMEvent(char * data, size_t dataLen)
         } else {
             OnSocketConnection(socketId, GSM_SOCKET_ERROR_FAILED_CONNECT);
         }
-        return true;
-    }
-
-    // +IPCLOSE: <client_index>,<close_reason>
-    if (IsEvent(GSM_QUECTEL_SOCKET_CLOSE_EVENT, data, dataLen)) {
-        char *ipclose = data + strlen(GSM_QUECTEL_SOCKET_CLOSE_EVENT) + 2;
-        char* ipcloseArgs[2];
-        SplitString(ipclose, ',', ipcloseArgs, 2, false);
-        uint8_t socketId = atoi(ipcloseArgs[0]);
-        OnSocketClosed(socketId);
-        return true;
-    }
-
-    if (IsEvent(GSM_QUECTEL_SOCKET_READ_EVENT, data, dataLen)) {
-        // +RECEIVE,0,31
-        // Other format, without extra symbols ": "
-        char* receive = data + strlen(GSM_QUECTEL_SOCKET_READ_EVENT) + 1;
-        char* receiveArgs[2];
-
-        SplitString(receive, ',', receiveArgs, 2, false);
-        uint8_t socketId = atoi(receiveArgs[0]);
-        uint16_t available = atoi(receiveArgs[1]);
-
-        if (available > GSM_SOCKET_BUFFER_SIZE) {
-            available = GSM_SOCKET_BUFFER_SIZE;
-        }
-
-        gsmManager->SetExpectFixedLength(available, 100000ul);
-        receivingSocketId = socketId;
-
-        /*
-        if (available > 0) {
-            long vals[3] = { 3, socketId, available };
-            gsmManager->ForceCommand(new LongArrayModemCMD(vals, 3, GSM_QUECTEL_SOCKET_READ_CMD));
-        }
-        */
         return true;
     }
     if (IsEvent(GSM_QUECTEL_SOCKET_WRITE_CMD, data, dataLen)) {
@@ -154,8 +120,8 @@ bool QuectelGSMSocketManager::ConnectSocketInternal(GSMSocket *socket)
 bool QuectelGSMSocketManager::Connect(GSMSocket *sock)
 {
     if (sock == NULL) return false;
-    // AT+CIPOPEN=0,"TCP","183.230.174.137",6031
-    return gsmManager->AddCommand(new SocketConnectCMD2(sock->GetId(), (char *)"TCP", sock->GetIp(), sock->GetPort(), GSM_QUECTEL_SOCKET_CONNECT_CMD, SOCKET_CONNECTION_TIMEOUT));
+    // AT+QIOPEN=<contextID>,<connectID>,<service_type>,<IP_address>/<domain_name>,<remote_port>[,<local_port>[,<access_mode>]]
+    return gsmManager->AddCommand(new SocketConnectContextCMD(1, 1, sock->GetId(), (char *)"TCP", sock->GetIp(), sock->GetPort(), GSM_QUECTEL_SOCKET_CONNECT_CMD, SOCKET_CONNECTION_TIMEOUT));
 }
 
 bool QuectelGSMSocketManager::SetKeepAlive(GSMSocket *sock)
@@ -183,7 +149,6 @@ bool QuectelGSMSocketManager::SendInternal(GSMSocket *socket, ByteArray *packet)
     return gsmManager->AddCommand(new SocketStreamWriteModemCMD(socket->GetId(), packet, GSM_QUECTEL_SOCKET_WRITE_CMD, SOCKET_CMD_TIMEOUT));
 }
 
-
 bool QuectelGSMSocketManager::OnGSMExpectedData(uint8_t * data, size_t dataLen)
 {
     if (receivingSocketId != GSM_SOCKET_ERROR_ID) {
@@ -194,4 +159,32 @@ bool QuectelGSMSocketManager::OnGSMExpectedData(uint8_t * data, size_t dataLen)
     return false;
 }
 
+void QuectelGSMSocketManager::HandleURCRecv(char **args, size_t argsLen)
+{
+    // Buffer access mode:
+    // "recv",<connectID>
 
+
+    // Indirect push mode:
+    // "recv",<connectID>,<currectrecvlength><CR><LF><data>.
+    if (argsLen < 2) return;
+
+    uint8_t socketId = atoi(args[1]);
+    uint16_t available = atoi(args[2]);
+
+    if (available > GSM_SOCKET_BUFFER_SIZE) {
+        available = GSM_SOCKET_BUFFER_SIZE;
+    }
+
+    gsmManager->SetExpectFixedLength(available, 100000ul);
+    receivingSocketId = socketId;
+
+}
+void QuectelGSMSocketManager::HandleURCIncoming(char **args, size_t argsLen)
+{
+    // "incoming",<connectID>,<serverID>,<remoteIP>,<remote_port>
+}
+void QuectelGSMSocketManager::HandleURCClosed(char **args, size_t argsLen)
+{
+    // "pdpdeact",<contextID>
+}

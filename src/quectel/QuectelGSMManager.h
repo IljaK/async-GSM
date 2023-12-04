@@ -6,6 +6,9 @@
 #include "QuectelGSMCallManager.h"
 #include "QuectelGSMSocketManager.h"
 
+// +QIURC: "pdpdeact",<contextID>
+constexpr char QUECTEL_URC_EVENT[] = "+QIURC"; // Get IP of dns name
+
 class QuectelGSMManager: public QuectelGSMModemManager
 {
 protected:

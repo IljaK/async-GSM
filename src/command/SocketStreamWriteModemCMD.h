@@ -18,6 +18,7 @@ struct SocketStreamWriteModemCMD: public BaseStreamWriteModemCMD
 
     void WriteStream(Print *stream) override {
         // AT+CIPSEND=(0-9),(1-1500)
+        // AT+QISEND=(0-11),(1-1460)
 
         stream->print(socketId);
         stream->print(',');
@@ -32,13 +33,6 @@ struct SocketStreamWriteModemCMD: public BaseStreamWriteModemCMD
     <ETX> is 0x03, and <Ctrl+Z> is 0x1A,<ESC> is 0x1B.
     */
     void WriteSteamContent(Stream *stream) {
-        /*
-        for (size_t i = 0; i < data->length; i++) {
-            if (isExtraSign(data->array[i])) {
-                stream->write(0x03);
-            }
-            stream->write(data->array[i]);
-        } */
         stream->write(data->GetArray(), data->GetLength());
         EndStream(stream, false);
     }

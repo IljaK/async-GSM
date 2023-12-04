@@ -2,21 +2,20 @@
 #include "socket/GSMSocketManager.h"
 #include "GSMModemManager.h"
 
-// You can use AT+CIPOPEN to establish a connection with TCP server and UDP server, the maximumof theconnections is 10.
-constexpr char GSM_QUECTEL_SOCKET_CONNECT_CMD[] = "+CIPOPEN"; // AT+CIPOPEN=0,"TCP","183.230.174.137",6031
+// AT+QIOPEN Open a Socket Service
+// AT+QIOPEN=<contextID>,<connectID>,<service_type>,<IP_address>/<domain_name>,<remote_port>[,<local_port>[,<access_mode>]]
+constexpr char GSM_QUECTEL_SOCKET_CONNECT_CMD[] = "+QIOPEN"; // 
 
-constexpr char GSM_QUECTEL_SOCKET_CLOSE_CMD[] = "+CIPCLOSE"; // AT+CIPCLOSE is used to close a TCP or UDP Socket
-constexpr char GSM_QUECTEL_SOCKET_CLOSE_EVENT[] = "+IPCLOSE"; // +IPCLOSE: <client_index>,<close_reason>
+constexpr char GSM_QUECTEL_SOCKET_CLOSE_CMD[] = "+QICLOSE"; // AT+CIPCLOSE is used to close a TCP or UDP Sockets
 
-constexpr char GSM_QUECTEL_SOCKET_READ_CMD[] = "+CIPRXGET"; // +USORD: (0-6),(0-1024)
-constexpr char GSM_QUECTEL_SOCKET_READ_EVENT[] = "+RECEIVE"; // +RECEIVE: <socket>,<length> +RECEIVE: 3,16
+constexpr char GSM_QUECTEL_SOCKET_READ_CMD[] = "+QIRD"; // +QIRD:  (0-11),(0-1500)
 
 /*
 AT+CIPSEND is used to send data to remote side. 
 If service type is TCP, the data is firstly sent tothemodule’s internal TCP/IP stack, 
 and then sent to server by protocol stack. The <length> field maybeempty. 
 */
-constexpr char GSM_QUECTEL_SOCKET_WRITE_CMD[] = "+CIPSEND"; // AT+CIPSEND=<link_num>,<length>
+constexpr char GSM_QUECTEL_SOCKET_WRITE_CMD[] = "+QISEND"; // AT+CIPSEND=<link_num>,<length>
 
 
 class QuectelGSMSocketManager: public GSMSocketManager
@@ -39,5 +38,9 @@ public:
     bool OnGSMResponse(BaseModemCMD *request, char * response, size_t respLen, MODEM_RESPONSE_TYPE type) override;
     bool OnGSMEvent(char * data, size_t dataLen) override;
     bool OnGSMExpectedData(uint8_t * data, size_t dataLen) override;
+
+    void HandleURCRecv(char **args, size_t argsLen);
+    void HandleURCIncoming(char **args, size_t argsLen);
+    void HandleURCClosed(char **args, size_t argsLen);
 
 };

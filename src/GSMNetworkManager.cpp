@@ -456,3 +456,12 @@ void GSMNetworkManager::UpdateTemperature(float temp)
 {
     gsmStats.temperature = temp;
 }
+
+GSM_INIT_STATE GSMNetworkManager::GetInitState()
+{
+    return initState;
+}
+GSM_MODEM_CONFIGURATION_STEP GSMNetworkManager::GetConfigurationStep()
+{
+    return (GSM_MODEM_CONFIGURATION_STEP)configurationStep;
+}

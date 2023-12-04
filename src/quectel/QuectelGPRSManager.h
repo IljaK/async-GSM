@@ -9,40 +9,32 @@
 
 // Step 1
 // AT+CGDCONT - Define PDP context
-// AT+CGDCONT=1,"IP","APN"
+// AT+CGDCONT: <cid>,<PDP_type>,<APN>
 constexpr char QUECTEL_DEFINE_PDP[] = "+CGDCONT";
 
 // Step 2
-// AT+CGAUTH - Set type of authentication for PDP-IP connections of GPRS
-// AT+CGAUTH=1,1,”TEST”,”123”
-constexpr char QUECTEL_AUTH_PDP[] = "+CGAUTH";
+// AT+QICSGP Configure Parameters of a TCP/IP Context 
+constexpr char QUECTEL_AUTH_PDP[] = "+QICSGP";
 
 // Step 3
-// AT+CGACT - Activate PDP profile
-// AT+CGACT=1,1
-constexpr char QUECTEL_ACTIVATE_PDP[] = "+CGACT";
+// AT+QIACT Activate a PDP Context
+constexpr char QUECTEL_ACTIVATE_PDP[] = "+QIACT";
 
 // Step 4
-// AT+CGPADDR - The write command returns a list of PDP addresses for the specified context identifiers
-// AT+CGPADDR=1
-constexpr char QUECTEL_GET_PDP_IP[] = "+CGPADDR";
-
-// Step 5
-// AT+NETOPEN is used to start service by activating PDP context. 
-// You must execute AT+NETOPEN beforeany other TCP/UDP related operations.
-constexpr char GSM_ACTIVATE_IP_CONTEXT_CMD[] = "+NETOPEN";
+// Query IP address of the activated context:
+// AT+QIACT?
 
 // TODO: AT+QIDNSGIP Get IP Address by Domain Name
-// AT+CDNSGIP - Query the IP Address of Given Domain Name
-constexpr char QUECTEL_RESOLVE_DNS_CMD[] = "+CDNSGIP"; // Get IP of dns name
-
-// +CIPEVENT: NETWORK CLOSED UNEXPECTEDLY
-constexpr char GSM_QUECTEL_NETWORK_CLOSE_EVENT[] = "+CIPEVENT";
+// AT+QIDNSGIP Get IP Address by Domain Name
+constexpr char QUECTEL_RESOLVE_DNS_CMD[] = "+QIDNSGIP"; // Get IP of dns name
 
 
-class QuectelGPRSManager: public GPRSManager
+class QuectelGPRSManager: public GPRSManager, ITimerCallback
 {
 private:
+    Timer gipTimer;
+    char *resolveHostName = NULL;
+    void InternalHostNameResolve(IPAddr ip);
 
 protected:
 
@@ -56,4 +48,9 @@ public:
 
     bool OnGSMResponse(BaseModemCMD *request, char * response, size_t respLen, MODEM_RESPONSE_TYPE type) override;
     bool OnGSMEvent(char * data, size_t dataLen) override;
+
+	void OnTimerComplete(Timer *timer) override;
+
+    void HandlePDEACT(char **args, size_t argsLen);
+    void HandleDNSGIP(char **args, size_t argsLen);
 };

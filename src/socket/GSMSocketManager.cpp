@@ -28,17 +28,13 @@ void GSMSocketManager::SetSocketHandler(IGSMSocketManager *socketManager)
 
 GSMSocket * GSMSocketManager::OnSocketCreated(uint8_t socketId)
 {
-    Serial.print("GSMSocketManager::OnSocketCreated ");
     // Unshift first not created
     GSMSocket *socket = socketArray->PeekInitialisingSocket();
     if (socket == NULL) {
-        Serial.println("ERROR");
         // No awaiting to create sockets?!
         // Socket will be destroyed after close commans completes!
         Close(socketId);
     } else {
-        Serial.print("OK ");
-        Serial.println((int)socketId);
         socket->OnSocketID(socketId);
     }
     return socket;
@@ -77,15 +73,11 @@ void GSMSocketManager::OnSocketConnection(uint8_t socketId, GSM_SOCKET_ERROR err
 
 GSMSocket *GSMSocketManager::ConnectSocket(IPAddr ip, uint16_t port)
 {
-    Serial.print("GSMSocketManager::ConnectSocket ");
     GSMSocket *socket = socketArray->PeekSocket(ip, port);
     if (socket != NULL) {
-        Serial.print("EXISTS: ");
-        Serial.println((int)socket->GetId());
         return socket;
     }
     if (socketArray->IsFull()) {
-        Serial.println("ERROR->ARRAY FULL");
         return NULL;
     }
 
@@ -93,12 +85,10 @@ GSMSocket *GSMSocketManager::ConnectSocket(IPAddr ip, uint16_t port)
     socketArray->Append(socket);
 
     if (!ConnectSocketInternal(socket)) {
-        Serial.println("ERROR->ConnectSocketInternal FAIL");
         socketArray->Unshift(socket);
         delete socket;
         socket = NULL;
     }
-    Serial.println("OK");
     return socket;
 }
 

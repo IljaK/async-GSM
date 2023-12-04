@@ -28,11 +28,11 @@ constexpr char GSM_CMD_TIME[] = "+CCLK";
 constexpr unsigned long GSM_NETWORG_REG_TIMEOUT = 90000000ul;
 constexpr unsigned long GSM_NETWORG_CREG_INTERVAL = 5000000ul;
 
-enum GSM_MODEM_CONFIGURATION_STEP {
+enum GSM_MODEM_CONFIGURATION_STEP: uint8_t {
     GSM_MODEM_CONFIGURATION_STEP_NONE = 0,
-    GSM_MODEM_CONFIGURATION_STEP_CNMI = 1,
-    GSM_MODEM_CONFIGURATION_STEP_CMFG = 2,
-    GSM_MODEM_CONFIGURATION_STEP_CTZU = 3,
+    GSM_MODEM_CONFIGURATION_STEP_CNMI,
+    GSM_MODEM_CONFIGURATION_STEP_CMFG,
+    GSM_MODEM_CONFIGURATION_STEP_CTZU,
 
     GSM_MODEM_CONFIGURATION_STEP_COMPLETE
 };
@@ -65,16 +65,19 @@ private:
     inline void HandleSimUnlocked();
     inline void UpdateCregResult();
 
-    void NextConfigurationStep();
-    
 protected:
     GSMModemManager *modemManager;
+    GSM_INIT_STATE GetInitState();
+    GSM_MODEM_CONFIGURATION_STEP GetConfigurationStep();
+
     virtual void FetchModemStats();
     inline GSM_REG_STATE GetCregState(char * data, size_t dataLen);
 
     void UpdateThresoldState(GSM_THRESHOLD_STATE state);
     void UpdateNetworkType(GSM_NETWORK_TYPE type);
     void UpdateTemperature(float temp);
+
+    virtual void NextConfigurationStep();
 
     virtual void ContinueConfigureModem();
     void ConfigureModemCompleted();
@@ -101,5 +104,5 @@ public:
 
     GSMNetworkStats *GetGSMStats();
 
-    void OnModemReboot();
+    virtual void OnModemReboot();
 };
