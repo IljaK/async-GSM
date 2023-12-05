@@ -22,10 +22,10 @@ void GSMSerialModem::ResetSerial(uint32_t baud, uint32_t config)
     delayMicroseconds(50);
 }
 
-void GSMSerialModem::OnResponseReceived(bool IsTimeOut, bool isOverFlow)
+void GSMSerialModem::OnResponseReceived(bool isTimeOut, bool isOverFlow)
 {
     cmdReleaseTimer.Stop();
-    if (!IsTimeOut) {
+    if (!isTimeOut) {
         cmdReleaseTimer.StartMicros(GSM_DATA_COLLISION_DELAY);
     }
 
@@ -33,7 +33,7 @@ void GSMSerialModem::OnResponseReceived(bool IsTimeOut, bool isOverFlow)
         debugPrint->print("EXPECTED: ");
         debugPrint->print((int)bufferLength);
         debugPrint->print(" ");
-        debugPrint->print((int)IsTimeOut);
+        debugPrint->print((int)isTimeOut);
         debugPrint->print(" ");
         debugPrint->print((int)isOverFlow);
         debugPrint->println(" ");
@@ -42,7 +42,7 @@ void GSMSerialModem::OnResponseReceived(bool IsTimeOut, bool isOverFlow)
         return;
     }
 
-    if (!IsTimeOut && !isOverFlow) {
+    if (!isTimeOut && !isOverFlow) {
 
         if (pendingCMD != NULL) {
             //StartTimeoutTimer(pendingCMD->timeout);
@@ -113,7 +113,7 @@ void GSMSerialModem::OnResponseReceived(bool IsTimeOut, bool isOverFlow)
         debugPrint->print("] (");
         debugPrint->print((int)bufferLength);
         debugPrint->print(") ");
-        debugPrint->print(IsTimeOut);
+        debugPrint->print(isTimeOut);
         debugPrint->print(" ");
         debugPrint->print(isOverFlow);
         debugPrint->print(" ");
@@ -122,25 +122,9 @@ void GSMSerialModem::OnResponseReceived(bool IsTimeOut, bool isOverFlow)
         debugPrint->println(remainRam());
     }
 
-    if (pendingCMD != NULL && (pendingCMD->GetIsRespStarted() || IsTimeOut || isOverFlow)) {
-        MODEM_RESPONSE_TYPE type = MODEM_RESPONSE_DATA;
+    if (pendingCMD != NULL && (pendingCMD->GetIsRespStarted() || isTimeOut || isOverFlow)) {
+        MODEM_RESPONSE_TYPE type = GetResponseType(pendingCMD, isTimeOut, isOverFlow);
         BaseModemCMD *cmd = pendingCMD;
-        if (IsTimeOut) {
-            type = MODEM_RESPONSE_TIMEOUT;
-        } else if (isOverFlow) {
-            type = MODEM_RESPONSE_OVERFLOW;
-        } else if (strcmp(buffer, GSM_OK_RESPONSE) == 0) {
-            type = MODEM_RESPONSE_OK;
-        } else if (strcmp(buffer, GSM_ERROR_RESPONSE) == 0) {
-            type = MODEM_RESPONSE_ERROR;
-        } else if (strcmp(buffer, GSM_ABORTED_RESPONSE) == 0) {
-            type = MODEM_RESPONSE_ABORTED;
-        }
-        else if (strncmp(buffer, GSM_CME_ERROR_RESPONSE, strlen(GSM_CME_ERROR_RESPONSE)) == 0) {
-            type = MODEM_RESPONSE_ERROR;
-            char *code = buffer + strlen(GSM_CME_ERROR_RESPONSE) + 1;
-            cmd->cme_error = atoi(code);
-        }
         if (type >= MODEM_RESPONSE_OK) {
             pendingCMD = NULL;
             StopTimeoutTimer();
@@ -154,6 +138,29 @@ void GSMSerialModem::OnResponseReceived(bool IsTimeOut, bool isOverFlow)
     } else {
         OnModemResponse(NULL, buffer, bufferLength, MODEM_RESPONSE_EVENT);
     }
+}
+
+
+MODEM_RESPONSE_TYPE GSMSerialModem::GetResponseType(BaseModemCMD *cmd, bool isTimeOut, bool isOverFlow)
+{
+    //Serial.println("GSMSerialModem::GetResponseType");
+    MODEM_RESPONSE_TYPE type = MODEM_RESPONSE_DATA;
+    if (isTimeOut) {
+        type = MODEM_RESPONSE_TIMEOUT;
+    } else if (isOverFlow) {
+        type = MODEM_RESPONSE_OVERFLOW;
+    } else if (strncmp(buffer, GSM_OK_RESPONSE, strlen(GSM_OK_RESPONSE)) == 0) {
+        type = MODEM_RESPONSE_OK;
+    } else if (strncmp(buffer, GSM_ERROR_RESPONSE, strlen(GSM_ERROR_RESPONSE)) == 0) {
+        type = MODEM_RESPONSE_ERROR;
+    } else if (strncmp(buffer, GSM_ABORTED_RESPONSE, strlen(GSM_ABORTED_RESPONSE)) == 0) {
+        type = MODEM_RESPONSE_ABORTED;
+    } else if (strncmp(buffer, GSM_CME_ERROR_RESPONSE, strlen(GSM_CME_ERROR_RESPONSE)) == 0) {
+        type = MODEM_RESPONSE_ERROR;
+        char *code = buffer + strlen(GSM_CME_ERROR_RESPONSE) + 1;
+        cmd->cme_error = atoi(code);
+    }
+    return type;
 }
 
 void GSMSerialModem::Loop()

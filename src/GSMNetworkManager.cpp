@@ -174,24 +174,8 @@ bool GSMNetworkManager::OnGSMResponse(BaseModemCMD *request, char *response, siz
         if (type == MODEM_RESPONSE_DATA) {
             char* csq = response + strlen(GSM_CMD_NETWORK_QUALITY) + 2;
             char* csqArgs[2];
-
             SplitString(csq, ',', csqArgs, 2, false);
-
-            gsmStats.signalStrength = atoi(csqArgs[0]); // 0 - 31, 99
-            if (gsmStats.signalStrength > 31) {
-                gsmStats.signalStrength = 0;
-            }
-            gsmStats.signalStrength = ((double)gsmStats.signalStrength / 31.0) * 100.0;
-
-            gsmStats.signalQuality = atoi(csqArgs[1]); // 0 - 7, 99
-            if (gsmStats.signalQuality > 7) {
-                gsmStats.signalQuality = 0;
-            }
-            gsmStats.signalQuality = ((7.0 - (double)gsmStats.signalQuality) / 7.0) * 100.0;
-
-            if (listener != NULL) {
-                listener->OnGSMQuality(gsmStats.signalStrength, gsmStats.signalQuality);
-            }
+            UpdateSignalQuality(atoi(csqArgs[0]), atoi(csqArgs[1]));
         } else if (type == MODEM_RESPONSE_TIMEOUT) {
             modemManager->StartModem();
         } else if (type >= MODEM_RESPONSE_ERROR) {
@@ -241,6 +225,27 @@ bool GSMNetworkManager::OnGSMResponse(BaseModemCMD *request, char *response, siz
 
 
     return false;
+}
+
+
+//strength(rssi): (0-31,99), quality(ber): (0-7,99)
+void GSMNetworkManager::UpdateSignalQuality(int strength, int quality)
+{
+    gsmStats.signalStrength = strength; // (0 - 31), 99
+    if (gsmStats.signalStrength > 31) {
+        gsmStats.signalStrength = 0;
+    }
+    gsmStats.signalStrength = ((double)gsmStats.signalStrength / 31.0) * 100.0;
+
+    gsmStats.signalQuality = quality; // (0 - 7), 99
+    if (gsmStats.signalQuality > 7) {
+        gsmStats.signalQuality = 0;
+    }
+    gsmStats.signalQuality = ((7.0 - (double)gsmStats.signalQuality) / 7.0) * 100.0;
+
+    if (listener != NULL) {
+        listener->OnGSMQuality(gsmStats.signalStrength, gsmStats.signalQuality);
+    }
 }
 
 void GSMNetworkManager::HandleSimUnlocked()

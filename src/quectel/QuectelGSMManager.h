@@ -7,7 +7,10 @@
 #include "QuectelGSMSocketManager.h"
 
 // +QIURC: "pdpdeact",<contextID>
-constexpr char QUECTEL_URC_EVENT[] = "+QIURC"; // Get IP of dns name
+constexpr char GSM_QUECTEL_URC_EVENT[] = "+QIURC"; 
+
+// AT+QURCCFG Configure URC Indication Option
+constexpr char GSM_QUECTEL_URC_IND_EVENT[] = "+QIND";
 
 class QuectelGSMManager: public QuectelGSMModemManager
 {

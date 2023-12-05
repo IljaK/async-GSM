@@ -51,13 +51,14 @@ protected:
     Timer cmdReleaseTimer;
     Print *debugPrint = NULL;
     
-	void OnResponseReceived(bool IsTimeOut, bool isOverFlow = false) override;
+	void OnResponseReceived(bool isTimeOut, bool isOverFlow = false) override;
 	virtual void OnModemResponse(BaseModemCMD *cmd, char *data, size_t dataLen, MODEM_RESPONSE_TYPE type) = 0;
     void FlushIncoming();
     //void Reboot(uint32_t baud, uint32_t config, bool hardReset);
     HardwareSerial *GetSerial();
     // For Uart pin reassignment
     virtual void ResetSerial(uint32_t baud, uint32_t config);
+    virtual MODEM_RESPONSE_TYPE GetResponseType(BaseModemCMD *cmd, bool isTimeOut, bool isOverFlow);
 
 public:
     GSMSerialModem(HardwareSerial *serial, int8_t resetPin = -1);

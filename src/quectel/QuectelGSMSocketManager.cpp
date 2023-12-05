@@ -121,7 +121,7 @@ bool QuectelGSMSocketManager::Connect(GSMSocket *sock)
 {
     if (sock == NULL) return false;
     // AT+QIOPEN=<contextID>,<connectID>,<service_type>,<IP_address>/<domain_name>,<remote_port>[,<local_port>[,<access_mode>]]
-    return gsmManager->AddCommand(new SocketConnectContextCMD(1, 1, sock->GetId(), (char *)"TCP", sock->GetIp(), sock->GetPort(), GSM_QUECTEL_SOCKET_CONNECT_CMD, SOCKET_CONNECTION_TIMEOUT));
+    return gsmManager->AddCommand(new SocketConnectContextCMD(1, sock->GetId(), (char *)"TCP", sock->GetIp(), sock->GetPort(), 1, GSM_QUECTEL_SOCKET_CONNECT_CMD, SOCKET_CONNECTION_TIMEOUT));
 }
 
 bool QuectelGSMSocketManager::SetKeepAlive(GSMSocket *sock)
@@ -151,6 +151,7 @@ bool QuectelGSMSocketManager::SendInternal(GSMSocket *socket, ByteArray *packet)
 
 bool QuectelGSMSocketManager::OnGSMExpectedData(uint8_t * data, size_t dataLen)
 {
+    Serial.println("QuectelGSMSocketManager::OnGSMExpectedData");
     if (receivingSocketId != GSM_SOCKET_ERROR_ID) {
         OnSocketData(receivingSocketId, data, dataLen);
         receivingSocketId = GSM_SOCKET_ERROR_ID;
@@ -163,11 +164,14 @@ void QuectelGSMSocketManager::HandleURCRecv(char **args, size_t argsLen)
 {
     // Buffer access mode:
     // "recv",<connectID>
-
+    Serial.print("HandleURCRecv args: ");
+    Serial.println((int)argsLen);
 
     // Indirect push mode:
     // "recv",<connectID>,<currectrecvlength><CR><LF><data>.
-    if (argsLen < 2) return;
+
+    // +QIURC: "recv",0,7
+    if (argsLen < 3) return;
 
     uint8_t socketId = atoi(args[1]);
     uint16_t available = atoi(args[2]);
@@ -176,6 +180,7 @@ void QuectelGSMSocketManager::HandleURCRecv(char **args, size_t argsLen)
         available = GSM_SOCKET_BUFFER_SIZE;
     }
 
+    Serial.println("SetExpectFixedLength");
     gsmManager->SetExpectFixedLength(available, 100000ul);
     receivingSocketId = socketId;
 

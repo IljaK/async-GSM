@@ -34,10 +34,10 @@ public:
 class GSMCallManager: public IBaseGSMHandler
 {
 private:
-    char callingNumber[MAX_PHONE_LENGTH];
     IGSMCallManager *callStateHandler;
     VOICE_CALLSTATE callState = VOICE_CALL_STATE_DISCONNECTED;
 protected:
+    char callingNumber[MAX_PHONE_LENGTH];
     GSMModemManager *gsmManager = NULL;
     void HandleDTMF(char sign);
     void UpdateCallState(VOICE_CALLSTATE state);
@@ -53,4 +53,6 @@ public:
     void HangCall();
     char * GetCallingNumber();
     virtual void OnModemReboot();
+
+    void HandleDetailedCallInfo(VOICE_CALLSTATE state, char *number, char *name);
 };

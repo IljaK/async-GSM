@@ -239,9 +239,7 @@ void GSMSocketManager::OnSocketClosed(uint8_t socketId)
     Serial.println("GSMSocketManager::OnSocketClosed");
     DestroySocket(socketId);
     if (pendingSockTransmission == socketId) {
-        Serial.print("SendNextAvailableData...");
         SendNextAvailableData();
-        Serial.println(" OK");
     }
 }
 

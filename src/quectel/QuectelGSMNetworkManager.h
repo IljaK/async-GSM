@@ -14,6 +14,15 @@ constexpr char QUECTEL_NETWORK_TYPE_STATUS[] = "+QNWINFO";
 // set AT+CVHU=0. Otherwise, ATH command will be ignored and "OK" response is given only
 constexpr char GSM_QUECTEL_ATH_FIX_CMD[] = "+CVHU";
 
+// AT^DSCI Call Status Indication
+//constexpr char GSM_QUECTEL_CALL_INDICATE_CMD[] = "^DSCI";
+
+// URC Indication:
+constexpr char GSM_QUECTEL_URC_ENABLE_CMD[] = "+QINDCFG";
+
+// AT+QURCCFG Configure URC Indication Option
+constexpr char GSM_QUECTEL_URC_PORT_CMD[] = "+QURCCFG";
+
 // TODO: DTMF
 
 
@@ -21,6 +30,13 @@ enum GSM_QUECTEL_CONFIGURATION_STEP {
     GSM_QUECTEL_CONFIGURATION_STEP_NONE = 0,
 
     GSM_QUECTEL_CONFIGURATION_STEP_CVHU,
+    //GSM_QUECTEL_CONFIGURATION_STEP_DSCI,
+    GSM_QUECTEL_CONFIGURATION_STEP_QURCCFG,
+    GSM_QUECTEL_CONFIGURATION_STEP_QINDCFG_CSQ,
+    GSM_QUECTEL_CONFIGURATION_STEP_QINDCFG_SMS,
+    GSM_QUECTEL_CONFIGURATION_STEP_QINDCFG_ACT,
+    GSM_QUECTEL_CONFIGURATION_STEP_QINDCFG_CCINFO,
+    GSM_QUECTEL_CONFIGURATION_STEP_QINDCFG_ALL,
 
     GSM_QUECTEL_CONFIGURATION_STEP_COMPLETE
 };
@@ -46,4 +62,6 @@ public:
 
 	void OnTimerComplete(Timer *timer) override;
     void OnModemReboot() override;
+
+    void UpdateNetworkType(char *networkType);
 };

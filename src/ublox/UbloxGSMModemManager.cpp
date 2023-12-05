@@ -27,9 +27,6 @@ void UbloxGSMModemManager::ReBootModem(bool hardReset)
             digitalWrite(resetPin, LOW);
             // Just in case?
             delayMicroseconds(50);
-
-            // TODO: Software reset?
-            // send("AT+CFUN=16");
         }
     }
     GSMModemManager::BootModem();

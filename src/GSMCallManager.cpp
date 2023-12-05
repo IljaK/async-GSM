@@ -25,13 +25,37 @@ bool GSMCallManager::OnGSMResponse(BaseModemCMD *request, char * response, size_
 {
     if (strncmp(response, GSM_CALL_STATE_CMD, strlen(GSM_CALL_STATE_CMD)) == 0) {
         // +CLCC: 1,1,4,0,0,"+37211111",145,""
-        HandleDetailedCallInfo(response, respLen);
+        //HandleDetailedCallInfo(response, respLen);
+        char *clccContent = response + strlen(GSM_CALL_STATE_CMD) + 2;
+        char *clccArgs[8];
+        size_t len = SplitString(clccContent, ',', clccArgs, 8, false);
+        // remove quotations
+        ShiftQuotations(clccArgs, len);
+        HandleDetailedCallInfo(clccContent, len);
 
         return true;
     }
     return false;
 }
 
+
+void GSMCallManager::HandleDetailedCallInfo(VOICE_CALLSTATE state, char *number, char *name)
+{
+    switch (state)
+    {
+    case VOICE_CALL_STATE_DIALING:
+    case VOICE_CALL_STATE_INCOMING:
+        callingNumber[0] = 0;
+        strcpy(callingNumber, number);
+        break;
+    case VOICE_CALL_STATE_DISCONNECTED:
+        callingNumber[0] = 0;
+        break;
+    default:
+        break;
+    }
+    UpdateCallState(state);
+}
 
 void GSMCallManager::HandleDetailedCallInfo(char * content, size_t contentLen)
 {
@@ -41,10 +65,7 @@ void GSMCallManager::HandleDetailedCallInfo(char * content, size_t contentLen)
     // remove quotations
     ShiftQuotations(clccArgs, len);
 
-    callingNumber[0] = 0;
-    strcpy(callingNumber, clccArgs[5]);
-
-    UpdateCallState((VOICE_CALLSTATE)atoi(clccArgs[2]));
+    HandleDetailedCallInfo((VOICE_CALLSTATE)atoi(clccArgs[2]), clccArgs[5], clccArgs[7]);
 }
 
 void GSMCallManager::SetCallStateHandler(IGSMCallManager* callStateHandler)

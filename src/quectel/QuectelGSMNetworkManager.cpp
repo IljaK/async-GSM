@@ -2,6 +2,7 @@
 #include "common/GSMUtils.h"
 #include "command/ULong2ModemCMD.h"
 #include "command/LongArrayModemCMD.h"
+#include "command/CharModemCMD.h"
 
 QuectelGSMNetworkManager::QuectelGSMNetworkManager(GSMModemManager *modemManager):
     delayedInitTimer(this),
@@ -65,45 +66,23 @@ bool QuectelGSMNetworkManager::OnGSMResponse(BaseModemCMD *request, char *respon
         char *qnwinfo = response + strlen(QUECTEL_NETWORK_TYPE_STATUS) + 2;
         char *qnwinfoArgs[4];
         SplitString(qnwinfo, ',', qnwinfoArgs, 4, false);
-        GSM_NETWORK_TYPE type = GSM_NETWORK_UNKNOWN;
-
-        if (strcmp("CDMA1X", qnwinfoArgs[0]) == 0) {
-            type = GSM_NETWORK_OTHER;
-        } else if (strcmp("CDMA1X AND HDR", qnwinfoArgs[0]) == 0) {
-            type = GSM_NETWORK_OTHER;
-        } else if (strcmp("CDMA1X AND EHRPD", qnwinfoArgs[0]) == 0) {
-            type = GSM_NETWORK_OTHER;
-        } else if (strcmp("HDR", qnwinfoArgs[0]) == 0) {
-            type = GSM_NETWORK_OTHER;
-        } else if (strcmp("HDR-EHRPD", qnwinfoArgs[0]) == 0) {
-            type = GSM_NETWORK_OTHER;
-        } else if (strcmp("GSM", qnwinfoArgs[0]) == 0) {
-            type = GSM_NETWORK_2G_GSM;
-        } else if (strcmp("GPRS", qnwinfoArgs[0]) == 0) {
-            type = GSM_NETWORK_2G_GPRS;
-        } else if (strcmp("EDGE", qnwinfoArgs[0]) == 0) {
-            type = GSM_NETWORK_2G_EDGE;
-        } else if (strcmp("WCDMA", qnwinfoArgs[0]) == 0) {
-            type = GSM_NETWORK_3G_WCDMA;
-        } else if (strcmp("HSDPA", qnwinfoArgs[0]) == 0) {
-            type = GSM_NETWORK_3G_HSDPA;
-        } else if (strcmp("HSUPA", qnwinfoArgs[0]) == 0) {
-            type = GSM_NETWORK_3G_HSUPA;
-        } else if (strcmp("HSPA+", qnwinfoArgs[0]) == 0) {
-            type = GSM_NETWORK_3G_HSDPA_HSUPA;
-        } else if (strcmp("TDSCDMA", qnwinfoArgs[0]) == 0) {
-            type = GSM_NETWORK_OTHER;
-        } else if (strcmp("TDD LTE", qnwinfoArgs[0]) == 0) {
-            type = GSM_NETWORK_4G_LTE;
-        } else if (strcmp("FDD LTE", qnwinfoArgs[0]) == 0) {
-            type = GSM_NETWORK_4G_LTE;
-        }
-
-        GSMNetworkManager::UpdateNetworkType(type);
+        UpdateNetworkType(qnwinfoArgs[0]);
         return true;
     }
 
     if (strcmp(request->cmd, GSM_QUECTEL_ATH_FIX_CMD) == 0) {
+        NextQuectelConfigurationStep();
+        return true;
+    }
+    // if (strcmp(request->cmd, GSM_QUECTEL_CALL_INDICATE_CMD) == 0) {
+    //     NextQuectelConfigurationStep();
+    //     return true;
+    // }
+    if (strcmp(request->cmd, GSM_QUECTEL_URC_PORT_CMD) == 0) {
+        NextQuectelConfigurationStep();
+        return true;
+    }
+    if (strcmp(request->cmd, GSM_QUECTEL_URC_ENABLE_CMD) == 0) {
         NextQuectelConfigurationStep();
         return true;
     }
@@ -115,7 +94,7 @@ void QuectelGSMNetworkManager::FetchModemStats()
 {
     GSMNetworkManager::FetchModemStats();
     modemManager->AddCommand(new BaseModemCMD(QUECTEL_TEMP_CMD, MODEM_COMMAND_TIMEOUT, false));
-    modemManager->AddCommand(new BaseModemCMD(QUECTEL_NETWORK_TYPE_STATUS, MODEM_COMMAND_TIMEOUT, false));
+    //modemManager->AddCommand(new BaseModemCMD(QUECTEL_NETWORK_TYPE_STATUS, MODEM_COMMAND_TIMEOUT, false));
 }
 
 void QuectelGSMNetworkManager::ContinueConfigureModem()
@@ -141,6 +120,32 @@ void QuectelGSMNetworkManager::NextQuectelConfigurationStep()
         case GSM_QUECTEL_CONFIGURATION_STEP_CVHU:
             modemManager->ForceCommand(new ByteModemCMD(0, GSM_QUECTEL_ATH_FIX_CMD));
             break;
+        //case GSM_QUECTEL_CONFIGURATION_STEP_DSCI:
+        //    modemManager->ForceCommand(new ByteModemCMD(1, GSM_QUECTEL_CALL_INDICATE_CMD));
+        //    break;
+        case GSM_QUECTEL_CONFIGURATION_STEP_QURCCFG:
+            modemManager->ForceCommand(new CharModemCMD("\"urcport\",\"uart1\"", GSM_QUECTEL_URC_PORT_CMD));
+            break;
+        case GSM_QUECTEL_CONFIGURATION_STEP_QINDCFG_CSQ:
+            // AT+QINDCFG=<urctype>[,<enable>[,<save_to_nvram>]]
+            modemManager->ForceCommand(new CharModemCMD("\"csq\",1", GSM_QUECTEL_URC_ENABLE_CMD));
+            break;
+        case GSM_QUECTEL_CONFIGURATION_STEP_QINDCFG_SMS:
+            // AT+QINDCFG=<urctype>[,<enable>[,<save_to_nvram>]]
+            modemManager->ForceCommand(new CharModemCMD("\"smsincoming\",1", GSM_QUECTEL_URC_ENABLE_CMD));
+            break;
+        case GSM_QUECTEL_CONFIGURATION_STEP_QINDCFG_ACT:
+            // AT+QINDCFG=<urctype>[,<enable>[,<save_to_nvram>]]
+            modemManager->ForceCommand(new CharModemCMD("\"act\",1", GSM_QUECTEL_URC_ENABLE_CMD));
+            break;
+        case GSM_QUECTEL_CONFIGURATION_STEP_QINDCFG_CCINFO:
+            // AT+QINDCFG=<urctype>[,<enable>[,<save_to_nvram>]]
+            modemManager->ForceCommand(new CharModemCMD("\"ccinfo\",1", GSM_QUECTEL_URC_ENABLE_CMD));
+            break;
+        case GSM_QUECTEL_CONFIGURATION_STEP_QINDCFG_ALL:
+            // AT+QINDCFG=<urctype>[,<enable>[,<save_to_nvram>]]
+            modemManager->ForceCommand(new CharModemCMD("\"all\",1", GSM_QUECTEL_URC_ENABLE_CMD));
+            break;
         default:
             break;
     }
@@ -159,4 +164,53 @@ void QuectelGSMNetworkManager::OnModemReboot()
 {
     delayedInitTimer.Stop();
     GSMNetworkManager::OnModemReboot();
+}
+
+
+void QuectelGSMNetworkManager::UpdateNetworkType(char *networkType)
+{
+    GSM_NETWORK_TYPE type = GSM_NETWORK_UNKNOWN;
+    if (strcmp("CDMA", networkType) == 0) {
+        type = GSM_NETWORK_OTHER;
+    } else if (strcmp("CDMA1X", networkType) == 0) {
+        type = GSM_NETWORK_OTHER;
+    } else if (strcmp("CDMA1X AND HDR", networkType) == 0) {
+        type = GSM_NETWORK_OTHER;
+    } else if (strcmp("CDMA1X AND EHRPD", networkType) == 0) {
+        type = GSM_NETWORK_OTHER;
+    } else if (strcmp("HDR", networkType) == 0) {
+        type = GSM_NETWORK_OTHER;
+    } else if (strcmp("HDR-EHRPD", networkType) == 0) {
+        type = GSM_NETWORK_OTHER;
+    } else if (strcmp("GSM", networkType) == 0) {
+        type = GSM_NETWORK_2G_GSM;
+    } else if (strcmp("GPRS", networkType) == 0) {
+        type = GSM_NETWORK_2G_GPRS;
+    } else if (strcmp("EGPRS", networkType) == 0) {
+        type = GSM_NETWORK_2G_EDGE;
+    } else if (strcmp("EDGE", networkType) == 0) {
+        type = GSM_NETWORK_2G_EDGE;
+    } else if (strcmp("WCDMA", networkType) == 0) {
+        type = GSM_NETWORK_3G_WCDMA;
+    } else if (strcmp("HSDPA", networkType) == 0) {
+        type = GSM_NETWORK_3G_HSDPA;
+    } else if (strcmp("HSUPA", networkType) == 0) {
+        type = GSM_NETWORK_3G_HSUPA;
+    } else if (strcmp("HSPA+", networkType) == 0) {
+        type = GSM_NETWORK_3G_HSDPA_HSUPA;
+    } else if (strcmp("HSDPA&HSUPA", networkType) == 0) {
+        type = GSM_NETWORK_3G_HSDPA_HSUPA;
+    } else if (strcmp("TDSCDMA", networkType) == 0) {
+        type = GSM_NETWORK_OTHER;
+    }  else if (strcmp("TD-SCDMA", networkType) == 0) {
+        type = GSM_NETWORK_OTHER;
+    } else if (strcmp("TDD LTE", networkType) == 0) {
+        type = GSM_NETWORK_4G_LTE;
+    } else if (strcmp("FDD LTE", networkType) == 0) {
+        type = GSM_NETWORK_4G_LTE;
+    } else if (strcmp("LTE", networkType) == 0) {
+        type = GSM_NETWORK_4G_LTE;
+    }
+
+    GSMNetworkManager::UpdateNetworkType(type);
 }

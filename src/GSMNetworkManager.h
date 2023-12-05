@@ -105,4 +105,6 @@ public:
     GSMNetworkStats *GetGSMStats();
 
     virtual void OnModemReboot();
+
+    void UpdateSignalQuality(int rssi, int ber);
 };
