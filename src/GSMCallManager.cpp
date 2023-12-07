@@ -24,15 +24,10 @@ bool GSMCallManager::OnGSMEvent(char * data, size_t dataLen)
 bool GSMCallManager::OnGSMResponse(BaseModemCMD *request, char * response, size_t respLen, MODEM_RESPONSE_TYPE type)
 {
     if (strncmp(response, GSM_CALL_STATE_CMD, strlen(GSM_CALL_STATE_CMD)) == 0) {
-        // +CLCC: 1,1,4,0,0,"+37211111",145,""
-        //HandleDetailedCallInfo(response, respLen);
-        char *clccContent = response + strlen(GSM_CALL_STATE_CMD) + 2;
-        char *clccArgs[8];
-        size_t len = SplitString(clccContent, ',', clccArgs, 8, false);
-        // remove quotations
-        ShiftQuotations(clccArgs, len);
-        HandleDetailedCallInfo(clccContent, len);
-
+        if (type == MODEM_RESPONSE_DATA) {
+            // +CLCC: 1,1,4,0,0,"+37211111",145,""
+            HandleDetailedCallInfo(response, respLen);
+        }
         return true;
     }
     return false;
