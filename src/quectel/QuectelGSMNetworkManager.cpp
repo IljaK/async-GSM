@@ -5,8 +5,8 @@
 #include "command/CharModemCMD.h"
 
 QuectelGSMNetworkManager::QuectelGSMNetworkManager(GSMModemManager *modemManager):
-    delayedInitTimer(this),
-    GSMNetworkManager(modemManager)
+    GSMNetworkManager(modemManager),
+    delayedInitTimer(this)
 {
 
 }

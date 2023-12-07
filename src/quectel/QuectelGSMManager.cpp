@@ -100,8 +100,8 @@ bool QuectelGSMManager::OnGSMEvent(char * data, size_t dataLen)
     if (IsEvent(GSM_QUECTEL_URC_IND_EVENT, data, dataLen)) {
 
         char *urci = data + strlen(GSM_QUECTEL_URC_IND_EVENT) + 2;
-        char *urciArgs[8];
-        size_t count = SplitString(urci, ',', urciArgs, 8, false);
+        char *urciArgs[9];
+        size_t count = SplitString(urci, ',', urciArgs, 9, false);
         ShiftQuotations(urciArgs, count);
 
         if (strcmp(urciArgs[0], "csq") == 0) {
