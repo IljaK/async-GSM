@@ -4,7 +4,6 @@
 #include "GSMSocketManager.h"
 #include "common/GSMUtils.h"
 #include "array/ByteStackArray.h"
-#include "SocketMessageBuffer.h"
 #include "GSMSocketTypes.h"
 
 class GSMSocketManager;
