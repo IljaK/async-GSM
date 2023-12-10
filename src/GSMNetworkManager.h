@@ -102,7 +102,7 @@ public:
     time_t GetUTCTime();
     time_t GetLocalTime();
 
-    GSMNetworkStats *GetGSMStats();
+    GSMNetworkStats GetGSMStats();
 
     virtual void OnModemReboot();
 

@@ -20,7 +20,7 @@ class GSMSocketManager: public IBaseGSMHandler
 {
 private:
     SocketArray *socketArray = NULL;
-    IGSMSocketManager *socketManager = NULL;
+    IGSMSocketManager *socketHandler = NULL;
     uint8_t pendingSockTransmission = 255; // 255 = NONE
     bool DestroySocket(uint8_t socketId);
 protected:
@@ -51,7 +51,7 @@ protected:
 public:
     GSMSocketManager(GSMModemManager *gsmManager, uint8_t socketsAmount);
     virtual ~GSMSocketManager();
-    void SetSocketHandler(IGSMSocketManager *socketManager);
+    void SetSocketHandler(IGSMSocketManager *socketHandler);
 
     //bool OnGSMResponse(BaseModemCMD *request, char * response, size_t respLen, MODEM_RESPONSE_TYPE type) override;
     //bool OnGSMEvent(char * data, size_t dataLen) override;

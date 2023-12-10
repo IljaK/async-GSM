@@ -20,9 +20,9 @@ GSMSocketManager::~GSMSocketManager()
     delete socketArray;
 }
 
-void GSMSocketManager::SetSocketHandler(IGSMSocketManager *socketManager)
+void GSMSocketManager::SetSocketHandler(IGSMSocketManager *socketHandler)
 {
-    this->socketManager = socketManager;
+    this->socketHandler = socketHandler;
 }
 
 
@@ -65,8 +65,8 @@ void GSMSocketManager::OnSocketConnection(uint8_t socketId, GSM_SOCKET_ERROR err
     sock->OnSocketConnection(error);
 
     if (error == GSM_SOCKET_ERROR_NONE) {
-        if (socketManager != NULL) {
-            socketManager->OnSocketConnected(sock);
+        if (socketHandler != NULL) {
+            socketHandler->OnSocketConnected(sock);
         }
     }
 }
@@ -192,8 +192,11 @@ bool GSMSocketManager::DestroySocket(uint8_t socketId)
         return false;
     }
     Serial.println(" OK");
-    if (socketManager != NULL && sock != NULL) {
-        socketManager->OnSocketClose(sock);
+    if (socketHandler != NULL && sock != NULL) {
+        socketHandler->OnSocketClose(sock);
+    }
+    if (sock->GetState() != GSM_SOCKET_STATE_CLOSING) {
+        Close(sock->GetId());
     }
     socketArray->FreeItem(sock);
     return true;
@@ -249,8 +252,8 @@ void GSMSocketManager::OnSocketData(uint8_t socketId, uint8_t *data, size_t len)
     GSMSocket *sock = GetSocket(socketId);
     if (sock == NULL) return;
 
-    if (socketManager != NULL) {
-        socketManager->OnSocketData(sock, data, len);
+    if (socketHandler != NULL) {
+        socketHandler->OnSocketData(sock, data, len);
     }
 }
 

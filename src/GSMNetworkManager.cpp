@@ -394,8 +394,8 @@ time_t GSMNetworkManager::GetLocalTime()
     return GetUTCTime() + ZoneInSeconds(currentTime.quaterZone);
 }
 
-GSMNetworkStats *GSMNetworkManager::GetGSMStats() {
-    return &gsmStats;
+GSMNetworkStats GSMNetworkManager::GetGSMStats() {
+    return gsmStats;
 }
 
 bool GSMNetworkManager::InitSendSMS(char *phone, uint8_t customData)

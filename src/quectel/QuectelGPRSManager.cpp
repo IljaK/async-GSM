@@ -1,5 +1,6 @@
 #include "QuectelGPRSManager.h"
 #include "command/BaseModemCMD.h"
+#include "command/ByteModemCMD.h"
 #include "command/ULong2ModemCMD.h"
 #include "command/ByteCharModemCMD.h"
 #include "command/Byte2Char2ModemCMD.h"
@@ -17,6 +18,25 @@ QuectelGPRSManager::~QuectelGPRSManager()
 bool QuectelGPRSManager::ConnectInternal()
 {
     HandleAPNUpdate(GSM_APN_ACTIVATING);
+    ActivatePDP();
+    return true;
+}
+
+void QuectelGPRSManager::OnCGACT(bool isCheck, bool value, bool isSuccess)
+{
+    if (isCheck) {
+        GPRSManager::OnCGACT(isCheck, value, isSuccess);
+        return;
+    }
+    if (!isSuccess || !value) {
+        GPRSManager::OnCGACT(isCheck, value, isSuccess);
+        return;
+    }
+    ActivatePDP();
+}
+
+void QuectelGPRSManager::ActivatePDP()
+{
     // Set apn
     // AT+CGDCONT: <cid>,<PDP_type>,<APN>,<PDP_addr>,<data_comp>,<head_comp>,<IPv4_addr_alloc>,<request_type>
     char content[64];
@@ -26,28 +46,18 @@ bool QuectelGPRSManager::ConnectInternal()
     strcat(content, "\"");
 
     gsmManager->ForceCommand(new CharModemCMD(content, QUECTEL_DEFINE_PDP));
-    return false;
 }
 
 bool QuectelGPRSManager::OnGSMResponse(BaseModemCMD *request, char * response, size_t respLen, MODEM_RESPONSE_TYPE type)
 {
     if (strcmp(request->cmd, QUECTEL_RESOLVE_DNS_CMD) == 0) {
         if (type == MODEM_RESPONSE_OK) {
-
-            if (resolveHostName != NULL) {
-                free(resolveHostName);
-                resolveHostName = NULL;
-            }
-
-            ByteCharModemCMD *qidnsgip = (ByteCharModemCMD*)request;
-            resolveHostName = makeNewCopy(qidnsgip->charData);
-
             gipTimer.StartMicros(30000000ul);
             // Wait URC:
             // +QIURC: "dnsgip",<err>,<IP_count>,<DNS_ttl>
             // +QIURC: "dnsgip",<hostIPaddr>
-        } else {
-            HandleHostNameResolve("", IPAddr());
+        } else if (type >= MODEM_RESPONSE_ERROR) {
+            InternalHostNameResolve();
         }
         return true;
     }
@@ -118,6 +128,13 @@ bool QuectelGPRSManager::OnGSMResponse(BaseModemCMD *request, char * response, s
         return true;
     }
 
+    if (strcmp(request->cmd, QUECTEL_DEACTIVATE_PDP) == 0) {
+        if (type >= MODEM_RESPONSE_OK) {
+            HandleAPNUpdate(GSM_APN_DEACTIVATED);
+        }
+        return true;
+    }
+
     return GPRSManager::OnGSMResponse(request, response, respLen, type);
 }
 bool QuectelGPRSManager::OnGSMEvent(char * data, size_t dataLen)
@@ -143,6 +160,8 @@ bool QuectelGPRSManager::OnGSMEvent(char * data, size_t dataLen)
 
 bool QuectelGPRSManager::ResolveHostNameCMD(const char *hostName)
 {
+    if (hostnameResolve != NULL) return false;
+    hostnameResolve = new QuectelHostNameResolve((char*)hostName);
     return gsmManager->AddCommand(new ByteCharModemCMD(1, hostName, QUECTEL_RESOLVE_DNS_CMD));
 }
 
@@ -156,57 +175,72 @@ void QuectelGPRSManager::HandleDNSGIP(char **args, size_t argsLen)
     // +QIURC: "dnsgip",<err>,<IP_count>,<DNS_ttl>
     // +QIURC: "dnsgip",<hostIPaddr>
 
-    if (resolveHostName == NULL) {
+    if (hostnameResolve == NULL) {
         // Just do nothing
         return;
     }
 
     // args[0] == "dnsgip"
-    if (argsLen == 2) {
-        // Success
-        IPAddr ip;
-        args[1] = ShiftQuotations(args[1]);
-        GetAddr(args[1], &ip);
-        gipTimer.Stop();
-        InternalHostNameResolve(ip);
+    if (argsLen == 4) {
+        hostnameResolve->SetCount(atoi(args[2]), atoi(args[1]));
+    } else if (argsLen == 2) {
+        // Handle IP
+        hostnameResolve->AddIP(args[1]);
+    } else {
+        // ?
         return;
     }
 
-    if (atoi(args[1]) == 0) {
-        // Just skip, no errors
-        return;
+    if (hostnameResolve->IsFilled()) {
+        InternalHostNameResolve();
     }
-    ForceDeactivate();
 }
 
 
 void QuectelGPRSManager::OnTimerComplete(Timer *timer)
 {
     if (timer == &gipTimer) {
-        IPAddr ip;
-        InternalHostNameResolve(ip);
+        InternalHostNameResolve();
+        return;
     }
+    //GPRSManager::OnTimerComplete(timer);
 }
 
 
-void QuectelGPRSManager::InternalHostNameResolve(IPAddr ip)
+void QuectelGPRSManager::InternalHostNameResolve()
 {
-    char hName[64];
-    hName[0] = 0;
-    if (resolveHostName != NULL) {
-        // Safe copy and free memory
-        strcpy(hName, resolveHostName);
-        free(resolveHostName);
-        resolveHostName = NULL;
-    }
-    HandleHostNameResolve(hName, ip);
+    gipTimer.Stop();
+    QuectelHostNameResolve *h = hostnameResolve;
+    hostnameResolve = NULL;
+
+    IPAddr ip = h->GetIP();
+    /*
+    Serial.print("GetIP: ");
+    Serial.print((int)ip.octet[0]);
+    Serial.print('.');
+    Serial.print((int)ip.octet[1]);
+    Serial.print('.');
+    Serial.print((int)ip.octet[2]);
+    Serial.print('.');
+    Serial.println((int)ip.octet[3]);
+    */
+
+    HandleHostNameResolve(h->GetHostName(), h->GetIP());
+    delete h;
 }
 
 void QuectelGPRSManager::FlushAuthData()
 {
-    if (resolveHostName != NULL) {
-        free(resolveHostName);
-        resolveHostName = NULL;
+    if (hostnameResolve != NULL) {
+        delete hostnameResolve;
+        hostnameResolve = NULL;
     }
     GPRSManager::FlushAuthData();
+}
+
+bool QuectelGPRSManager::ForceDeactivate()
+{
+    HandleAPNUpdate(GSM_APN_DEACTIVATING);
+    gsmManager->ForceCommand(new ByteModemCMD(1, QUECTEL_DEACTIVATE_PDP, APN_CONNECT_CMD_TIMEOUT));
+    return true;
 }

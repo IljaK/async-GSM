@@ -75,7 +75,6 @@ bool SimComGPRSManager::OnGSMResponse(BaseModemCMD *request, char * response, si
     }
     if (strcmp(request->cmd, SIMCOM_ACTIVATE_PDP) == 0) {
         if (type == MODEM_RESPONSE_OK) {
-            // gsmManager->ForceCommand(new BaseModemCMD(GSM_GPRS_CMD, 9000000ul, true));
             gsmManager->ForceCommand(new ByteModemCMD(1, SIMCOM_GET_PDP_IP, 9000000ul));
         } else if (type > MODEM_RESPONSE_OK) {
             ForceDeactivate();

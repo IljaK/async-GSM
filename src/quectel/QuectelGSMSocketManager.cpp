@@ -151,7 +151,7 @@ bool QuectelGSMSocketManager::SendInternal(GSMSocket *socket, ByteArray *packet)
 
 bool QuectelGSMSocketManager::OnGSMExpectedData(uint8_t * data, size_t dataLen)
 {
-    Serial.println("QuectelGSMSocketManager::OnGSMExpectedData");
+    //Serial.println("QuectelGSMSocketManager::OnGSMExpectedData");
     if (receivingSocketId != GSM_SOCKET_ERROR_ID) {
         OnSocketData(receivingSocketId, data, dataLen);
         receivingSocketId = GSM_SOCKET_ERROR_ID;
@@ -164,8 +164,8 @@ void QuectelGSMSocketManager::HandleURCRecv(char **args, size_t argsLen)
 {
     // Buffer access mode:
     // "recv",<connectID>
-    Serial.print("HandleURCRecv args: ");
-    Serial.println((int)argsLen);
+    //Serial.print("HandleURCRecv args: ");
+    //Serial.println((int)argsLen);
 
     // Indirect push mode:
     // "recv",<connectID>,<currectrecvlength><CR><LF><data>.
@@ -180,7 +180,7 @@ void QuectelGSMSocketManager::HandleURCRecv(char **args, size_t argsLen)
         available = GSM_SOCKET_BUFFER_SIZE;
     }
 
-    Serial.println("SetExpectFixedLength");
+    //Serial.println("SetExpectFixedLength");
     gsmManager->SetExpectFixedLength(available, 100000ul);
     receivingSocketId = socketId;
 
@@ -191,5 +191,8 @@ void QuectelGSMSocketManager::HandleURCIncoming(char **args, size_t argsLen)
 }
 void QuectelGSMSocketManager::HandleURCClosed(char **args, size_t argsLen)
 {
-    // "pdpdeact",<contextID>
+    // +QIURC: "closed",0
+    // TODO: Destroy socket
+    if (argsLen < 2) return;
+    OnSocketClosed(atoi(args[1]));
 }

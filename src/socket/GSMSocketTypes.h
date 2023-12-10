@@ -1,6 +1,6 @@
 #pragma once
 
-constexpr unsigned long SOCKET_CLOSE_CONNECT_FAIL_TIMEOUT = 10000000ul;
+constexpr unsigned long SOCKET_CLOSE_CONNECT_FAIL_TIMEOUT = 11000000ul;
 #define GSM_SOCKET_ERROR_ID 255
 
 enum GSM_SOCKET_STATE: uint8_t {

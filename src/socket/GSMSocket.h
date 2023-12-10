@@ -11,7 +11,7 @@ class GSMSocketManager;
 class GSMSocket: public ITimerCallback {
 private:
     GSM_SOCKET_ERROR error = GSM_SOCKET_ERROR_NONE;
-    Timer closeTimer;
+    Timer destroyTimer;
 
     uint8_t socketId = GSM_SOCKET_ERROR_ID;
     GSM_SOCKET_STATE state = GSM_SOCKET_STATE_CREATING;

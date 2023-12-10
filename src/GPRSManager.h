@@ -39,7 +39,10 @@ protected:
     // TODO: Override to perform connection
     virtual bool ConnectInternal() { return false; };
     virtual void FlushAuthData();
-    bool ForceDeactivate();
+    virtual bool ForceDeactivate();
+
+    virtual void OnCGACT(bool isCheck, bool value, bool isSuccess);
+    void SendCGACT(bool isCheck, uint8_t value, unsigned long timeout = APN_CONNECT_CMD_TIMEOUT);
 
 public:
     GPRSManager(GSMModemManager *gsmManager);
@@ -51,7 +54,7 @@ public:
     bool OnGSMEvent(char * data, size_t dataLen) override;
 
     bool Connect(char* apn, char* login = NULL, char* password = NULL);
-    bool Deactivate();
+    virtual bool Deactivate();
 
     bool IsActive();
     IPAddr GetDeviceAddr();

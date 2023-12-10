@@ -2,7 +2,7 @@
 
 
 GSMSocket::GSMSocket(GSMSocketManager * socketManager, IPAddr ip, uint16_t port, bool keepAlive, GSM_SOCKET_SSL sslType):
-    closeTimer(this),
+    destroyTimer(this),
     outgoingMessageStack(16, 128)
 {
     this->socketManager = socketManager;
@@ -10,6 +10,9 @@ GSMSocket::GSMSocket(GSMSocketManager * socketManager, IPAddr ip, uint16_t port,
     this->port = port;
     this->keepAlive = keepAlive;
     this->sslType = sslType;
+
+    // TODO: Start timer:
+    destroyTimer.StartMicros(SOCKET_CLOSE_CONNECT_FAIL_TIMEOUT);
 }
 GSMSocket::~GSMSocket()
 {
@@ -31,10 +34,11 @@ void GSMSocket::OnSocketConnection(GSM_SOCKET_ERROR error)
         socketManager->Close(socketId);
         state = GSM_SOCKET_STATE_CLOSING_DELAY;
         // Self destruction...
-        closeTimer.StartMicros(SOCKET_CLOSE_CONNECT_FAIL_TIMEOUT);
+        destroyTimer.StartMicros(SOCKET_CLOSE_CONNECT_FAIL_TIMEOUT);
         return;
     }
     state = GSM_SOCKET_STATE_READY;
+    destroyTimer.Stop();
 }
 
 void GSMSocket::OnKeepAliveConfirm()
@@ -109,7 +113,7 @@ bool GSMSocket::IsConnected() {
 
 void GSMSocket::OnTimerComplete(Timer * timer)
 {
-    if (timer == &closeTimer) {
+    if (timer == &destroyTimer) {
         socketManager->DestroySocket(socketId);
     }
 }

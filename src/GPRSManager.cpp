@@ -57,34 +57,56 @@ bool GPRSManager::OnGSMResponse(BaseModemCMD *request, char * response, size_t r
         if (request->GetIsCheck()) {
             if (type == MODEM_RESPONSE_DATA) {
                 char *cgattContent = response + strlen(GSM_GPRS_CMD) + 2;
-                if (atoi(cgattContent) == 1) {
-                    HandleAPNUpdate(GSM_APN_ACTIVE);
-                } else {
-                    HandleAPNUpdate(GSM_APN_DEACTIVATED);
-                }
+                OnCGACT(true, atoi(cgattContent) == 1, true);
             } else if (type == MODEM_RESPONSE_OK) {
                 // Do nothing?
             } else if (type >= MODEM_RESPONSE_ERROR) {
-                ForceDeactivate();
+                OnCGACT(true, 0, false);
             }
             return true;
         }
 
         ByteModemCMD *cgatt = (ByteModemCMD *)request;
-        if (cgatt->byteData == 0) { // +CGATT=0
-            if (type >= MODEM_RESPONSE_OK) {
-                // No need to deactivate Profile
-                HandleAPNUpdate(GSM_APN_DEACTIVATED);
-            }
-        } else if (cgatt->byteData == 1) { // +CGATT=1
-            if (type == MODEM_RESPONSE_OK) {
-                HandleAPNUpdate(GSM_APN_ACTIVE);
-            }
-        }
+        OnCGACT(false, cgatt->byteData == 1, type == MODEM_RESPONSE_OK);
         return true;
     }
     return false;
 }
+
+void GPRSManager::SendCGACT(bool isCheck, uint8_t value, unsigned long timeout)
+{
+    if (isCheck) {
+        gsmManager->ForceCommand(new BaseModemCMD(GSM_GPRS_CMD));
+    } else {
+        gsmManager->ForceCommand(new ByteModemCMD(value, GSM_GPRS_CMD, APN_CONNECT_CMD_TIMEOUT));
+    }
+}
+
+void GPRSManager::OnCGACT(bool isCheck, bool value, bool isSuccess)
+{
+    if (isCheck) {
+        if (isSuccess) {
+            if (value) {
+                HandleAPNUpdate(GSM_APN_ACTIVE);
+            } else {
+                HandleAPNUpdate(GSM_APN_DEACTIVATED);
+            }
+            return;
+        }
+        ForceDeactivate();
+        return;
+    }
+    if (value) {
+        if (isSuccess) {
+            HandleAPNUpdate(GSM_APN_ACTIVE);
+        } else {
+            HandleAPNUpdate(GSM_APN_DEACTIVATED);
+        }
+        return;
+    }
+    HandleAPNUpdate(GSM_APN_DEACTIVATED);
+}
+
 bool GPRSManager::OnGSMEvent(char * data, size_t dataLen)
 {
     return false;
@@ -95,7 +117,7 @@ bool GPRSManager::ForceDeactivate()
     if (apnState != GSM_APN_DEACTIVATED) {
         apnState = GSM_APN_DEACTIVATING;
     }
-    gsmManager->ForceCommand(new ByteModemCMD(0, GSM_GPRS_CMD, APN_CONNECT_CMD_TIMEOUT));
+    SendCGACT(false, 0);
     return true;
 }
 

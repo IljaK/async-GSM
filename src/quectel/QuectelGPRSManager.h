@@ -6,6 +6,7 @@
 #include "command/ULongModemCMD.h"
 #include "command/ULong2StringModemCMD.h"
 #include "GPRSManager.h"
+#include "QuectelHostNameResolve.h"
 
 // Step 1
 // AT+CGDCONT - Define PDP context
@@ -29,18 +30,26 @@ constexpr char QUECTEL_ACTIVATE_PDP[] = "+QIACT";
 constexpr char QUECTEL_RESOLVE_DNS_CMD[] = "+QIDNSGIP"; // Get IP of dns name
 
 
+// Step 3
+// AT+QIACT Activate a PDP Context
+constexpr char QUECTEL_DEACTIVATE_PDP[] = "+QIDEACT";
+
+
 class QuectelGPRSManager: public GPRSManager, ITimerCallback
 {
 private:
     Timer gipTimer;
-    char *resolveHostName = NULL;
-    void InternalHostNameResolve(IPAddr ip);
+    void InternalHostNameResolve();
+    QuectelHostNameResolve *hostnameResolve = NULL;
 
 protected:
-
     void FlushAuthData() override;
     bool ResolveHostNameCMD(const char *hostName) override;
     bool ConnectInternal() override;
+    
+    void OnCGACT(bool isCheck, bool value, bool isSuccess) override;
+
+    void ActivatePDP();
 
 public:
     QuectelGPRSManager(GSMModemManager *gsmManager);
@@ -53,4 +62,6 @@ public:
 
     void HandlePDEACT(char **args, size_t argsLen);
     void HandleDNSGIP(char **args, size_t argsLen);
+
+    bool ForceDeactivate() override;
 };
