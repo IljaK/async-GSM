@@ -90,7 +90,7 @@ bool QuectelGPRSManager::OnGSMResponse(BaseModemCMD *request, char * response, s
     if (strcmp(request->cmd, QUECTEL_AUTH_PDP) == 0) {
         if (type == MODEM_RESPONSE_OK) {
             // Activate
-            gsmManager->ForceCommand(new ByteModemCMD(1, QUECTEL_ACTIVATE_PDP, 20000000ul));
+            gsmManager->ForceCommand(new ByteModemCMD(1, QUECTEL_ACTIVATE_PDP, APN_CONNECT_CMD_TIMEOUT));
         } else if (type > MODEM_RESPONSE_OK) {
             ForceDeactivate();
         }
