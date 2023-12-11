@@ -286,3 +286,14 @@ uint8_t GSMSocketManager::GetNextAvailableSocketIndex()
     }
     return GSM_SOCKET_ERROR_ID;
 }
+
+void GSMSocketManager::CloseAll()
+{
+    for (int i = (int)socketArray->Size() - 1; i >= 0 ; i--)
+    {
+        GSMSocket *sock = socketArray->Peek(i);
+        if (sock != NULL) {
+            CloseSocket(sock->GetId());
+        }
+    }
+}

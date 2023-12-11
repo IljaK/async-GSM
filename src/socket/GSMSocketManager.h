@@ -66,4 +66,5 @@ public:
     bool IsMaxCreated();
 
     GSMSocket *ConnectSocket(IPAddr ip, uint16_t port);
+    void CloseAll();
 };
