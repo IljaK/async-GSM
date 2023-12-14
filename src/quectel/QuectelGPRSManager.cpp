@@ -174,6 +174,7 @@ void QuectelGPRSManager::HandleDNSGIP(char **args, size_t argsLen)
 {
     // +QIURC: "dnsgip",<err>,<IP_count>,<DNS_ttl>
     // +QIURC: "dnsgip",<hostIPaddr>
+    // +QIURC: "dnsgip",<err>
 
     if (hostnameResolve == NULL) {
         // Just do nothing
@@ -184,11 +185,15 @@ void QuectelGPRSManager::HandleDNSGIP(char **args, size_t argsLen)
     if (argsLen == 4) {
         hostnameResolve->SetCount(atoi(args[2]), atoi(args[1]));
     } else if (argsLen == 2) {
-        // Handle IP
-        hostnameResolve->AddIP(args[1]);
-    } else {
-        // ?
-        return;
+        // Handle IP or error
+        if (!hostnameResolve->IsFilled()) {
+            // +QIURC: "dnsgip",<err>
+            hostnameResolve->SetCount(0, atoi(args[1]));
+        } else {
+            // +QIURC: "dnsgip",<hostIPaddr>
+            hostnameResolve->AddIP(args[1]);
+        }
+
     }
 
     if (hostnameResolve->IsFilled()) {
