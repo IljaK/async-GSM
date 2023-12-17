@@ -20,8 +20,6 @@ constexpr char GSM_QUECTEL_SOCKET_WRITE_CMD[] = "+QISEND"; // AT+CIPSEND=<link_n
 
 class QuectelGSMSocketManager: public GSMSocketManager
 {
-private:
-    uint8_t receivingSocketId = GSM_SOCKET_ERROR_ID;
 protected:
 
     bool Connect(GSMSocket *sock) override;
@@ -32,12 +30,11 @@ protected:
     bool ConnectSocketInternal(GSMSocket *socket) override;
 
 public:
-    QuectelGSMSocketManager(GSMModemManager *gsmManager);
+    QuectelGSMSocketManager(GSMModemManager *gsmManager, GPRSManager *gprsManager);
     virtual ~QuectelGSMSocketManager();
 
     bool OnGSMResponse(BaseModemCMD *request, char * response, size_t respLen, MODEM_RESPONSE_TYPE type) override;
     bool OnGSMEvent(char * data, size_t dataLen) override;
-    bool OnGSMExpectedData(uint8_t * data, size_t dataLen) override;
 
     void HandleURCRecv(char **args, size_t argsLen);
     void HandleURCIncoming(char **args, size_t argsLen);

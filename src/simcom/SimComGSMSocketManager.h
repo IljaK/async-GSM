@@ -24,8 +24,6 @@ constexpr char GSM_SIMCOM_SOCKET_WRITE_CMD[] = "+CIPSEND"; // AT+CIPSEND=<link_n
 
 class SimComGSMSocketManager: public GSMSocketManager
 {
-private:
-    uint8_t receivingSocketId = GSM_SOCKET_ERROR_ID;
 protected:
 
     bool Connect(GSMSocket *sock) override;
@@ -36,7 +34,7 @@ protected:
     bool ConnectSocketInternal(GSMSocket *socket) override;
 
 public:
-    SimComGSMSocketManager(GSMModemManager *gsmManager);
+    SimComGSMSocketManager(GSMModemManager *gsmManager, GPRSManager *gprsManager);
     virtual ~SimComGSMSocketManager();
 
     bool OnGSMResponse(BaseModemCMD *request, char * response, size_t respLen, MODEM_RESPONSE_TYPE type) override;

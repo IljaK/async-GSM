@@ -1,10 +1,10 @@
 #include "SimComGSMManager.h"
 
 SimComGSMManager::SimComGSMManager(HardwareSerial *serial, int8_t resetPin):SimComGSMModemManager(serial, resetPin),
+    socketManager(this, &gprsManager),
     gprsManager(this),
-    gsmManager(this),
     callManager(this),
-    socketManager(this)
+    gsmManager(this)
 {
 
 }

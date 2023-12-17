@@ -9,7 +9,7 @@
 #include "command/SocketHEXWriteModemCMD.h"
 #include "command/SockeCreateModemCMD.h"
 
-UbloxGSMSocketManager::UbloxGSMSocketManager(GSMModemManager *gsmManager):GSMSocketManager(gsmManager, UBLOX_MAX_SOCKETS_AMOUNT)
+UbloxGSMSocketManager::UbloxGSMSocketManager(GSMModemManager *gsmManager, GPRSManager *gprsManager):GSMSocketManager(gsmManager, gprsManager, UBLOX_MAX_SOCKETS_AMOUNT)
 {
 
 }
@@ -35,9 +35,11 @@ bool UbloxGSMSocketManager::OnGSMResponse(BaseModemCMD *request, char * response
             if (idLen > 0 && idLen <= 2) {
                 createSockSMD->socketId = atoi(sockId);
             }
-        } else {
+        } else if (type == MODEM_RESPONSE_OK) {
             GSMSocket * socket = GSMSocketManager::OnSocketCreated(createSockSMD->socketId);
             Connect(socket);
+        } else {
+            gprsManager->Deactivate();
         }
         return true;
     }
@@ -45,8 +47,14 @@ bool UbloxGSMSocketManager::OnGSMResponse(BaseModemCMD *request, char * response
         SocketConnectCMD *usoco = (SocketConnectCMD *)request;
         if (type == MODEM_RESPONSE_OK) {
             OnSocketConnection(usoco->socketId, GSM_SOCKET_ERROR_NONE);
-        } else if (type >= MODEM_RESPONSE_ERROR) {
-            OnSocketConnection(usoco->socketId, GSM_SOCKET_ERROR_FAILED_CONNECT);
+        } else if (type == MODEM_RESPONSE_ERROR) {
+            if (usoco->cme_error == 0) {
+                OnSocketConnection(usoco->socketId, GSM_SOCKET_ERROR_FAILED_CONNECT);
+            } else {
+                gprsManager->Deactivate();
+            }
+        } else {
+            gprsManager->Deactivate();
         }
         return true;
     }
@@ -104,7 +112,7 @@ bool UbloxGSMSocketManager::OnGSMResponse(BaseModemCMD *request, char * response
     if (strcmp(request->cmd, GSM_SOCKET_WRITE_CMD) == 0) {
         if (type == MODEM_RESPONSE_OK) {
             SendNextAvailableData();
-        } else if (type > MODEM_RESPONSE_OK) {
+        } else if (type >= MODEM_RESPONSE_ERROR) {
             SocketHEXWriteModemCMD *writeCMD = (SocketHEXWriteModemCMD *)request;
             CloseSocket(writeCMD->socketId);
         }

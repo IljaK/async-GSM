@@ -6,14 +6,24 @@ struct SocketStreamWriteModemCMD: public BaseStreamWriteModemCMD
 {
     uint8_t socketId;
     ByteArray *data;
+    char *trigger = NULL;
 
     SocketStreamWriteModemCMD(uint8_t socketId, ByteArray *data, const char *cmd, unsigned long timeout):BaseStreamWriteModemCMD(cmd, timeout) {
         this->socketId = socketId;
         this->data = data;
     }
 
+    SocketStreamWriteModemCMD(char *trigger, uint8_t socketId, ByteArray *data, const char *cmd, unsigned long timeout):BaseStreamWriteModemCMD(cmd, timeout) {
+        this->socketId = socketId;
+        this->data = data;
+        this->trigger = makeNewCopy(trigger);
+    }
+
     virtual ~SocketStreamWriteModemCMD() {
         delete data;
+        if (this->trigger != NULL) {
+            free(this->trigger);
+        }
     }
 
     void WriteStream(Print *stream) override {
@@ -48,6 +58,9 @@ struct SocketStreamWriteModemCMD: public BaseStreamWriteModemCMD
     }
 
     char *ExtraTriggerValue() override {
-        return (char*)">";
+        if (this->trigger == NULL) {
+            return (char*)">";
+        }
+        return this->trigger;
     }
 };

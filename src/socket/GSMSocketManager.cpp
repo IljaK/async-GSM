@@ -9,10 +9,11 @@
 #include "command/SocketHEXWriteModemCMD.h"
 #include "command/SockeCreateModemCMD.h"
 
-GSMSocketManager::GSMSocketManager(GSMModemManager *gsmManager, uint8_t socketsAmount)
+GSMSocketManager::GSMSocketManager(GSMModemManager *gsmManager, GPRSManager *gprsManager, uint8_t socketsAmount)
 {
     socketArray = new SocketArray(socketsAmount);
     this->gsmManager = gsmManager;
+    this->gprsManager = gprsManager;
 }
 GSMSocketManager::~GSMSocketManager()
 {
@@ -296,4 +297,21 @@ void GSMSocketManager::CloseAll()
             CloseSocket(sock->GetId());
         }
     }
+}
+
+void GSMSocketManager::SetExpectingResponse(uint8_t socketId, size_t length)
+{
+    gsmManager->SetExpectFixedLength(length, 100000ul);
+    receivingSocketId = socketId;
+}
+
+bool GSMSocketManager::OnGSMExpectedData(uint8_t * data, size_t dataLen)
+{
+    if (receivingSocketId != GSM_SOCKET_ERROR_ID) {
+        uint8_t id = receivingSocketId;
+        receivingSocketId = GSM_SOCKET_ERROR_ID;
+        OnSocketData(id, data, dataLen);
+        return true;
+    }
+    return false;
 }

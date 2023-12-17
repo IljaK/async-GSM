@@ -30,7 +30,7 @@ protected:
     bool ConnectSocketInternal(GSMSocket *socket) override;
 
 public:
-    UbloxGSMSocketManager(GSMModemManager *gsmManager);
+    UbloxGSMSocketManager(GSMModemManager *gsmManager, GPRSManager *gprsManager);
     virtual ~UbloxGSMSocketManager();
 
     bool OnGSMResponse(BaseModemCMD *request, char * response, size_t respLen, MODEM_RESPONSE_TYPE type) override;

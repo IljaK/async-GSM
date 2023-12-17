@@ -10,7 +10,7 @@
 #include "command/SockeCreateModemCMD.h"
 #include "command/LongArrayModemCMD.h"
 
-SimComGSMSocketManager::SimComGSMSocketManager(GSMModemManager *gsmManager):GSMSocketManager(gsmManager, 7)
+SimComGSMSocketManager::SimComGSMSocketManager(GSMModemManager *gsmManager, GPRSManager *gprsManager):GSMSocketManager(gsmManager, gprsManager, 7)
 {
 
 }
@@ -122,8 +122,7 @@ bool SimComGSMSocketManager::OnGSMEvent(char * data, size_t dataLen)
             available = GSM_SOCKET_BUFFER_SIZE;
         }
 
-        gsmManager->SetExpectFixedLength(available, 100000ul);
-        receivingSocketId = socketId;
+        SetExpectingResponse(socketId, available);
 
         /*
         if (available > 0) {
@@ -182,16 +181,3 @@ bool SimComGSMSocketManager::SendInternal(GSMSocket *socket, ByteArray *packet)
 {
     return gsmManager->AddCommand(new SocketStreamWriteModemCMD(socket->GetId(), packet, GSM_SIMCOM_SOCKET_WRITE_CMD, SOCKET_CMD_TIMEOUT));
 }
-
-
-bool SimComGSMSocketManager::OnGSMExpectedData(uint8_t * data, size_t dataLen)
-{
-    if (receivingSocketId != GSM_SOCKET_ERROR_ID) {
-        OnSocketData(receivingSocketId, data, dataLen);
-        receivingSocketId = GSM_SOCKET_ERROR_ID;
-        return true;
-    }
-    return false;
-}
-
-

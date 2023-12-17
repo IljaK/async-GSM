@@ -10,7 +10,7 @@
 #include "command/SockeCreateModemCMD.h"
 #include "command/LongArrayModemCMD.h"
 
-QuectelGSMSocketManager::QuectelGSMSocketManager(GSMModemManager *gsmManager):GSMSocketManager(gsmManager, 7)
+QuectelGSMSocketManager::QuectelGSMSocketManager(GSMModemManager *gsmManager, GPRSManager *gprsManager):GSMSocketManager(gsmManager, gprsManager, 7)
 {
 
 }
@@ -149,17 +149,6 @@ bool QuectelGSMSocketManager::SendInternal(GSMSocket *socket, ByteArray *packet)
     return gsmManager->AddCommand(new SocketStreamWriteModemCMD(socket->GetId(), packet, GSM_QUECTEL_SOCKET_WRITE_CMD, SOCKET_CMD_TIMEOUT));
 }
 
-bool QuectelGSMSocketManager::OnGSMExpectedData(uint8_t * data, size_t dataLen)
-{
-    //Serial.println("QuectelGSMSocketManager::OnGSMExpectedData");
-    if (receivingSocketId != GSM_SOCKET_ERROR_ID) {
-        OnSocketData(receivingSocketId, data, dataLen);
-        receivingSocketId = GSM_SOCKET_ERROR_ID;
-        return true;
-    }
-    return false;
-}
-
 void QuectelGSMSocketManager::HandleURCRecv(char **args, size_t argsLen)
 {
     // Buffer access mode:
@@ -176,13 +165,7 @@ void QuectelGSMSocketManager::HandleURCRecv(char **args, size_t argsLen)
     uint8_t socketId = atoi(args[1]);
     uint16_t available = atoi(args[2]);
 
-    if (available > GSM_SOCKET_BUFFER_SIZE) {
-        available = GSM_SOCKET_BUFFER_SIZE;
-    }
-
-    //Serial.println("SetExpectFixedLength");
-    gsmManager->SetExpectFixedLength(available, 100000ul);
-    receivingSocketId = socketId;
+    SetExpectingResponse(socketId, available);
 
 }
 void QuectelGSMSocketManager::HandleURCIncoming(char **args, size_t argsLen)
