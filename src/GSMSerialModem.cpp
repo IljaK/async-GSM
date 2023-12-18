@@ -159,6 +159,10 @@ MODEM_RESPONSE_TYPE GSMSerialModem::GetResponseType(BaseModemCMD *cmd, bool isTi
         type = MODEM_RESPONSE_ERROR;
         char *code = buffer + strlen(GSM_CME_ERROR_RESPONSE) + 1;
         cmd->cme_error = atoi(code);
+    } else if (strncmp(buffer, GSM_CMS_ERROR_RESPONSE, strlen(GSM_CMS_ERROR_RESPONSE)) == 0) {
+        type = MODEM_RESPONSE_ERROR;
+        char *code = buffer + strlen(GSM_CMS_ERROR_RESPONSE) + 1;
+        cmd->cme_error = atoi(code);
     }
     return type;
 }

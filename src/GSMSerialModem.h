@@ -8,7 +8,12 @@ constexpr char GSM_PREFIX_CMD[] = "AT";
 constexpr char GSM_OK_RESPONSE[] = "OK";
 constexpr char GSM_ERROR_RESPONSE[] = "ERROR";
 constexpr char GSM_ABORTED_RESPONSE[] = "ABORTED";
+// +CME ERROR: <err> indicates an error related to mobile equipment or network.
+// for SMS-related AT commands
 constexpr char GSM_CME_ERROR_RESPONSE[] = "+CME ERROR:";
+// +CMS ERROR: <err> indicates an error related to mobile equipment or network
+// for any other AT commands
+constexpr char GSM_CMS_ERROR_RESPONSE[] = "+CMS ERROR:";
 constexpr unsigned long GSM_BUFFER_FILL_TIMEOUT = 100000ul;
 
 #define CME_ERROR_NOT_ALLOWED 3
