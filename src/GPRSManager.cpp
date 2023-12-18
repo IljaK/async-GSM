@@ -2,7 +2,7 @@
 #include "command/ULong2ModemCMD.h"
 #include "command/IPResolveModemCMD.h"
 
-GPRSManager::GPRSManager(GSMModemManager *gsmManager)
+GPRSManager::GPRSManager(GSMModemManager *gsmManager):coolDownTimer(this)
 {
     deviceAddr.dword = 0;
     this->gsmManager = gsmManager;
@@ -48,7 +48,16 @@ bool GPRSManager::Connect(char* apn, char* login, char* password)
     this->login = makeNewCopy(login);
     this->password = makeNewCopy(password);
 
-    return ConnectInternal();
+    // Steps:
+    // 1) Check CGATT
+    // 2) Activate CGATT (If necessary)
+    // 3) ConnectInternal();
+
+    bool started = SendCGACT(true, true, MODEM_COMMAND_TIMEOUT);
+    if (started) {
+        HandleAPNUpdate(GSM_APN_ACTIVATING);
+    }
+    return started;
 }
 
 bool GPRSManager::OnGSMResponse(BaseModemCMD *request, char * response, size_t respLen, MODEM_RESPONSE_TYPE type)
@@ -56,6 +65,7 @@ bool GPRSManager::OnGSMResponse(BaseModemCMD *request, char * response, size_t r
     if (strcmp(request->cmd, GSM_GPRS_CMD) == 0) {
         if (request->GetIsCheck()) {
             if (type == MODEM_RESPONSE_DATA) {
+                // +CGATT: 1
                 char *cgattContent = response + strlen(GSM_GPRS_CMD) + 2;
                 OnCGACT(true, atoi(cgattContent) == 1, true);
             } else if (type == MODEM_RESPONSE_OK) {
@@ -73,23 +83,29 @@ bool GPRSManager::OnGSMResponse(BaseModemCMD *request, char * response, size_t r
     return false;
 }
 
-void GPRSManager::SendCGACT(bool isCheck, uint8_t value, unsigned long timeout)
+bool GPRSManager::SendCGACT(bool isCheck, uint8_t value, unsigned long timeout)
 {
     if (isCheck) {
-        gsmManager->ForceCommand(new BaseModemCMD(GSM_GPRS_CMD));
-    } else {
-        gsmManager->ForceCommand(new ByteModemCMD(value, GSM_GPRS_CMD, APN_CONNECT_CMD_TIMEOUT));
+        return gsmManager->ForceCommand(new BaseModemCMD(GSM_GPRS_CMD, MODEM_COMMAND_TIMEOUT, true));
     }
+    if (coolDownTimer.IsRunning()) {
+        // Delayed send
+        return true;
+    }
+    return gsmManager->ForceCommand(new ByteModemCMD(value, GSM_GPRS_CMD, APN_CONNECT_CMD_TIMEOUT));
 }
 
 void GPRSManager::OnCGACT(bool isCheck, bool value, bool isSuccess)
 {
     if (isCheck) {
+        // Check is +CGATT active before further GPRS activation
         if (isSuccess) {
             if (value) {
-                HandleAPNUpdate(GSM_APN_ACTIVE);
+                // Continue PDP activation
+                ConnectInternal();
             } else {
-                HandleAPNUpdate(GSM_APN_DEACTIVATED);
+                // Activate +CGATT
+                SendCGACT(false, true);
             }
             return;
         }
@@ -98,9 +114,12 @@ void GPRSManager::OnCGACT(bool isCheck, bool value, bool isSuccess)
     }
     if (value) {
         if (isSuccess) {
-            HandleAPNUpdate(GSM_APN_ACTIVE);
+            // Continue PDP activation
+            ConnectInternal();
+            //HandleAPNUpdate(GSM_APN_ACTIVE);
         } else {
-            HandleAPNUpdate(GSM_APN_DEACTIVATED);
+            //HandleAPNUpdate(GSM_APN_DEACTIVATED);
+            ForceDeactivate();
         }
         return;
     }
@@ -172,6 +191,7 @@ void GPRSManager::HandleAPNUpdate(GSM_APN_STATE apnState)
         switch (apnState)
         {
         case GSM_APN_DEACTIVATED:
+            coolDownTimer.StartMicros(GPRS_COOLDOWN_DELAY);
             apnHandler->OnGPRSDeactivated();
             break;
         case GSM_APN_ACTIVATING:
@@ -188,4 +208,14 @@ void GPRSManager::HandleAPNUpdate(GSM_APN_STATE apnState)
 GSM_APN_STATE GPRSManager::GetApnState()
 {
     return apnState;
+}
+
+void GPRSManager::OnTimerComplete(Timer *timer)
+{
+    if (timer == &coolDownTimer) {
+        if (GetApnState() == GSM_APN_STATE::GSM_APN_ACTIVATING) {
+            SendCGACT(false, true);
+        }
+        return;
+    }
 }

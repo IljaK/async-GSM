@@ -35,7 +35,7 @@ constexpr char QUECTEL_RESOLVE_DNS_CMD[] = "+QIDNSGIP"; // Get IP of dns name
 constexpr char QUECTEL_DEACTIVATE_PDP[] = "+QIDEACT";
 
 
-class QuectelGPRSManager: public GPRSManager, ITimerCallback
+class QuectelGPRSManager: public GPRSManager
 {
 private:
     Timer gipTimer;

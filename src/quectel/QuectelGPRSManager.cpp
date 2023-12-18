@@ -17,9 +17,11 @@ QuectelGPRSManager::~QuectelGPRSManager()
 
 bool QuectelGPRSManager::ConnectInternal()
 {
-    HandleAPNUpdate(GSM_APN_ACTIVATING);
-    ActivatePDP();
-    return true;
+    if (GetApnState() == GSM_APN_ACTIVATING) {
+        ActivatePDP();
+        return true;
+    }
+    return false;
 }
 
 void QuectelGPRSManager::OnCGACT(bool isCheck, bool value, bool isSuccess)
@@ -208,7 +210,7 @@ void QuectelGPRSManager::OnTimerComplete(Timer *timer)
         InternalHostNameResolve();
         return;
     }
-    //GPRSManager::OnTimerComplete(timer);
+    GPRSManager::OnTimerComplete(timer);
 }
 
 

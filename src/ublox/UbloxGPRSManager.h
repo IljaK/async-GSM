@@ -54,7 +54,7 @@ enum UPSDN_SETTING_INDEX: uint8_t {
     UPSDN_SETTING_STATUS = 8
 };
 
-class UbloxGPRSManager: public GPRSManager, public ITimerCallback
+class UbloxGPRSManager: public GPRSManager
 {
 private:
     Timer checkTimer;

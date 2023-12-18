@@ -6,9 +6,12 @@
 #include "command/ULongModemCMD.h"
 #include "command/ULong2StringModemCMD.h"
 #include "command/IPResolveModemCMD.h"
+#include "common/Timer.h"
 
 constexpr unsigned long APN_CONNECT_CMD_TIMEOUT = 20000000ul;
 constexpr unsigned long APN_STATUS_CHECK_DELAY = 200000ul;
+
+constexpr unsigned long GPRS_COOLDOWN_DELAY = 1000000ul;
 
 constexpr char GSM_GPRS_CMD[] = "+CGATT";
 
@@ -19,13 +22,14 @@ enum GSM_APN_STATE {
     GSM_APN_DEACTIVATING
 };
 
-class GPRSManager: public IBaseGSMHandler
+class GPRSManager: public IBaseGSMHandler, public ITimerCallback
 {
 private:
     IGPRSHandler *apnHandler = NULL;
     GSM_APN_STATE apnState = GSM_APN_DEACTIVATED;
 
 protected:
+    Timer coolDownTimer;
     IPAddr deviceAddr;
 
     char *apn = NULL;
@@ -42,7 +46,7 @@ protected:
     virtual bool ForceDeactivate();
 
     virtual void OnCGACT(bool isCheck, bool value, bool isSuccess);
-    void SendCGACT(bool isCheck, uint8_t value, unsigned long timeout = APN_CONNECT_CMD_TIMEOUT);
+    bool SendCGACT(bool isCheck, uint8_t value, unsigned long timeout = APN_CONNECT_CMD_TIMEOUT);
 
 public:
     GPRSManager(GSMModemManager *gsmManager);
@@ -52,6 +56,7 @@ public:
 
     bool OnGSMResponse(BaseModemCMD *request, char * response, size_t respLen, MODEM_RESPONSE_TYPE type) override;
     bool OnGSMEvent(char * data, size_t dataLen) override;
+    void OnTimerComplete(Timer *timer) override;
 
     bool Connect(char* apn, char* login = NULL, char* password = NULL);
     virtual bool Deactivate();

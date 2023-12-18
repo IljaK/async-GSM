@@ -13,8 +13,7 @@ UbloxGPRSManager::~UbloxGPRSManager()
 
 bool UbloxGPRSManager::ConnectInternal()
 {
-    if (GetApnState() == GSM_APN_DEACTIVATED) {
-        HandleAPNUpdate(GSM_APN_ACTIVATING);
+    if (GetApnState() == GSM_APN_ACTIVATING) {
         SendSetting(UPSD_SETTING_APN);
         return true;
     }
@@ -153,7 +152,9 @@ void UbloxGPRSManager::OnTimerComplete(Timer *timer)
 {
     if (timer == &checkTimer) {
         gsmManager->ForceCommand(new ULong2ModemCMD(0,8, GSM_APN_FETCH_DATA_CMD));
+        return;
     }
+    GPRSManager::OnTimerComplete(timer);
 }
 
 void UbloxGPRSManager::FlushAuthData()

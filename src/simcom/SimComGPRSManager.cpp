@@ -21,9 +21,10 @@ void SimComGPRSManager::FlushAuthData()
 
 bool SimComGPRSManager::ConnectInternal()
 {
-    HandleAPNUpdate(GSM_APN_ACTIVATING);
-    // Set apn
-    gsmManager->ForceCommand(new ByteChar2ModemCMD(1, "IP", apn, SIMCOM_DEFINE_PDP));
+    if (GetApnState() == GSM_APN_ACTIVATING) {
+        gsmManager->ForceCommand(new ByteChar2ModemCMD(1, "IP", apn, SIMCOM_DEFINE_PDP));
+        return true;
+    }
     return false;
 }
 
