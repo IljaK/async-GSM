@@ -314,8 +314,9 @@ GSM_REG_STATE GSMNetworkManager::GetCregState(char * data, size_t dataLen)
 void GSMNetworkManager::UpdateCregResult()
 {
     switch (gsmStats.regState) {
-        case GSM_REG_STATE_CONNECTING_HOME:
-        case GSM_REG_STATE_CONNECTING_OTHER:
+        case GSM_REG_STATE_IDLE:
+            // TODO: trigger fail?
+        case GSM_REG_STATE_CONNECTING:
             gsmReconnectTimer.StartMicros(GSM_NETWORG_REG_TIMEOUT);
             //Timer::Stop(gsmReconnectTimer);
             //gsmReconnectTimer = Timer::Start(this, GSM_NETWORG_REG_TIMEOUT, 0);

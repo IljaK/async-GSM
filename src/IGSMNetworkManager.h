@@ -17,9 +17,9 @@ enum GSM_THRESHOLD_STATE {
 };
 
 enum GSM_REG_STATE {
-    GSM_REG_STATE_CONNECTING_HOME, // not registered, the MT is not currently searching a new operator to register to
+    GSM_REG_STATE_IDLE, // not registered, the MT is not currently searching a new operator to register to
     GSM_REG_STATE_CONNECTED_HOME, // registered, home network
-    GSM_REG_STATE_CONNECTING_OTHER, // not registered, but the MT is currently searching a new operator to register to
+    GSM_REG_STATE_CONNECTING, // not registered, but the MT is currently searching a new operator to register to
     GSM_REG_STATE_DENIED, // registration denied
     GSM_REG_STATE_UNKNOWN, 
     GSM_REG_STATE_CONNECTED_ROAMING, // registered, roaming
