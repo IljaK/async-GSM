@@ -73,30 +73,13 @@ void GSMSerialModem::OnResponseReceived(bool isTimeOut, bool isOverFlow)
                     }
 
                     // Looks like we received an event, during CMD transfer
-                    /*if (debugPrint != NULL) {
-                        debugPrint->print("CMD: [");
-                        debugPrint->write(buffer, bufferLength);
-                        debugPrint->println("]");
-                    }
-                    BaseModemCMD *cmd = pendingCMD;
-                    pendingCMD = NULL;
-
-                    StopTimeoutTimer();
-                    StartEventBufferTimer();
-
-                    OnModemResponse(cmd, (char *)GSM_ERROR_RESPONSE, strlen(GSM_ERROR_RESPONSE), MODEM_RESPONSE_ERROR);
-                    if (cmd != NULL) {
-                        delete cmd;
-                    }
-                    return;
-                    */
                     if (debugPrint != NULL) {
                         debugPrint->print("EVENT collided: [");
                         debugPrint->write(buffer, bufferLength);
                         debugPrint->println("]");
                     }
                     StartTimeoutTimer(pendingCMD->timeout);
-                    OnModemResponse(NULL, (char *)GSM_ERROR_RESPONSE, strlen(GSM_ERROR_RESPONSE), MODEM_RESPONSE_EVENT);
+                    OnModemResponse(NULL, buffer, bufferLength, MODEM_RESPONSE_EVENT);
                     return;
                 }
             }
