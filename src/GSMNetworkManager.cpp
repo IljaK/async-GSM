@@ -14,11 +14,7 @@ GSMNetworkManager::GSMNetworkManager(GSMModemManager *modemManager):
     gsmCREGTimer(this)
 {
     this->modemManager = modemManager;
-    gsmStats.regState = GSM_REG_STATE_UNKNOWN;
-    gsmStats.networkType = GSM_NETWORK_UNKNOWN;
-    gsmStats.thresholdState = GSM_THRESHOLD_T;
-    gsmStats.signalStrength = 0;
-    gsmStats.signalQuality = 0;
+    gsmStats.Reset();
 }
 GSMNetworkManager::~GSMNetworkManager()
 {
@@ -33,7 +29,7 @@ void GSMNetworkManager::SetGSMListener(IGSMNetworkManager *listener)
 void GSMNetworkManager::Connect(const char *simPin)
 {
     this->simPin = simPin;
-    gsmStats.regState = GSM_REG_STATE_UNKNOWN;
+    gsmStats.regState = GSM_REG_STATE_IDLE;
     initState = GSM_STATE_PIN;
     gsmReconnectTimer.Stop();
 
@@ -71,8 +67,7 @@ bool GSMNetworkManager::OnGSMEvent(char * data, size_t dataLen)
         return true;
     }
     if (IsEvent(GSM_CMD_NETWORK_REG, data, dataLen)) {
-        gsmStats.regState = GetCregState(data, dataLen);
-        UpdateCregResult();
+        UpdateCregResult(GetCregState(data, dataLen));
         return true;
     }
     
@@ -121,11 +116,10 @@ bool GSMNetworkManager::OnGSMResponse(BaseModemCMD *request, char *response, siz
 
     if (strcmp(request->cmd, GSM_CMD_NETWORK_REG) == 0) {
         if (request->GetIsCheck()) {
-            if (type== MODEM_RESPONSE_DATA) {
-                gsmStats.regState = GetCregState(response, respLen);
+            if (type == MODEM_RESPONSE_DATA) {
+                UpdateCregResult(GetCregState(response, respLen));
             } else if (type== MODEM_RESPONSE_OK) {
                 gsmCREGTimer.StartMicros(GSM_NETWORG_CREG_INTERVAL);
-                UpdateCregResult();
             } else if (type >= MODEM_RESPONSE_ERROR) {
                 modemManager->StartModem();
             }
@@ -290,6 +284,7 @@ void GSMNetworkManager::ConfigureModemCompleted()
     //Timer::Stop(gsmCREGTimer);
     //gsmCREGTimer = Timer::Start(this, GSM_NETWORG_CREG_INTERVAL, 0);
     gsmCREGTimer.StartMicros(GSM_NETWORG_CREG_INTERVAL);
+    gsmReconnectTimer.StartMicros(GSM_NETWORG_REG_TIMEOUT);
     modemManager->ForceCommand(new ByteModemCMD(1, GSM_CMD_NETWORK_REG));
 }
 
@@ -307,12 +302,21 @@ GSM_REG_STATE GSMNetworkManager::GetCregState(char * data, size_t dataLen)
     return (GSM_REG_STATE)atoi(cregArgs[0]);
 }
 
-void GSMNetworkManager::UpdateCregResult()
+void GSMNetworkManager::UpdateCregResult(GSM_REG_STATE state)
 {
+    if (state == gsmStats.regState) {
+        return;
+    }
+
+    Serial.print("CREG: ");
+    Serial.print((int)gsmStats.regState);
+    Serial.print("->");
+    Serial.println((int)state);
+
+    gsmStats.regState = state;
+
     switch (gsmStats.regState) {
         case GSM_REG_STATE_IDLE:
-            modemManager->StartModem();
-            break;
         case GSM_REG_STATE_CONNECTING:
             gsmReconnectTimer.StartMicros(GSM_NETWORG_REG_TIMEOUT);
             break;
@@ -405,11 +409,7 @@ void GSMNetworkManager::OnModemReboot()
 {
     configurationStep = GSM_MODEM_CONFIGURATION_STEP_NONE;
     initState = GSM_STATE_NONE;
-    gsmStats.regState = GSM_REG_STATE_UNKNOWN;
-    gsmStats.networkType = GSM_NETWORK_UNKNOWN;
-    gsmStats.thresholdState = GSM_THRESHOLD_T;
-    gsmStats.signalStrength = 0;
-    gsmStats.signalQuality = 0;
+    gsmStats.Reset();
     StopTimers();
 
     FlushIncomingSMS();

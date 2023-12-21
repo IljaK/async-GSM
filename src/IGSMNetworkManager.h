@@ -58,12 +58,25 @@ enum GSM_FAIL_STATE {
 };
 
 struct GSMNetworkStats {
-    GSM_REG_STATE regState = GSM_REG_STATE_UNKNOWN;
-    GSM_NETWORK_TYPE networkType = GSM_NETWORK_UNKNOWN;
-    GSM_THRESHOLD_STATE thresholdState = GSM_THRESHOLD_T;
-    uint8_t signalStrength = 0;
-    uint8_t signalQuality = 0;
-    float temperature = 0;
+    GSM_REG_STATE regState;
+    GSM_NETWORK_TYPE networkType;
+    GSM_THRESHOLD_STATE thresholdState;
+    uint8_t signalStrength;
+    uint8_t signalQuality;
+    float temperature;
+
+    GSMNetworkStats() {
+        Reset();
+    }
+
+    void Reset() {
+        regState = GSM_REG_STATE_IDLE;
+        networkType = GSM_NETWORK_UNKNOWN;
+        thresholdState = GSM_THRESHOLD_T;
+        signalStrength = 0;
+        signalQuality = 0;
+        temperature = 0;
+    }
 };
 
 struct IncomingSMSInfo {

@@ -63,7 +63,7 @@ private:
     void HandleGSMFail(GSM_FAIL_STATE failState);
     inline void FlushIncomingSMS();
     inline void HandleSimUnlocked();
-    inline void UpdateCregResult();
+    inline void UpdateCregResult(GSM_REG_STATE state);
 
 protected:
     GSMModemManager *modemManager;
