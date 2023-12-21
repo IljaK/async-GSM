@@ -71,7 +71,6 @@ bool GSMNetworkManager::OnGSMEvent(char * data, size_t dataLen)
         return true;
     }
     if (IsEvent(GSM_CMD_NETWORK_REG, data, dataLen)) {
-        gsmReconnectTimer.Stop();
         gsmStats.regState = GetCregState(data, dataLen);
         UpdateCregResult();
         return true;
@@ -126,9 +125,6 @@ bool GSMNetworkManager::OnGSMResponse(BaseModemCMD *request, char *response, siz
                 gsmStats.regState = GetCregState(response, respLen);
             } else if (type== MODEM_RESPONSE_OK) {
                 gsmCREGTimer.StartMicros(GSM_NETWORG_CREG_INTERVAL);
-                //Timer::Stop(gsmCREGTimer);
-                //gsmCREGTimer = Timer::Start(this, GSM_NETWORG_CREG_INTERVAL, 0);
-
                 UpdateCregResult();
             } else if (type >= MODEM_RESPONSE_ERROR) {
                 modemManager->StartModem();
@@ -315,11 +311,10 @@ void GSMNetworkManager::UpdateCregResult()
 {
     switch (gsmStats.regState) {
         case GSM_REG_STATE_IDLE:
-            // TODO: trigger fail?
+            modemManager->StartModem();
+            break;
         case GSM_REG_STATE_CONNECTING:
             gsmReconnectTimer.StartMicros(GSM_NETWORG_REG_TIMEOUT);
-            //Timer::Stop(gsmReconnectTimer);
-            //gsmReconnectTimer = Timer::Start(this, GSM_NETWORG_REG_TIMEOUT, 0);
             break;
         case GSM_REG_STATE_CONNECTED_HOME:
         case GSM_REG_STATE_CONNECTED_ROAMING:
@@ -328,6 +323,7 @@ void GSMNetworkManager::UpdateCregResult()
         case GSM_REG_STATE_CONNECTED_EMERGENSY_ONLY:
         case GSM_REG_STATE_CONNECTED_CSFB_NOT_HOME:
         case GSM_REG_STATE_CONNECTED_CSFB_NOT_ROAMING:
+            gsmReconnectTimer.Stop();
             if (initState > GSM_STATE_NONE && initState < GSM_STATE_READY) {
                 FetchModemStats();
                 initState = GSM_STATE_READY;
@@ -341,6 +337,7 @@ void GSMNetworkManager::UpdateCregResult()
             break;
         case GSM_REG_STATE_DENIED:
         case GSM_REG_STATE_UNKNOWN:
+            gsmReconnectTimer.Stop();
             // TODO: or give modem chance to connect?
             HandleGSMFail(GSM_FAIL_REG_NETWORK);
             break;
