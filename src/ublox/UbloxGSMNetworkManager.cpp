@@ -13,6 +13,55 @@ UbloxGSMNetworkManager::~UbloxGSMNetworkManager()
 
 }
 
+void UbloxGSMNetworkManager::UpdateUregState(char *state)
+{
+    GSM_NETWORK_TYPE type = GSM_NETWORK_UNKNOWN;
+    switch (atoi(state))
+    {
+        case 0:
+            // 0: not registered for PS service
+            type = GSM_NETWORK_UNKNOWN;
+            break;
+        case 1:
+            // 1: registered for PS service, RAT=2G, GPRS available
+            type = GSM_NETWORK_2G_GPRS;
+            break;
+        case 2:
+            // 2: registered for PS service, RAT=2G, EDGE available
+            type = GSM_NETWORK_2G_EDGE;
+            break;
+        case 3:
+            // 3: registered for PS service, RAT=3G, WCDMA available
+            type = GSM_NETWORK_3G_WCDMA;
+            break;
+        case 4:
+            // 4: registered for PS service, RAT=3G, HSDPA available
+            type = GSM_NETWORK_3G_HSDPA;
+            break;
+        case 5:
+            // 5: registered for PS service, RAT=3G, HSUPA available
+            type = GSM_NETWORK_3G_HSUPA;
+            break;
+        case 6:
+            // 6: registered for PS service, RAT=3G, HSDPA and HSUPA available
+            type = GSM_NETWORK_3G_HSDPA_HSUPA;
+            break;
+        case 7:
+            // 7: registered for PS service, RAT=4G
+            type = GSM_NETWORK_4G_LTE;
+            break;
+        case 8:
+            // 8: registered for PS service, RAT=2G, GPRS available, DTM available
+            type = GSM_NETWORK_2G_GPRS;
+            break;
+        case 9:
+            // 9: registered for PS service, RAT=2G, EDGE available, DTM available
+            type = GSM_NETWORK_2G_EDGE;
+            break;
+    }
+    GSMNetworkManager::UpdateNetworkType(type);
+}
+
 bool UbloxGSMNetworkManager::OnGSMEvent(char * data, size_t dataLen)
 {
     if (GSMNetworkManager::OnGSMEvent(data, dataLen)) {
@@ -21,50 +70,7 @@ bool UbloxGSMNetworkManager::OnGSMEvent(char * data, size_t dataLen)
 
     if (IsEvent(GSM_NETWORK_TYPE_STATUS, data, dataLen)) {
         char *ureg = data + strlen(GSM_NETWORK_TYPE_STATUS) + 2;
-        GSM_NETWORK_TYPE type = GSM_NETWORK_UNKNOWN;
-        switch (atoi(ureg))
-        {
-            case 0:
-                // 0: not registered for PS service
-                break;
-            case 1:
-                // 1: registered for PS service, RAT=2G, GPRS available
-                type = GSM_NETWORK_2G_GPRS;
-                break;
-            case 2:
-                // 2: registered for PS service, RAT=2G, EDGE available
-                type = GSM_NETWORK_2G_EDGE;
-                break;
-            case 3:
-                // 3: registered for PS service, RAT=3G, WCDMA available
-                type = GSM_NETWORK_3G_WCDMA;
-                break;
-            case 4:
-                // 4: registered for PS service, RAT=3G, HSDPA available
-                type = GSM_NETWORK_3G_HSDPA;
-                break;
-            case 5:
-                // 5: registered for PS service, RAT=3G, HSUPA available
-                type = GSM_NETWORK_3G_HSUPA;
-                break;
-            case 6:
-                // 6: registered for PS service, RAT=3G, HSDPA and HSUPA available
-                type = GSM_NETWORK_3G_HSDPA_HSUPA;
-                break;
-            case 7:
-                // 7: registered for PS service, RAT=4G
-                type = GSM_NETWORK_4G_LTE;
-                break;
-            case 8:
-                // 8: registered for PS service, RAT=2G, GPRS available, DTM available
-                type = GSM_NETWORK_2G_GPRS;
-                break;
-            case 9:
-                // 9: registered for PS service, RAT=2G, EDGE available, DTM available
-                type = GSM_NETWORK_2G_EDGE;
-                break;
-        }
-        GSMNetworkManager::UpdateNetworkType(type);
+        UpdateUregState(ureg);
         return true;
     }
     if (IsEvent(GSM_TEMP_THRESHOLD_EVENT, data, dataLen)) {
@@ -106,25 +112,46 @@ bool UbloxGSMNetworkManager::OnGSMResponse(BaseModemCMD *request, char *response
     }
 
     if (strcmp(request->cmd, GSM_CMD_HEX_MODE) == 0) {
-        NextUbloxConfigurationStep();
+        if (type >= MODEM_RESPONSE_OK) {
+            NextUbloxConfigurationStep();
+        }
         return true;
     }
     if (strcmp(request->cmd, GSM_CMD_DTFM) == 0) {
-        NextUbloxConfigurationStep();
+        if (type >= MODEM_RESPONSE_OK) {
+            NextUbloxConfigurationStep();
+        }
         return true;
     }
     if (strcmp(request->cmd, GSM_NETWORK_TYPE_STATUS) == 0) {
-        NextUbloxConfigurationStep();
+        if (type == MODEM_RESPONSE_DATA) {
+            char *ureg = response + strlen(GSM_NETWORK_TYPE_STATUS) + 2;
+            char* uregArgs[2];
+            SplitString(ureg, ',', uregArgs, 2, false);
+            UpdateUregState(uregArgs[1]);
+        } else if (type >= MODEM_RESPONSE_OK) {
+            NextUbloxConfigurationStep();
+        }
         return true;
     }
     if (strcmp(request->cmd, GSM_CMD_CALL_STAT) == 0) {
-        NextUbloxConfigurationStep();
+        if (type >= MODEM_RESPONSE_OK) {
+            NextUbloxConfigurationStep();
+        }
         return true;
     }
 
     // Functional commands
     if (strcmp(request->cmd, GSM_TEMP_THRESHOLD_CMD) == 0) {
-        NextUbloxConfigurationStep();
+        if (type >= MODEM_RESPONSE_OK) {
+            NextUbloxConfigurationStep();
+        }
+        return true;
+    }
+    if (strcmp(request->cmd, GSM_CMD_UGPIOC) == 0) {
+        if (type >= MODEM_RESPONSE_OK) {
+            NextUbloxConfigurationStep();
+        }
         return true;
     }
 
@@ -174,6 +201,18 @@ void UbloxGSMNetworkManager::NextUbloxConfigurationStep()
         case GSM_UBLOX_CONFIGURATION_STEP_UDTMFD:
             modemManager->ForceCommand(new ULong2ModemCMD(1,2, GSM_CMD_DTFM));
             break;
+        case GSM_UBLOX_CONFIGURATION_STEP_UGPIOC:
+            modemManager->ForceCommand(new ULong2ModemCMD(16,2, GSM_CMD_UGPIOC));
+            break;
+        case GSM_UBLOX_CONFIGURATION_STEP_UREG_CHECK:
+            modemManager->ForceCommand(new BaseModemCMD(GSM_NETWORK_TYPE_STATUS, 1000000UL, true));
+            break;
 
     }
+}
+
+void UbloxGSMNetworkManager::OnModemReboot()
+{
+    ubloxConfigurationStep = GSM_UBLOX_CONFIGURATION_STEP_NONE;
+    GSMNetworkManager::OnModemReboot();
 }

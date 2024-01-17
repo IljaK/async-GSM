@@ -12,6 +12,13 @@ UbloxGSMCallManager::~UbloxGSMCallManager()
 
 }
 
+/*
+void UbloxGSMCallManager::HangUpCall()
+{
+    // 
+    gsmManager->ForceCommand(new BaseModemCMD("H"));
+}
+*/
 
 bool UbloxGSMCallManager::OnGSMEvent(char * data, size_t dataLen)
 {

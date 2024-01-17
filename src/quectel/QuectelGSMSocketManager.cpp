@@ -114,7 +114,7 @@ bool QuectelGSMSocketManager::ConnectSocketInternal(GSMSocket *socket)
     // Range: 3000ms-120000ms
     // default: 120000ms
     socket = OnSocketCreated(GetNextAvailableSocketIndex());
-    return Connect(socket);
+    return socket != NULL;
 }
 
 bool QuectelGSMSocketManager::Connect(GSMSocket *sock)
@@ -127,13 +127,15 @@ bool QuectelGSMSocketManager::Connect(GSMSocket *sock)
 bool QuectelGSMSocketManager::SetKeepAlive(GSMSocket *sock)
 {
     if (sock == NULL) return false;
-    return false;
+    OnKeepAliveConfirm(sock->GetId());
+    return true;
 }
 
 bool QuectelGSMSocketManager::SetSSL(GSMSocket *sock)
 {
     if (sock == NULL) return false;
-    return false;
+    OnSSLConfirm(sock->GetId());
+    return true;
 
 }
 
@@ -178,4 +180,11 @@ void QuectelGSMSocketManager::HandleURCClosed(char **args, size_t argsLen)
     // TODO: Destroy socket
     if (argsLen < 2) return;
     OnSocketClosed(atoi(args[1]));
+}
+
+bool QuectelGSMSocketManager::SetTCPNoDelay(GSMSocket *socket)
+{
+    if (socket == NULL) return false;
+    OnTCPNoDelayConfirm(socket->GetId());
+    return true;
 }

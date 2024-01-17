@@ -1,14 +1,15 @@
 #include "GSMSocket.h"
 
 
-GSMSocket::GSMSocket(GSMSocketManager * socketManager, IPAddr ip, uint16_t port, bool keepAlive, GSM_SOCKET_SSL sslType):
+GSMSocket::GSMSocket(GSMSocketManager * socketManager, IPAddr ip, uint16_t port, bool noTCPDelay, uint32_t keepAliveMS, GSM_SOCKET_SSL sslType):
     destroyTimer(this),
     outgoingMessageStack(16, 128)
 {
     this->socketManager = socketManager;
     this->ip = ip;
     this->port = port;
-    this->keepAlive = keepAlive;
+    this->noTCPDelay = noTCPDelay;
+    this->keepAliveMS = keepAliveMS;
     this->sslType = sslType;
 
     // TODO: Start timer:
@@ -20,10 +21,20 @@ GSMSocket::~GSMSocket()
 }
 
 
-void GSMSocket::OnSocketID(uint8_t socketId)
+void GSMSocket::OnSocketCreated(uint8_t socketId)
 {
     this->socketId = socketId;
     state = GSM_SOCKET_STATE_CONNECTING;
+
+    if (keepAliveMS > 0) {
+        socketManager->SetKeepAlive(this);
+    } else if (sslType > GSM_SOCKET_SSL_DISABLE) {
+        socketManager->SetSSL(this);
+    } else if (noTCPDelay) {
+        socketManager->SetTCPNoDelay(this);
+    } else {
+        socketManager->Connect(this);
+    }
 }
 
 
@@ -45,12 +56,23 @@ void GSMSocket::OnKeepAliveConfirm()
 {
     if (sslType > GSM_SOCKET_SSL_DISABLE) {
         socketManager->SetSSL(this);
+    } else if (noTCPDelay) {
+        socketManager->SetTCPNoDelay(this);
     } else {
         socketManager->Connect(this);
     }
 }
 
 void GSMSocket::OnSSLConfirm()
+{
+    if (noTCPDelay) {
+        socketManager->SetTCPNoDelay(this);
+    } else {
+        socketManager->Connect(this);
+    }
+}
+
+void GSMSocket::OnTCPNoDelayConfirm()
 {
     socketManager->Connect(this);
 }
@@ -97,9 +119,9 @@ GSM_SOCKET_STATE GSMSocket::GetState()
 {
     return state;
 }
-bool GSMSocket::IsKeepAlive()
+uint32_t GSMSocket::GetKeepAliveMS()
 {
-    return keepAlive;
+    return keepAliveMS;
 }
 
 GSM_SOCKET_SSL GSMSocket::SSLType()

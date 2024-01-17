@@ -23,11 +23,15 @@ class UbloxGSMSocketManager: public GSMSocketManager
 protected:
 
     bool Connect(GSMSocket *sock) override;
-    bool SetKeepAlive(GSMSocket *sock) override;
-    bool SetSSL(GSMSocket *sock) override;
     bool Close(uint8_t socketId) override;
     bool SendInternal(GSMSocket *socket, ByteArray *packet) override;
     bool ConnectSocketInternal(GSMSocket *socket) override;
+
+    bool SetKeepAlive(GSMSocket *sock) override;
+    bool SetSSL(GSMSocket *sock) override;
+
+    bool SetKeepIdleDuration(uint8_t socketId);
+    bool SetTCPNoDelay(GSMSocket *socket) override;
 
 public:
     UbloxGSMSocketManager(GSMModemManager *gsmManager, GPRSManager *gprsManager);

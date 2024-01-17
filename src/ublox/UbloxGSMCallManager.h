@@ -14,4 +14,6 @@ public:
 
     UbloxGSMCallManager(GSMModemManager *gsmManager);
     virtual ~UbloxGSMCallManager();
+
+    //void HangUpCall() override;
 };

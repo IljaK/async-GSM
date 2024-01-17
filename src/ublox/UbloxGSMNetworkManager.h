@@ -22,6 +22,8 @@ constexpr char GSM_CMD_CALL_STAT[] = "+UCALLSTAT"; // AT+UCALLSTAT=1 // PIN requ
 constexpr char GSM_CMD_HEX_MODE[] = "+UDCONF"; // AT+UDCONF=1,1 // PIN required: No
 // Enables/disables the DTMF detector and, independently for each specific AT terminal, the related URCs
 constexpr char GSM_CMD_DTFM[] = "+UDTMFD"; // AT+UDTMFD=1,2 // PIN required: No
+// GPIO1 network status indication
+constexpr char GSM_CMD_UGPIOC[] = "+UGPIOC"; // AT+UGPIOC=16,2
 
 
 enum GSM_UBLOX_CONFIGURATION_STEP {
@@ -33,6 +35,8 @@ enum GSM_UBLOX_CONFIGURATION_STEP {
     GSM_UBLOX_CONFIGURATION_STEP_UCALLSTAT,
     GSM_UBLOX_CONFIGURATION_STEP_UDCONF,
     GSM_UBLOX_CONFIGURATION_STEP_UDTMFD,
+    GSM_UBLOX_CONFIGURATION_STEP_UGPIOC,
+    GSM_UBLOX_CONFIGURATION_STEP_UREG_CHECK,
 
     GSM_UBLOX_CONFIGURATION_STEP_COMPLETE
 };
@@ -42,10 +46,10 @@ class UbloxGSMNetworkManager: public GSMNetworkManager
 private:
     uint8_t ubloxConfigurationStep = GSM_UBLOX_CONFIGURATION_STEP_NONE;
     void NextUbloxConfigurationStep();
+    void UpdateUregState(char *state);
 
 protected:
     void FetchModemStats() override;
-
     void ContinueConfigureModem() override;
 
 public:
@@ -54,4 +58,6 @@ public:
 
     bool OnGSMResponse(BaseModemCMD *request, char *response, size_t respLen, MODEM_RESPONSE_TYPE type) override;
     bool OnGSMEvent(char * data, size_t dataLen) override;
+
+    virtual void OnModemReboot() override;
 };

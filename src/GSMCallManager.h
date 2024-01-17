@@ -6,7 +6,7 @@
 // Requires:
 // AT+UDTMF=1,2
 constexpr char GSM_CALL_STATE_CMD[] = "+CLCC"; // Call state
-constexpr char GSM_CALL_HANGUP_CMD[] = "H"; // Call state
+constexpr char GSM_CALL_HANGUP_CMD[] = "+CHUP"; // Call state
 
 enum VOICE_CALLSTATE : uint8_t
 {
@@ -50,7 +50,7 @@ public:
     virtual bool OnGSMEvent(char * data, size_t dataLen) override;
     
     void SetCallStateHandler(IGSMCallManager *callStateHandler);
-    void HangCall();
+    virtual void HangUpCall();
     char * GetCallingNumber();
     virtual void OnModemReboot();
 

@@ -36,8 +36,7 @@ bool UbloxGSMSocketManager::OnGSMResponse(BaseModemCMD *request, char * response
                 createSockSMD->socketId = atoi(sockId);
             }
         } else if (type == MODEM_RESPONSE_OK) {
-            GSMSocket * socket = GSMSocketManager::OnSocketCreated(createSockSMD->socketId);
-            Connect(socket);
+            OnSocketCreated(createSockSMD->socketId);
         } else {
             gprsManager->Deactivate();
         }
@@ -63,12 +62,12 @@ bool UbloxGSMSocketManager::OnGSMResponse(BaseModemCMD *request, char * response
         if (type != MODEM_RESPONSE_DATA) {
             //GSMSocket *sock = GetSocket(usoso->valueData);
             if (type == MODEM_RESPONSE_OK) {
-                if (usoso->valueData2 == 65535ul && usoso->valueData3 == 8ul) { // Activate keep alive setting
-                    // Set keepidle duration
-                    gsmManager->AddCommand(new ULong4ModemCMD(usoso->valueData, 6u, 2u, 30000ul, GSM_SOCKET_CONFIG_CMD));
-                    return true;
-                } else { // keepalive option
+                if (usoso->valueData2 == 6ul && usoso->valueData3 == 2ul) {
+                    // Keep alive duration
                     OnKeepAliveConfirm(usoso->valueData);
+                } else if (usoso->valueData2 == 6ul && usoso->valueData3 == 1ul) {
+                    // TCP no delay
+                    OnTCPNoDelayConfirm(usoso->valueData);
                 }
             } else {
                 OnSocketConnection(usoso->valueData, GSM_SOCKET_ERROR_FAILED_CONFIGURE_SOCKET);
@@ -204,11 +203,12 @@ bool UbloxGSMSocketManager::SetKeepAlive(GSMSocket *sock)
 {
     if (sock == NULL) return false;
     //char cmd[32];
-    // AT+USOSO=2,6,2,30000
-    // 2: keepidle option: send keepidle probes when it is idle for <opt_val> milliseconds
-    // <opt_val>: signed 32 bit numeric parameter representing the milliseconds for
-    // "keepidle" option. The range is 0-2147483647. The default value is 7200000 (2 hours)
-    return gsmManager->AddCommand(new ULong4ModemCMD(sock->GetId(), 65535ul, 8u, 1u, GSM_SOCKET_CONFIG_CMD));
+    // AT+USOSO=1,65535,8,1
+    // 8: keep connections alive.
+    // <opt_val>: numeric parameter, it configures "keep connections alive" option.
+    // - 0 (default value): disabled
+    // - 1: enabled
+    return gsmManager->AddCommand(new ULong4ModemCMD(sock->GetId(), 6u, 2u, sock->GetKeepAliveMS(), GSM_SOCKET_CONFIG_CMD));
 }
 
 bool UbloxGSMSocketManager::SetSSL(GSMSocket *sock)
@@ -231,10 +231,23 @@ bool UbloxGSMSocketManager::Close(uint8_t socketId)
     return gsmManager->AddCommand(new ByteModemCMD(socketId, GSM_SOCKET_CLOSE_CMD, SOCKET_CONNECTION_TIMEOUT));
 }
 
-
 bool UbloxGSMSocketManager::SendInternal(GSMSocket *socket, ByteArray *packet)
 {
+    if (socket == NULL) return false;
     return gsmManager->AddCommand(new SocketHEXWriteModemCMD(socket->GetId(), packet, GSM_SOCKET_WRITE_CMD, SOCKET_CMD_TIMEOUT));
+}
+
+bool UbloxGSMSocketManager::SetTCPNoDelay(GSMSocket *socket)
+{
+    // AT+USOSO=0,6,1,1
+    // 6: TCP protocol
+    // <opt_name> for TCP protocol level may be:
+    // 1: no delay option; do not delay send to coalesce packets;
+    // <opt_val>: numeric parameter, it enables/disables the "no delay" option:
+    // - 0 (default value): disabled
+    // - 1: enabled
+    if (socket == NULL) return false;
+    return gsmManager->AddCommand(new ULong4ModemCMD(socket->GetId(), 6ul, 1u, 1u, GSM_SOCKET_CONFIG_CMD));
 }
 
 

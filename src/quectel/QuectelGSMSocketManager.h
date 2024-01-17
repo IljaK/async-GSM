@@ -28,6 +28,7 @@ protected:
     bool Close(uint8_t socketId) override;
     bool SendInternal(GSMSocket *socket, ByteArray *packet) override;
     bool ConnectSocketInternal(GSMSocket *socket) override;
+    bool SetTCPNoDelay(GSMSocket *socket)  override;
 
 public:
     QuectelGSMSocketManager(GSMModemManager *gsmManager, GPRSManager *gprsManager);

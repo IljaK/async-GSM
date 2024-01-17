@@ -5,7 +5,7 @@
 #include "common/TimeUtil.h"
 #include "common/Timer.h"
 
-constexpr unsigned long QUALITY_CHECK_DURATION = 20000000ul;
+constexpr unsigned long QUALITY_CHECK_DURATION = 20000ul;
 
 constexpr char GSM_SIM_PIN_CMD[] = "+CPIN";
 constexpr char GSM_SIM_PIN_READY[] = "READY"; // Ready sim card state
@@ -13,6 +13,9 @@ constexpr char GSM_SIM_PIN_REQUIRE[] = "SIM PIN"; // Pin code input sim card sta
 
 
 constexpr char GSM_CMD_NETWORK_REG[] = "+CREG"; // AT+CREG=1 // PIN required: Yes
+
+// Forces an attempt to select and register with the GSM/UMTS/LTE network operator
+constexpr char GSM_CMD_OPERATOR_CMD[] = "+COPS"; // AT+CREG=1 // PIN required: Yes
 
 constexpr char GSM_CMD_SMS_FROMAT[] = "+CMGF"; // "AT+CMGF=1" // Incomming message format: 0 - PDU, 1 - text // PIN required: Yes
 constexpr char GSM_CMD_SMS_INDICATION[] = "+CNMI"; // AT+CNMI=2,2,0,0,0 // Message event format
@@ -25,14 +28,18 @@ constexpr char GSM_CMD_SMS_SEND[] = "+CMGS"; // "Send sms"
 constexpr char GSM_CMD_NETWORK_QUALITY[] = "+CSQ"; // Signal quality
 constexpr char GSM_CMD_TIME[] = "+CCLK";
 
-constexpr unsigned long GSM_NETWORG_REG_TIMEOUT = 90000000ul;
-constexpr unsigned long GSM_NETWORG_CREG_INTERVAL = 5000000ul;
+constexpr unsigned long GSM_NETWORG_REG_TIMEOUT = 90000ul;
+constexpr unsigned long GSM_NETWORG_CREG_INTERVAL = 5000ul;
 
 enum GSM_MODEM_CONFIGURATION_STEP: uint8_t {
     GSM_MODEM_CONFIGURATION_STEP_NONE = 0,
     GSM_MODEM_CONFIGURATION_STEP_CNMI,
     GSM_MODEM_CONFIGURATION_STEP_CMFG,
     GSM_MODEM_CONFIGURATION_STEP_CTZU,
+
+    // Reset network registration
+    // GSM_MODEM_CONFIGURATION_STEP_COPS_OFF,
+    // GSM_MODEM_CONFIGURATION_STEP_COPS_ON,
 
     GSM_MODEM_CONFIGURATION_STEP_COMPLETE
 };
@@ -52,6 +59,7 @@ private:
     Timer gsmSimTimer;
     Timer gsmNetStatsTimer;
     Timer gsmCREGTimer;
+    Timer gsmNetworkTypeTimer;
 
     IGSMNetworkManager *listener = NULL;
     IncomingSMSInfo *incomingSms = NULL;

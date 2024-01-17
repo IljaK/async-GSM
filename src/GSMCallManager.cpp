@@ -68,7 +68,7 @@ void GSMCallManager::SetCallStateHandler(IGSMCallManager* callStateHandler)
     this->callStateHandler = callStateHandler;
 }
 
-void GSMCallManager::HangCall()
+void GSMCallManager::HangUpCall()
 {
     gsmManager->ForceCommand(new BaseModemCMD(GSM_CALL_HANGUP_CMD));
 }

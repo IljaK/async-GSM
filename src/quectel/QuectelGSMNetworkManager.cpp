@@ -70,10 +70,10 @@ bool QuectelGSMNetworkManager::OnGSMResponse(BaseModemCMD *request, char *respon
         return true;
     }
 
-    if (strcmp(request->cmd, GSM_QUECTEL_ATH_FIX_CMD) == 0) {
-        NextQuectelConfigurationStep();
-        return true;
-    }
+    //if (strcmp(request->cmd, GSM_QUECTEL_ATH_FIX_CMD) == 0) {
+    //    NextQuectelConfigurationStep();
+    //    return true;
+    //}
     // if (strcmp(request->cmd, GSM_QUECTEL_CALL_INDICATE_CMD) == 0) {
     //     NextQuectelConfigurationStep();
     //     return true;
@@ -117,9 +117,9 @@ void QuectelGSMNetworkManager::NextQuectelConfigurationStep()
         case GSM_QUECTEL_CONFIGURATION_STEP_NONE:
             // TODO: ?
             break;
-        case GSM_QUECTEL_CONFIGURATION_STEP_CVHU:
-            modemManager->ForceCommand(new ByteModemCMD(0, GSM_QUECTEL_ATH_FIX_CMD));
-            break;
+        //case GSM_QUECTEL_CONFIGURATION_STEP_CVHU:
+        //    modemManager->ForceCommand(new ByteModemCMD(0, GSM_QUECTEL_ATH_FIX_CMD));
+        //    break;
         //case GSM_QUECTEL_CONFIGURATION_STEP_DSCI:
         //    modemManager->ForceCommand(new ByteModemCMD(1, GSM_QUECTEL_CALL_INDICATE_CMD));
         //    break;

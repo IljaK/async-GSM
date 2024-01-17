@@ -147,7 +147,7 @@ bool SimComGSMSocketManager::ConnectSocketInternal(GSMSocket *socket)
     // Range: 3000ms-120000ms
     // default: 120000ms
     socket = OnSocketCreated(GetNextAvailableSocketIndex());
-    return Connect(socket);
+    return socket != NULL;
 }
 
 bool SimComGSMSocketManager::Connect(GSMSocket *sock)
@@ -160,13 +160,17 @@ bool SimComGSMSocketManager::Connect(GSMSocket *sock)
 bool SimComGSMSocketManager::SetKeepAlive(GSMSocket *sock)
 {
     if (sock == NULL) return false;
-    return false;
+    // No configuration here, just connect
+    OnKeepAliveConfirm(sock->GetId());
+    return true;
 }
 
 bool SimComGSMSocketManager::SetSSL(GSMSocket *sock)
 {
     if (sock == NULL) return false;
-    return false;
+    // No configuration here, just connect
+    OnSSLConfirm(sock->GetId());
+    return true;
 
 }
 
@@ -180,4 +184,13 @@ bool SimComGSMSocketManager::Close(uint8_t socketId)
 bool SimComGSMSocketManager::SendInternal(GSMSocket *socket, ByteArray *packet)
 {
     return gsmManager->AddCommand(new SocketStreamWriteModemCMD(socket->GetId(), packet, GSM_SIMCOM_SOCKET_WRITE_CMD, SOCKET_CMD_TIMEOUT));
+}
+
+
+bool SimComGSMSocketManager::SetTCPNoDelay(GSMSocket *socket)
+{
+    // TODO:
+    if (socket == NULL) return false;
+    OnTCPNoDelayConfirm(socket->GetId());
+    return true;
 }

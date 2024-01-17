@@ -30,6 +30,7 @@ protected:
     
     virtual bool Connect(GSMSocket *socket) = 0;
     virtual bool SetKeepAlive(GSMSocket *socket) = 0;
+    virtual bool SetTCPNoDelay(GSMSocket *socket) = 0;
     virtual bool SetSSL(GSMSocket *socket) = 0;
     virtual bool Close(uint8_t socketId) = 0;
     size_t Send(GSMSocket *socket);
@@ -38,6 +39,7 @@ protected:
 
     void OnSSLConfirm(uint8_t socketId);
     void OnKeepAliveConfirm(uint8_t socketId);
+    void OnTCPNoDelayConfirm(uint8_t socketId);
     void OnSocketData(uint8_t socketId, uint8_t *data, size_t len);
     void OnSocketClosed(uint8_t socketId);
     GSMSocket * OnSocketCreated(uint8_t socketId);

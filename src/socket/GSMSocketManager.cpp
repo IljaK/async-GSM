@@ -36,7 +36,7 @@ GSMSocket * GSMSocketManager::OnSocketCreated(uint8_t socketId)
         // Socket will be destroyed after close commans completes!
         Close(socketId);
     } else {
-        socket->OnSocketID(socketId);
+        socket->OnSocketCreated(socketId);
     }
     return socket;
     
@@ -247,7 +247,6 @@ void GSMSocketManager::OnSocketClosed(uint8_t socketId)
     }
 }
 
-
 void GSMSocketManager::OnSocketData(uint8_t socketId, uint8_t *data, size_t len)
 {
     GSMSocket *sock = GetSocket(socketId);
@@ -269,6 +268,12 @@ void GSMSocketManager::OnSSLConfirm(uint8_t socketId)
     GSMSocket *sock = GetSocket(socketId);
     if (sock == NULL) return;
     sock->OnSSLConfirm();
+}
+void GSMSocketManager::OnTCPNoDelayConfirm(uint8_t socketId)
+{
+    GSMSocket *sock = GetSocket(socketId);
+    if (sock == NULL) return;
+    sock->OnTCPNoDelayConfirm();
 }
 
 bool GSMSocketManager::IsMaxCreated() { 

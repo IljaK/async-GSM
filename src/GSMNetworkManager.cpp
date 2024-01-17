@@ -11,7 +11,8 @@ GSMNetworkManager::GSMNetworkManager(GSMModemManager *modemManager):
     gsmReconnectTimer(this),
     gsmSimTimer(this),
     gsmNetStatsTimer(this),
-    gsmCREGTimer(this)
+    gsmCREGTimer(this),
+    gsmNetworkTypeTimer(this)
 {
     this->modemManager = modemManager;
     gsmStats.Reset();
@@ -119,7 +120,7 @@ bool GSMNetworkManager::OnGSMResponse(BaseModemCMD *request, char *response, siz
             if (type == MODEM_RESPONSE_DATA) {
                 UpdateCregResult(GetCregState(response, respLen));
             } else if (type== MODEM_RESPONSE_OK) {
-                gsmCREGTimer.StartMicros(GSM_NETWORG_CREG_INTERVAL);
+                gsmCREGTimer.StartMillis(GSM_NETWORG_CREG_INTERVAL);
             } else if (type >= MODEM_RESPONSE_ERROR) {
                 modemManager->StartModem();
             }
@@ -158,6 +159,17 @@ bool GSMNetworkManager::OnGSMResponse(BaseModemCMD *request, char *response, siz
         }
         return true;
     }
+
+    /*
+    if (strcmp(request->cmd, GSM_CMD_OPERATOR_CMD) == 0) {
+        if (type == MODEM_RESPONSE_OK) {
+            NextConfigurationStep();
+        } else if (type >= MODEM_RESPONSE_ERROR) {
+            modemManager->StartModem();
+        }
+        return true;
+    }
+    */
 
     // Functionality commands:
     if (strcmp(request->cmd, GSM_CMD_NETWORK_QUALITY) == 0) {
@@ -221,17 +233,41 @@ bool GSMNetworkManager::OnGSMResponse(BaseModemCMD *request, char *response, siz
 //strength(rssi): (0-31,99), quality(ber): (0-7,99)
 void GSMNetworkManager::UpdateSignalQuality(int strength, int quality)
 {
-    gsmStats.signalStrength = strength; // (0 - 31), 99
-    if (gsmStats.signalStrength > 31) {
-        gsmStats.signalStrength = 0;
+    /*
+    // strength
+    Integer type. Received signal strength indication.
+    0 -113 dBm or less
+    1 -111 dBm
+    2–30 -109 dBm to -53 dBm
+    31 -51 dBm or greater
+    99 Not known or not detectable
+    100 -116 dBm or less
+    101 -115 dBm
+    102...190 -114 dBm to -26 dBm
+    191 -25 dBm or greater
+    199 Not known or not detectable
+    100–199 Extended to be used in TD-SCDMA indicating received signal code
+    power (RSCP)
+    */
+    double calculated = (double)strength;
+    if (calculated <= 31) {
+        calculated = (calculated / 31.0) * 100.0;
+    } else if (calculated >= 100 && calculated <= 191) {
+        // 100 - 191
+        calculated = ((calculated - 100) / 91.0) * 100.0;
+    } else {
+        calculated = 0;
     }
-    gsmStats.signalStrength = ((double)gsmStats.signalStrength / 31.0) * 100.0;
+    gsmStats.signalStrength = (uint8_t)calculated;
 
-    gsmStats.signalQuality = quality; // (0 - 7), 99
-    if (gsmStats.signalQuality > 7) {
-        gsmStats.signalQuality = 0;
+
+    calculated = quality;
+    if (calculated > 7) {
+        calculated = 0;
     }
-    gsmStats.signalQuality = ((7.0 - (double)gsmStats.signalQuality) / 7.0) * 100.0;
+    calculated = ((7.0 - calculated) / 7.0) * 100.0;
+
+    gsmStats.signalQuality = (uint8_t)calculated;
 
     if (listener != NULL) {
         listener->OnGSMQuality(gsmStats.signalStrength, gsmStats.signalQuality);
@@ -269,6 +305,14 @@ void GSMNetworkManager::NextConfigurationStep()
         case GSM_MODEM_CONFIGURATION_STEP_CTZU:
             modemManager->ForceCommand(new ByteModemCMD(1, GSM_CMD_TIME_ZONE));
             break;
+        /*
+        case GSM_MODEM_CONFIGURATION_STEP_COPS_OFF:
+            modemManager->ForceCommand(new ByteModemCMD(2, GSM_CMD_OPERATOR_CMD, 3000000UL));
+            break;
+        case GSM_MODEM_CONFIGURATION_STEP_COPS_ON:
+            modemManager->ForceCommand(new ByteModemCMD(0, GSM_CMD_OPERATOR_CMD, 10000000UL));
+            break;
+        */
     }
 }
 
@@ -281,10 +325,8 @@ void GSMNetworkManager::ContinueConfigureModem()
 // Trigger when configuration completes
 void GSMNetworkManager::ConfigureModemCompleted()
 {
-    //Timer::Stop(gsmCREGTimer);
-    //gsmCREGTimer = Timer::Start(this, GSM_NETWORG_CREG_INTERVAL, 0);
-    gsmCREGTimer.StartMicros(GSM_NETWORG_CREG_INTERVAL);
-    gsmReconnectTimer.StartMicros(GSM_NETWORG_REG_TIMEOUT);
+    gsmCREGTimer.StartMillis(GSM_NETWORG_CREG_INTERVAL);
+    gsmReconnectTimer.StartMillis(GSM_NETWORG_REG_TIMEOUT);
     modemManager->ForceCommand(new ByteModemCMD(1, GSM_CMD_NETWORK_REG));
 }
 
@@ -308,17 +350,17 @@ void GSMNetworkManager::UpdateCregResult(GSM_REG_STATE state)
         return;
     }
 
-    Serial.print("CREG: ");
-    Serial.print((int)gsmStats.regState);
-    Serial.print("->");
-    Serial.println((int)state);
+    //Serial.print("CREG: ");
+    //Serial.print((int)gsmStats.regState);
+    //Serial.print("->");
+    //Serial.println((int)state);
 
     gsmStats.regState = state;
 
     switch (gsmStats.regState) {
         case GSM_REG_STATE_IDLE:
         case GSM_REG_STATE_CONNECTING:
-            gsmReconnectTimer.StartMicros(GSM_NETWORG_REG_TIMEOUT);
+            gsmReconnectTimer.StartMillis(GSM_NETWORG_REG_TIMEOUT);
             break;
         case GSM_REG_STATE_CONNECTED_HOME:
         case GSM_REG_STATE_CONNECTED_ROAMING:
@@ -354,6 +396,10 @@ void GSMNetworkManager::OnTimerComplete(Timer * timer)
         modemManager->StartModem();
         return;
     }
+    if (timer == &gsmNetworkTypeTimer) {
+        modemManager->StartModem();
+        return;
+    }
     if (timer == &gsmSimTimer) {
         modemManager->ForceCommand(new PinStatusModemCMD(GSM_SIM_PIN_CMD, MODEM_COMMAND_TIMEOUT));
         return;
@@ -369,7 +415,7 @@ void GSMNetworkManager::OnTimerComplete(Timer * timer)
 }
 
 void GSMNetworkManager::FetchModemStats() {
-    gsmNetStatsTimer.StartMicros(QUALITY_CHECK_DURATION);
+    gsmNetStatsTimer.StartMillis(QUALITY_CHECK_DURATION);
     modemManager->AddCommand(new BaseModemCMD(GSM_CMD_TIME, MODEM_COMMAND_TIMEOUT, true));
     modemManager->AddCommand(new BaseModemCMD(GSM_CMD_NETWORK_QUALITY));
 }
@@ -439,7 +485,6 @@ void GSMNetworkManager::HandleGSMFail(GSM_FAIL_STATE failState)
     }
 }
 
-
 void GSMNetworkManager::UpdateThresoldState(GSM_THRESHOLD_STATE state)
 {
     gsmStats.thresholdState = state;
@@ -450,6 +495,14 @@ void GSMNetworkManager::UpdateThresoldState(GSM_THRESHOLD_STATE state)
 }
 void GSMNetworkManager::UpdateNetworkType(GSM_NETWORK_TYPE type)
 {
+    if (type == GSM_NETWORK_UNKNOWN) {
+        if (!gsmNetworkTypeTimer.IsRunning()) {
+            gsmNetworkTypeTimer.StartSeconds(60);
+        }
+    } else {
+        gsmNetworkTypeTimer.Stop();
+    }
+
     gsmStats.networkType = type;
     if (listener != NULL) {
         listener->OnGSMNetworkType(gsmStats.networkType);
