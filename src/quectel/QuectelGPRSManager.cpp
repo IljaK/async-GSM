@@ -189,11 +189,11 @@ void QuectelGPRSManager::HandleDNSGIP(char **args, size_t argsLen)
     } else if (argsLen == 2) {
         // Handle IP or error
         if (!hostnameResolve->IsFilled()) {
-            // +QIURC: "dnsgip",<err>
-            hostnameResolve->SetCount(0, atoi(args[1]));
-        } else {
             // +QIURC: "dnsgip",<hostIPaddr>
             hostnameResolve->AddIP(args[1]);
+        } else {
+            // +QIURC: "dnsgip",<err>
+            hostnameResolve->SetCount(0, atoi(args[1]));
         }
 
     }
