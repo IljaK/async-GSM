@@ -51,6 +51,7 @@ private:
 protected:
     void FetchModemStats() override;
     void ContinueConfigureModem() override;
+    void OnTimeUpdated() override;
 
 public:
     UbloxGSMNetworkManager(GSMModemManager *gsmManager);

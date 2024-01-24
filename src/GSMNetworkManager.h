@@ -47,7 +47,6 @@ enum GSM_MODEM_CONFIGURATION_STEP: uint8_t {
 class GSMNetworkManager: public IBaseGSMHandler, public ITimerCallback
 {
 private:
-    timez_t currentTime;
     unsigned long syncTS = 0;
 
     const char *simPin;
@@ -74,6 +73,7 @@ private:
     inline void UpdateCregResult(GSM_REG_STATE state);
 
 protected:
+    timez_t currentTime;
     GSMModemManager *modemManager;
     GSM_INIT_STATE GetInitState();
     GSM_MODEM_CONFIGURATION_STEP GetConfigurationStep();
@@ -89,6 +89,7 @@ protected:
 
     virtual void ContinueConfigureModem();
     void ConfigureModemCompleted();
+    virtual void OnTimeUpdated();
 
 public:
     GSMNetworkManager(GSMModemManager *gsmManager);

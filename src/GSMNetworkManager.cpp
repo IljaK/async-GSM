@@ -212,10 +212,10 @@ bool GSMNetworkManager::OnGSMResponse(BaseModemCMD *request, char *response, siz
                 tmz tmzStruct;
                 currentTime.utcStamp = ExtractTime(stamp, &tmzStruct);
                 currentTime.quaterZone = tmzStruct.quaterZone;
-                currentTime.utcStamp -= ZoneInSeconds(tmzStruct.quaterZone);
                 if (currentTime.utcStamp != 0) {
                     syncTS = millis();
                 }
+                OnTimeUpdated();
             }
         } else if (type == MODEM_RESPONSE_TIMEOUT) {
             modemManager->StartModem();
@@ -520,4 +520,9 @@ GSM_INIT_STATE GSMNetworkManager::GetInitState()
 GSM_MODEM_CONFIGURATION_STEP GSMNetworkManager::GetConfigurationStep()
 {
     return (GSM_MODEM_CONFIGURATION_STEP)configurationStep;
+}
+
+void GSMNetworkManager::OnTimeUpdated()
+{
+
 }

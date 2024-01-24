@@ -46,17 +46,15 @@ bool QuectelGSMNetworkManager::OnGSMResponse(BaseModemCMD *request, char *respon
     // <PA_temp> Integer type. PA temperature. Unit: Degree Celsius
 
     if (strcmp(request->cmd, QUECTEL_TEMP_CMD) == 0) {
-        if (request->GetIsCheck()) {
-            if (type == MODEM_RESPONSE_DATA) {
-                if (strlen(response) > strlen(QUECTEL_TEMP_CMD) + 2) {
-                    char* temp = response + strlen(QUECTEL_TEMP_CMD) + 2;
-                    char *tempArgs[3];
-                    SplitString(temp, ',', tempArgs, 3, false);
-                    UpdateTemperature(atoi(tempArgs[0]));
-                }
-            } else if (type >= MODEM_RESPONSE_ERROR) {
-                // TODO: ?
+        if (type == MODEM_RESPONSE_DATA) {
+            if (strlen(response) > strlen(QUECTEL_TEMP_CMD) + 2) {
+                char* temp = response + strlen(QUECTEL_TEMP_CMD) + 2;
+                char *tempArgs[3];
+                SplitString(temp, ',', tempArgs, 3, false);
+                UpdateTemperature(atoi(tempArgs[0]));
             }
+        } else if (type >= MODEM_RESPONSE_ERROR) {
+            // TODO: ?
         }
         return true;
     }

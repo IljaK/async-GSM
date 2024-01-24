@@ -216,3 +216,10 @@ void UbloxGSMNetworkManager::OnModemReboot()
     ubloxConfigurationStep = GSM_UBLOX_CONFIGURATION_STEP_NONE;
     GSMNetworkManager::OnModemReboot();
 }
+
+void UbloxGSMNetworkManager::OnTimeUpdated()
+{
+    if (currentTime.utcStamp != 0) {
+        currentTime.utcStamp -= ZoneInSeconds(currentTime.quaterZone);
+    }
+}
