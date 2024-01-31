@@ -169,17 +169,17 @@ void QuectelGSMNetworkManager::UpdateNetworkType(char *networkType)
 {
     GSM_NETWORK_TYPE type = GSM_NETWORK_UNKNOWN;
     if (strcmp("CDMA", networkType) == 0) {
-        type = GSM_NETWORK_OTHER;
+        type = GSM_NETWORK_3G_OTHER;
     } else if (strcmp("CDMA1X", networkType) == 0) {
-        type = GSM_NETWORK_OTHER;
+        type = GSM_NETWORK_3G_OTHER;
     } else if (strcmp("CDMA1X AND HDR", networkType) == 0) {
-        type = GSM_NETWORK_OTHER;
+        type = GSM_NETWORK_3G_OTHER;
     } else if (strcmp("CDMA1X AND EHRPD", networkType) == 0) {
-        type = GSM_NETWORK_OTHER;
+        type = GSM_NETWORK_3G_OTHER;
     } else if (strcmp("HDR", networkType) == 0) {
-        type = GSM_NETWORK_OTHER;
+        type = GSM_NETWORK_3G_OTHER;
     } else if (strcmp("HDR-EHRPD", networkType) == 0) {
-        type = GSM_NETWORK_OTHER;
+        type = GSM_NETWORK_3G_OTHER;
     } else if (strcmp("GSM", networkType) == 0) {
         type = GSM_NETWORK_2G_GSM;
     } else if (strcmp("GPRS", networkType) == 0) {
@@ -195,13 +195,13 @@ void QuectelGSMNetworkManager::UpdateNetworkType(char *networkType)
     } else if (strcmp("HSUPA", networkType) == 0) {
         type = GSM_NETWORK_3G_HSUPA;
     } else if (strcmp("HSPA+", networkType) == 0) {
-        type = GSM_NETWORK_3G_HSDPA_HSUPA;
+        type = GSM_NETWORK_3G_HSPA;
     } else if (strcmp("HSDPA&HSUPA", networkType) == 0) {
-        type = GSM_NETWORK_3G_HSDPA_HSUPA;
+        type = GSM_NETWORK_3G_HSPA;
     } else if (strcmp("TDSCDMA", networkType) == 0) {
-        type = GSM_NETWORK_OTHER;
+        type = GSM_NETWORK_3G_OTHER;
     }  else if (strcmp("TD-SCDMA", networkType) == 0) {
-        type = GSM_NETWORK_OTHER;
+        type = GSM_NETWORK_3G_OTHER;
     } else if (strcmp("TDD LTE", networkType) == 0) {
         type = GSM_NETWORK_4G_LTE;
     } else if (strcmp("FDD LTE", networkType) == 0) {

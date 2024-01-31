@@ -136,6 +136,7 @@ bool GPRSManager::ForceDeactivate()
     if (apnState != GSM_APN_DEACTIVATED) {
         apnState = GSM_APN_DEACTIVATING;
     }
+    deviceAddr.dword = 0;
     SendCGACT(false, 0);
     return true;
 }
@@ -191,6 +192,7 @@ void GPRSManager::HandleAPNUpdate(GSM_APN_STATE apnState)
         switch (apnState)
         {
         case GSM_APN_DEACTIVATED:
+            deviceAddr.dword = 0;
             coolDownTimer.StartMicros(GPRS_COOLDOWN_DELAY);
             apnHandler->OnGPRSDeactivated();
             break;

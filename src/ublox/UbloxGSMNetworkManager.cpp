@@ -44,7 +44,7 @@ void UbloxGSMNetworkManager::UpdateUregState(char *state)
             break;
         case 6:
             // 6: registered for PS service, RAT=3G, HSDPA and HSUPA available
-            type = GSM_NETWORK_3G_HSDPA_HSUPA;
+            type = GSM_NETWORK_3G_HSPA;
             break;
         case 7:
             // 7: registered for PS service, RAT=4G

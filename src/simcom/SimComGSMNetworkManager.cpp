@@ -21,48 +21,35 @@ bool SimComGSMNetworkManager::OnGSMEvent(char * data, size_t dataLen)
     }
 
     if (IsEvent(SIMCOM_NETWORK_TYPE_STATUS, data, dataLen)) {
-        char *ureg = data + strlen(SIMCOM_NETWORK_TYPE_STATUS) + 2;
+        char *cnsmod = data + strlen(SIMCOM_NETWORK_TYPE_STATUS) + 2;
         GSM_NETWORK_TYPE type = GSM_NETWORK_UNKNOWN;
-        switch (atoi(ureg))
+        switch (atoi(cnsmod))
         {
             case 0:
-                // 0: not registered for PS service
                 break;
             case 1:
-                // 1: registered for PS service, RAT=2G, GPRS available
-                type = GSM_NETWORK_2G_GPRS;
+                type = GSM_NETWORK_2G_GSM;
                 break;
             case 2:
-                // 2: registered for PS service, RAT=2G, EDGE available
-                type = GSM_NETWORK_2G_EDGE;
-                break;
-            case 3:
-                // 3: registered for PS service, RAT=3G, WCDMA available
-                type = GSM_NETWORK_3G_WCDMA;
-                break;
-            case 4:
-                // 4: registered for PS service, RAT=3G, HSDPA available
-                type = GSM_NETWORK_3G_HSDPA;
-                break;
-            case 5:
-                // 5: registered for PS service, RAT=3G, HSUPA available
-                type = GSM_NETWORK_3G_HSUPA;
-                break;
-            case 6:
-                // 6: registered for PS service, RAT=3G, HSDPA and HSUPA available
-                type = GSM_NETWORK_3G_HSDPA_HSUPA;
-                break;
-            case 7:
-                // 7: registered for PS service, RAT=4G
-                type = GSM_NETWORK_4G_LTE;
-                break;
-            case 8:
-                // 8: registered for PS service, RAT=2G, GPRS available, DTM available
                 type = GSM_NETWORK_2G_GPRS;
                 break;
-            case 9:
-                // 9: registered for PS service, RAT=2G, EDGE available, DTM available
+            case 3:
                 type = GSM_NETWORK_2G_EDGE;
+                break;
+            case 4:
+                type = GSM_NETWORK_3G_WCDMA;
+                break;
+            case 5:
+                type = GSM_NETWORK_3G_HSDPA;
+                break;
+            case 6:
+                type = GSM_NETWORK_3G_HSUPA;
+                break;
+            case 7:
+                type = GSM_NETWORK_3G_HSPA;
+                break;
+            case 8:
+                type = GSM_NETWORK_4G_LTE;
                 break;
         }
         GSMNetworkManager::UpdateNetworkType(type);

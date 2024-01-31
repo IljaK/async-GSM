@@ -29,6 +29,7 @@ constexpr char GSM_CMD_NETWORK_QUALITY[] = "+CSQ"; // Signal quality
 constexpr char GSM_CMD_TIME[] = "+CCLK";
 
 constexpr unsigned long GSM_NETWORG_REG_TIMEOUT = 90000ul;
+constexpr unsigned long GSM_NETWORG_REG_ERROR_TIMEOUT = 10000ul;
 constexpr unsigned long GSM_NETWORG_CREG_INTERVAL = 5000ul;
 
 enum GSM_MODEM_CONFIGURATION_STEP: uint8_t {

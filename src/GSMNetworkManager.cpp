@@ -356,11 +356,16 @@ void GSMNetworkManager::UpdateCregResult(GSM_REG_STATE state)
     //Serial.println((int)state);
 
     gsmStats.regState = state;
+    if (listener != NULL) {
+        listener->OnGSMStatus(gsmStats.regState);
+    }
 
     switch (gsmStats.regState) {
         case GSM_REG_STATE_IDLE:
         case GSM_REG_STATE_CONNECTING:
-            gsmReconnectTimer.StartMillis(GSM_NETWORG_REG_TIMEOUT);
+            if (!gsmReconnectTimer.IsRunning()) {
+                gsmReconnectTimer.StartMillis(GSM_NETWORG_REG_TIMEOUT);
+            }
             break;
         case GSM_REG_STATE_CONNECTED_HOME:
         case GSM_REG_STATE_CONNECTED_ROAMING:
@@ -377,15 +382,15 @@ void GSMNetworkManager::UpdateCregResult(GSM_REG_STATE state)
                     listener->OnGSMConnected();
                 }
             }
-            if (listener != NULL) {
-                listener->OnGSMStatus(gsmStats.regState);
-            }
             break;
         case GSM_REG_STATE_DENIED:
         case GSM_REG_STATE_UNKNOWN:
-            gsmReconnectTimer.Stop();
-            // TODO: or give modem chance to connect?
-            HandleGSMFail(GSM_FAIL_REG_NETWORK);
+            if (initState > GSM_STATE_NONE && initState < GSM_STATE_READY) {
+                gsmReconnectTimer.Stop();
+                HandleGSMFail(GSM_FAIL_REG_NETWORK);
+            } else if (!gsmReconnectTimer.IsRunning()) {
+                gsmReconnectTimer.StartMillis(GSM_NETWORG_REG_ERROR_TIMEOUT);
+            }
             break;
     }
 }
