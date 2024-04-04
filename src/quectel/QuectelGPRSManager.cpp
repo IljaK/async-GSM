@@ -217,11 +217,14 @@ void QuectelGPRSManager::OnTimerComplete(Timer *timer)
 void QuectelGPRSManager::InternalHostNameResolve()
 {
     gipTimer.Stop();
+    if (hostnameResolve == NULL) {
+        return;
+    }
     QuectelHostNameResolve *h = hostnameResolve;
     hostnameResolve = NULL;
 
-    IPAddr ip = h->GetIP();
     /*
+    IPAddr ip = h->GetIP();
     Serial.print("GetIP: ");
     Serial.print((int)ip.octet[0]);
     Serial.print('.');

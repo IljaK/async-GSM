@@ -9,10 +9,10 @@
 class SimComGSMManager: public SimComGSMModemManager
 {
 protected:
-    SimComGPRSManager gprsManager;
-    SimComGSMNetworkManager gsmManager;
-    SimComGSMCallManager callManager;
     SimComGSMSocketManager socketManager;
+    SimComGPRSManager gprsManager;
+    SimComGSMCallManager callManager;
+    SimComGSMNetworkManager gsmManager;
     void ReBootModem(bool hardReset = true) override;
 
 public:

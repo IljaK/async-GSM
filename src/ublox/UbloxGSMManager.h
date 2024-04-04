@@ -8,10 +8,10 @@
 class UbloxGSMManager: public UbloxGSMModemManager
 {
 protected:
-    UbloxGPRSManager gprsManager;
-    UbloxGSMNetworkManager gsmManager;
-    UbloxGSMCallManager callManager;
     UbloxGSMSocketManager socketManager;
+    UbloxGPRSManager gprsManager;
+    UbloxGSMCallManager callManager;
+    UbloxGSMNetworkManager gsmManager;
     void ReBootModem(bool hardReset = true) override;
 
 public:

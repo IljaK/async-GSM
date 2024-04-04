@@ -15,10 +15,11 @@ constexpr char GSM_QUECTEL_URC_IND_EVENT[] = "+QIND";
 class QuectelGSMManager: public QuectelGSMModemManager
 {
 protected:
-    QuectelGPRSManager gprsManager;
-    QuectelGSMNetworkManager gsmManager;
-    QuectelGSMCallManager callManager;
     QuectelGSMSocketManager socketManager;
+    QuectelGPRSManager gprsManager;
+    QuectelGSMCallManager callManager;
+    QuectelGSMNetworkManager gsmManager;
+    
     void ReBootModem(bool hardReset = true) override;
 
 public:
