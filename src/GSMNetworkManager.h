@@ -28,7 +28,8 @@ constexpr char GSM_CMD_SMS_SEND[] = "+CMGS"; // "Send sms"
 constexpr char GSM_CMD_NETWORK_QUALITY[] = "+CSQ"; // Signal quality
 constexpr char GSM_CMD_TIME[] = "+CCLK";
 
-constexpr unsigned long GSM_NETWORG_REG_TIMEOUT = 90000ul;
+constexpr unsigned long GSM_NETWORG_REG_TIMEOUT = 180ul;
+constexpr unsigned long GSM_UNKNOWN_NETWORK_TIMEOUT = 30ul;
 constexpr unsigned long GSM_NETWORG_REG_ERROR_TIMEOUT = 10000ul;
 constexpr unsigned long GSM_NETWORG_CREG_INTERVAL = 5000ul;
 
@@ -59,7 +60,7 @@ private:
     Timer gsmSimTimer;
     Timer gsmNetStatsTimer;
     Timer gsmCREGTimer;
-    Timer gsmNetworkTypeTimer;
+    Timer gsmUnknownNetworkTimer;
 
     IGSMNetworkManager *listener = NULL;
     IncomingSMSInfo *incomingSms = NULL;

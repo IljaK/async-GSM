@@ -62,7 +62,7 @@ protected:
     //void Reboot(uint32_t baud, uint32_t config, bool hardReset);
     HardwareSerial *GetSerial();
     // For Uart pin reassignment
-    virtual void ResetSerial(uint32_t baud, uint32_t config);
+    virtual void ResetSerial(uint32_t baud, uint32_t config = SERIAL_8N1, int8_t rxPin=-1, int8_t txPin=-1, bool invert=false);
     virtual MODEM_RESPONSE_TYPE GetResponseType(BaseModemCMD *cmd, bool isTimeOut, bool isOverFlow);
 
 public:

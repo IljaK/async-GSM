@@ -12,7 +12,7 @@ GSMNetworkManager::GSMNetworkManager(GSMModemManager *modemManager):
     gsmSimTimer(this),
     gsmNetStatsTimer(this),
     gsmCREGTimer(this),
-    gsmNetworkTypeTimer(this)
+    gsmUnknownNetworkTimer(this)
 {
     this->modemManager = modemManager;
     gsmStats.Reset();
@@ -261,7 +261,7 @@ void GSMNetworkManager::UpdateSignalQuality(int strength, int quality)
     gsmStats.signalStrength = (uint8_t)calculated;
 
 
-    calculated = quality;
+    calculated = (double)quality;
     if (calculated > 7) {
         calculated = 0;
     }
@@ -326,7 +326,7 @@ void GSMNetworkManager::ContinueConfigureModem()
 void GSMNetworkManager::ConfigureModemCompleted()
 {
     gsmCREGTimer.StartMillis(GSM_NETWORG_CREG_INTERVAL);
-    gsmReconnectTimer.StartMillis(GSM_NETWORG_REG_TIMEOUT);
+    gsmReconnectTimer.StartSeconds(GSM_NETWORG_REG_TIMEOUT);
     modemManager->ForceCommand(new ByteModemCMD(1, GSM_CMD_NETWORK_REG));
 }
 
@@ -364,7 +364,7 @@ void GSMNetworkManager::UpdateCregResult(GSM_REG_STATE state)
         case GSM_REG_STATE_IDLE:
         case GSM_REG_STATE_CONNECTING:
             if (!gsmReconnectTimer.IsRunning()) {
-                gsmReconnectTimer.StartMillis(GSM_NETWORG_REG_TIMEOUT);
+                gsmReconnectTimer.StartSeconds(GSM_NETWORG_REG_TIMEOUT);
             }
             break;
         case GSM_REG_STATE_CONNECTED_HOME:
@@ -398,10 +398,12 @@ void GSMNetworkManager::UpdateCregResult(GSM_REG_STATE state)
 void GSMNetworkManager::OnTimerComplete(Timer * timer)
 {
     if (timer == &gsmReconnectTimer) {
+        Serial.println("GSMNetworkManager::OnTimerComplete 1");
         modemManager->StartModem();
         return;
     }
-    if (timer == &gsmNetworkTypeTimer) {
+    if (timer == &gsmUnknownNetworkTimer) {
+        Serial.println("GSMNetworkManager::OnTimerComplete 2");
         modemManager->StartModem();
         return;
     }
@@ -500,12 +502,15 @@ void GSMNetworkManager::UpdateThresoldState(GSM_THRESHOLD_STATE state)
 }
 void GSMNetworkManager::UpdateNetworkType(GSM_NETWORK_TYPE type)
 {
-    if (type == GSM_NETWORK_UNKNOWN) {
-        if (!gsmNetworkTypeTimer.IsRunning()) {
-            gsmNetworkTypeTimer.StartSeconds(60);
+    if (!gsmReconnectTimer.IsRunning()) {
+        // Run gsmUnknownNetworkTimer only if network initialized
+        if (type == GSM_NETWORK_UNKNOWN) {
+            if (!gsmUnknownNetworkTimer.IsRunning()) {
+                gsmUnknownNetworkTimer.StartSeconds(GSM_UNKNOWN_NETWORK_TIMEOUT);
+            }
+        } else {
+            gsmUnknownNetworkTimer.Stop();
         }
-    } else {
-        gsmNetworkTypeTimer.Stop();
     }
 
     gsmStats.networkType = type;

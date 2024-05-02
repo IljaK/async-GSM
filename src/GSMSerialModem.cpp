@@ -10,14 +10,18 @@ GSMSerialModem::~GSMSerialModem()
 
 }
 
-void GSMSerialModem::ResetSerial(uint32_t baud, uint32_t config)
+void GSMSerialModem::ResetSerial(uint32_t baud, uint32_t config, int8_t rxPin, int8_t txPin, bool invert)
 {
     HardwareSerial * serial = GetSerial();
 
     if (serial == NULL) return;
     serial->end();
     delay(10);
+#if defined(ESP32)
+    serial->begin(baud, config, rxPin, txPin, invert);
+#else
     serial->begin(baud, config);
+#endif
     ResetBuffer();
     delayMicroseconds(50);
 }
