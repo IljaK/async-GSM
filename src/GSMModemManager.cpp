@@ -150,26 +150,52 @@ void GSMModemManager::OnGSMResponseInternal(BaseModemCMD *cmd, char * response, 
             }
             FlushData();
             modemRebootTimer.Stop();
-            if (initBaudRate != targetBaudRate) {
-                if (debugPrint != NULL) {
-                    debugPrint->println(PSTR("MODEM_BOOT_SPEED_CHAGE"));
-                }
-                modemBootState = MODEM_BOOT_SPEED_CHAGE;
-                ForceCommandInternal(new ULongModemCMD(targetBaudRate, GSM_MODEM_SPEED_CMD, MODEM_COMMAND_TIMEOUT));
+
+        #if defined(MODEM_DEBUG_DETAILS)
+            if (debugPrint == NULL) {
+                InitSpeedChange();
             } else {
-                if (debugPrint != NULL) {
-                    debugPrint->println(PSTR("MODEM_BOOT_COMPLETED"));
-                }
-                modemBootState = MODEM_BOOT_DEBUG_SET;
-                ForceCommandInternal(new ByteModemCMD(1, GSM_MODEM_CME_ERR_CMD));
-                //modemBootState = MODEM_BOOT_COMPLETED;
-                //OnModemBooted();
+                modemBootState = MODEM_BOOT_FIRMWARE_INFO;
+                ForceCommandInternal(new BaseModemCMD(GSM_MODEM_GMI_CMD));
             }
+        #else
+            InitSpeedChange();
+        #endif
+
         } else if (type > MODEM_RESPONSE_OK) {
             FlushIncoming();
             ForceCommandInternal(new BaseModemCMD(NULL, MODEM_BOOT_COMMAND_TIMEOUT));
         }
         break;
+
+#if defined(MODEM_DEBUG_DETAILS)
+    // Firmware information:
+    case MODEM_BOOT_FIRMWARE_INFO:
+        if (cmd != NULL && type >= MODEM_RESPONSE_OK && type <= MODEM_RESPONSE_ERROR) {
+            size_t len = max(respLen, cmd->cmdLen);
+            //if (strncmp(cmd->cmd, GSM_MODEM_I_CMD, len) == 0) {
+            //    ForceCommandInternal(new BaseModemCMD(GSM_MODEM_GMI_CMD));
+            if (strncmp(cmd->cmd, GSM_MODEM_GMI_CMD, len) == 0) {
+                ForceCommandInternal(new BaseModemCMD(GSM_MODEM_CGMI_CMD));
+            } else if (strncmp(cmd->cmd, GSM_MODEM_CGMI_CMD, len) == 0) {
+                ForceCommandInternal(new BaseModemCMD(GSM_MODEM_GMM_CMD));
+            } else if (strncmp(cmd->cmd, GSM_MODEM_GMM_CMD, len) == 0) {
+                ForceCommandInternal(new BaseModemCMD(GSM_MODEM_CGMM_CMD));
+            } else if (strncmp(cmd->cmd, GSM_MODEM_CGMM_CMD, len) == 0) {
+                ForceCommandInternal(new BaseModemCMD(GSM_MODEM_GMR_CMD));
+            } else if (strncmp(cmd->cmd, GSM_MODEM_GMR_CMD, len) == 0) {
+                ForceCommandInternal(new BaseModemCMD(GSM_MODEM_CGMR_CMD));
+            } else { // GSM_MODEM_CGMR_CMD
+                InitSpeedChange();
+            }
+        } else if (type > MODEM_RESPONSE_ERROR) {
+            if (debugPrint != NULL) {
+                debugPrint->println(PSTR("MODEM_BOOT_SPEED_CHAGE FAIL"));
+            }
+            StartModem();
+        }
+        break;
+#endif
     case MODEM_BOOT_SPEED_CHAGE:
         if (type == MODEM_RESPONSE_OK) {
             if (debugPrint != NULL) {
@@ -210,6 +236,23 @@ void GSMModemManager::OnGSMResponseInternal(BaseModemCMD *cmd, char * response, 
         break;
     default:
         break;
+    }
+}
+
+inline void GSMModemManager::InitSpeedChange()
+{
+    if (initBaudRate != targetBaudRate) {
+        if (debugPrint != NULL) {
+            debugPrint->println(PSTR("MODEM_BOOT_SPEED_CHAGE"));
+        }
+        modemBootState = MODEM_BOOT_SPEED_CHAGE;
+        ForceCommandInternal(new ULongModemCMD(targetBaudRate, GSM_MODEM_SPEED_CMD, MODEM_COMMAND_TIMEOUT));
+    } else {
+        if (debugPrint != NULL) {
+            debugPrint->println(PSTR("MODEM_BOOT_COMPLETED"));
+        }
+        modemBootState = MODEM_BOOT_DEBUG_SET;
+        ForceCommandInternal(new ByteModemCMD(1, GSM_MODEM_CME_ERR_CMD));
     }
 }
 

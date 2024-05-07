@@ -12,6 +12,27 @@
 constexpr char GSM_MODEM_SPEED_CMD[] = "+IPR"; // AT+IPR=9600
 constexpr char GSM_MODEM_CME_ERR_CMD[] = "+CMEE"; // ERROR reporting mode
 
+#if defined(MODEM_DEBUG_DETAILS)
+
+// constexpr char GSM_MODEM_I_CMD[] = "I"; // Returns some module information as the module type number and some details about the firmware version.
+constexpr char GSM_MODEM_GMI_CMD[] = "+GMI"; // Manufacturer identification
+constexpr char GSM_MODEM_CGMI_CMD[] = "+CGMI"; // Manufacturer identification
+constexpr char GSM_MODEM_GMM_CMD[] = "+GMM"; // Model identification
+constexpr char GSM_MODEM_CGMM_CMD[] = "+CGMM"; // Model identification
+constexpr char GSM_MODEM_GMR_CMD[] = "+GMR"; // Firmware version identification
+constexpr char GSM_MODEM_CGMR_CMD[] = "+CGMR"; // Firmware version identification
+
+// Manufacturer identification +CGMI
+// Model identification +GMM It is identical with AT+CGMM.
+// Model identification +CGMM  It is identical with AT+GMM.
+// Firmware version identification +GMR  It is identical with AT+CGMR.
+// Firmware version identification +CGMR  It is identical with AT+GMR
+
+// Request product serial number identification +CGSN
+// IMEI identification +GSN It is identical with AT+CGSN
+#endif
+
+
 // Timeout for getting proper response for AT command (on modem initialization + modem speed change)
 constexpr unsigned long GSM_MODEM_INIT_TIMEOUT = 20000000ul;
 constexpr unsigned long GSM_MODEM_SIM_INIT_TIMEOUT = 30000000ul;
@@ -41,6 +62,11 @@ enum MODEM_BOOT_STATE {
     MODEM_BOOT_IDLE,
     MODEM_BOOT_RESET,
     MODEM_BOOT_CONNECTING,
+
+#if defined(MODEM_DEBUG_DETAILS)
+    MODEM_BOOT_FIRMWARE_INFO,
+#endif
+
     MODEM_BOOT_SPEED_CHAGE,
     MODEM_BOOT_RECONNECTING,
     MODEM_BOOT_DEBUG_SET,
@@ -68,6 +94,7 @@ private:
     ModemCommandStack commandStack;
 
     bool ForceCommandInternal(BaseModemCMD *cmd);
+    inline void InitSpeedChange();
 
 public:
     GSMModemManager(HardwareSerial *serial, int8_t resetPin);
