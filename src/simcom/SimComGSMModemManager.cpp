@@ -1,8 +1,8 @@
 #include "SimComGSMModemManager.h"
 
-SimComGSMModemManager::SimComGSMModemManager(HardwareSerial *serial, int8_t resetPin):GSMModemManager(serial, resetPin)
+SimComGSMModemManager::SimComGSMModemManager(HardwareSerial *serial, int8_t resetPin, uint32_t targetBaudRate):GSMModemManager(serial, resetPin)
 {
-    SetConfig(115200ul, 921600ul, SERIAL_8N1);
+    SetConfig(115200ul, targetBaudRate, SERIAL_8N1);
 }
 
 SimComGSMModemManager::~SimComGSMModemManager()

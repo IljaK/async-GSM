@@ -398,12 +398,10 @@ void GSMNetworkManager::UpdateCregResult(GSM_REG_STATE state)
 void GSMNetworkManager::OnTimerComplete(Timer * timer)
 {
     if (timer == &gsmReconnectTimer) {
-        Serial.println("GSMNetworkManager::OnTimerComplete 1");
         modemManager->StartModem();
         return;
     }
     if (timer == &gsmUnknownNetworkTimer) {
-        Serial.println("GSMNetworkManager::OnTimerComplete 2");
         modemManager->StartModem();
         return;
     }

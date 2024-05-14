@@ -1,6 +1,6 @@
 #include "UbloxGSMManager.h"
 
-UbloxGSMManager::UbloxGSMManager(HardwareSerial *serial, int8_t resetPin):UbloxGSMModemManager(serial, resetPin),
+UbloxGSMManager::UbloxGSMManager(HardwareSerial *serial, int8_t resetPin, uint32_t targetBaudRate):UbloxGSMModemManager(serial, resetPin, targetBaudRate),
     socketManager(this, &gprsManager),
     gprsManager(this),
     callManager(this),

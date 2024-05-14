@@ -15,7 +15,7 @@ protected:
     void ReBootModem(bool hardReset = true) override;
 
 public:
-    UbloxGSMManager(HardwareSerial *serial, int8_t resetPin);
+    UbloxGSMManager(HardwareSerial *serial, int8_t resetPin, uint32_t targetBaudRate = 921600ul);
     virtual ~UbloxGSMManager();
 
     bool OnGSMResponse(BaseModemCMD *request, char * response, size_t respLen, MODEM_RESPONSE_TYPE type) override;

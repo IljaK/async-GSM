@@ -1,8 +1,8 @@
 #include "UbloxGSMModemManager.h"
 
-UbloxGSMModemManager::UbloxGSMModemManager(HardwareSerial *serial, int8_t resetPin):GSMModemManager(serial, resetPin)
+UbloxGSMModemManager::UbloxGSMModemManager(HardwareSerial *serial, int8_t resetPin, uint32_t targetBaudRate):GSMModemManager(serial, resetPin)
 {
-    SetConfig(115200ul, 921600ul, SERIAL_8N1);
+    SetConfig(115200ul, targetBaudRate, SERIAL_8N1);
 }
 
 UbloxGSMModemManager::~UbloxGSMModemManager()

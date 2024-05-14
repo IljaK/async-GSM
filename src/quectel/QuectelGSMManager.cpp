@@ -1,6 +1,6 @@
 #include "QuectelGSMManager.h"
 
-QuectelGSMManager::QuectelGSMManager(HardwareSerial *serial, int8_t resetPin):QuectelGSMModemManager(serial, resetPin),
+QuectelGSMManager::QuectelGSMManager(HardwareSerial *serial, int8_t resetPin, uint32_t targetBaudRate):QuectelGSMModemManager(serial, resetPin, targetBaudRate),
     socketManager(this, &gprsManager),
     gprsManager(this),
     callManager(this),

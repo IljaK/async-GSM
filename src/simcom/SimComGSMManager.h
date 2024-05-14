@@ -16,7 +16,7 @@ protected:
     void ReBootModem(bool hardReset = true) override;
 
 public:
-    SimComGSMManager(HardwareSerial *serial, int8_t resetPin);
+    SimComGSMManager(HardwareSerial *serial, int8_t resetPin, uint32_t targetBaudRate = 921600ul);
     virtual ~SimComGSMManager();
 
     bool OnGSMResponse(BaseModemCMD *request, char * response, size_t respLen, MODEM_RESPONSE_TYPE type) override;

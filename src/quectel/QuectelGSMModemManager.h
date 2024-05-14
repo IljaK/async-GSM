@@ -6,7 +6,7 @@ constexpr char QUECTEL_GSM_SOCKET_SEND_FAIL[] = "SEND FAIL";
 class QuectelGSMModemManager: public GSMModemManager
 {
 public:
-    QuectelGSMModemManager(HardwareSerial *serial, int8_t resetPin);
+    QuectelGSMModemManager(HardwareSerial *serial, int8_t resetPin, uint32_t targetBaudRate = 921600ul);
     virtual ~QuectelGSMModemManager();
 
     void ReBootModem(bool hardReset = true) override;
