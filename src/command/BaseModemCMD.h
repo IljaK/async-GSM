@@ -40,37 +40,37 @@ public:
         return getBitFromByte(descriptorByte, CMD_BIT_IS_CHECK);
     }
     void SetIsCheck(bool value) {
-        setBitsValue(&descriptorByte, value, 1, CMD_BIT_IS_CHECK);
+        descriptorByte = setBitsValue(descriptorByte, value, 1, CMD_BIT_IS_CHECK);
     }
     bool GetIsModifier() {
         return getBitFromByte(descriptorByte, CMD_BIT_IS_SET);
     }
     void SetIsModifier(bool value) {
-        setBitsValue(&descriptorByte, value, 1, CMD_BIT_IS_SET);
+        descriptorByte = setBitsValue(descriptorByte, value, 1, CMD_BIT_IS_SET);
     }
     bool GetInQuatations() {
         return getBitFromByte(descriptorByte, CMD_BIT_QUOTATIONS);
     }
     void SetInQuatations(bool value) {
-        setBitsValue(&descriptorByte, value, 1, CMD_BIT_QUOTATIONS);
+        descriptorByte = setBitsValue(descriptorByte, value, 1, CMD_BIT_QUOTATIONS);
     }
     bool GetEndSemicolon() {
         return getBitFromByte(descriptorByte, CMD_BIT_SEMICOLON);
     }
     void SetEndSemicolon(bool value) {
-        setBitsValue(&descriptorByte, value, 1, CMD_BIT_EXTRA_TRIGGER);
+        descriptorByte = setBitsValue(descriptorByte, value, 1, CMD_BIT_EXTRA_TRIGGER);
     }
     bool GetHasExtraTrigger() {
         return getBitFromByte(descriptorByte, CMD_BIT_EXTRA_TRIGGER);
     }
     void SetHasExtraTrigger(bool value) {
-        setBitsValue(&descriptorByte, value, 1, CMD_BIT_EXTRA_TRIGGER);
+        descriptorByte = setBitsValue(descriptorByte, value, 1, CMD_BIT_EXTRA_TRIGGER);
     }
     bool GetIsRespStarted() {
         return getBitFromByte(descriptorByte, CMD_BIT_RESP_BEGIN);
     }
     void SetIsRespStarted(bool value) {
-        setBitsValue(&descriptorByte, value, 1, CMD_BIT_RESP_BEGIN);
+        descriptorByte = setBitsValue(descriptorByte, value, 1, CMD_BIT_RESP_BEGIN);
     }
 
     virtual void WriteStream(Print *stream) { };
