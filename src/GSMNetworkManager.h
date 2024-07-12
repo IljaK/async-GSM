@@ -49,6 +49,7 @@ enum GSM_MODEM_CONFIGURATION_STEP: uint8_t {
 class GSMNetworkManager: public IBaseGSMHandler, public ITimerCallback
 {
 private:
+    uint16_t smsGeneratedId = 1;
     unsigned long syncTS = 0;
 
     const char *simPin;
@@ -97,7 +98,7 @@ public:
     GSMNetworkManager(GSMModemManager *gsmManager);
     virtual ~GSMNetworkManager();
 
-    bool InitSendSMS(char *phone, uint8_t customData = 0);
+    uint16_t InitSendSMS(char *phone);
 
     bool OnGSMResponse(BaseModemCMD *request, char * response, size_t respLen, MODEM_RESPONSE_TYPE type) override;
     bool OnGSMEvent(char * data, size_t dataLen) override;

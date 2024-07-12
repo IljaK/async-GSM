@@ -190,7 +190,7 @@ bool GSMNetworkManager::OnGSMResponse(BaseModemCMD *request, char *response, siz
         SMSSendModemCMD *sendSMSCmd = (SMSSendModemCMD *)request;
         if (type == MODEM_RESPONSE_EXTRA_TRIGGER) {
             Stream *modemStream = modemManager->GetModemStream();
-            bool success = (listener != NULL && listener->OnSMSSendStream(modemStream, sendSMSCmd->phoneNumber, sendSMSCmd->customData));
+            bool success = (listener != NULL && listener->OnSMSSendStream(modemStream, sendSMSCmd->phoneNumber, sendSMSCmd->smsId));
             sendSMSCmd->EndStream(modemStream, !success);
         } else if (type == MODEM_RESPONSE_DATA) {
             if (strncmp(GSM_CMD_SMS_SEND, response, strlen(GSM_CMD_SMS_SEND)) == 0) {
@@ -199,6 +199,9 @@ bool GSMNetworkManager::OnGSMResponse(BaseModemCMD *request, char *response, siz
                 // Have nothing to do with that
             }
         } else {
+            if (listener != NULL) {
+                listener->OnSMSSendStreamError(sendSMSCmd->phoneNumber, sendSMSCmd->smsId);
+            }
             // Do nothing?
         }
         return true;
@@ -451,9 +454,13 @@ GSMNetworkStats GSMNetworkManager::GetGSMStats() {
     return gsmStats;
 }
 
-bool GSMNetworkManager::InitSendSMS(char *phone, uint8_t customData)
+uint16_t GSMNetworkManager::InitSendSMS(char *phone)
 {
-    return modemManager->AddCommand(new SMSSendModemCMD(phone, GSM_CMD_SMS_SEND, customData));
+    smsGeneratedId++;
+    if (modemManager->AddCommand(new SMSSendModemCMD(phone, GSM_CMD_SMS_SEND, smsGeneratedId))) {
+        return smsGeneratedId;
+    }
+    return 0;
 }
 
 void GSMNetworkManager::OnModemReboot()
