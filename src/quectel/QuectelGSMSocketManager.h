@@ -2,6 +2,11 @@
 #include "socket/GSMSocketManager.h"
 #include "GSMModemManager.h"
 
+enum QUECTEL_SOCKET_ACCESS_MODE: uint8_t {
+    QUECTEL_SOCKET_ACCESS_MODE_BUFFER = 0,
+    QUECTEL_SOCKET_ACCESS_MODE_DIRECT = 1,
+};
+
 // AT+QIOPEN Open a Socket Service
 // AT+QIOPEN=<contextID>,<connectID>,<service_type>,<IP_address>/<domain_name>,<remote_port>[,<local_port>[,<access_mode>]]
 constexpr char GSM_QUECTEL_SOCKET_CONNECT_CMD[] = "+QIOPEN"; // 

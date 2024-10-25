@@ -34,25 +34,31 @@ bool SimComGSMSocketManager::OnGSMResponse(BaseModemCMD *request, char * respons
     }
 
     if (strcmp(request->cmd, GSM_SIMCOM_SOCKET_READ_CMD) == 0) {
-        ByteShortModemCMD *usordCMD = (ByteShortModemCMD*)request;
+        LongArrayModemCMD *cipixgetCMD = (LongArrayModemCMD*)request;
+        uint8_t socketId = cipixgetCMD->values[1];
         //GSMSocket *sock = GetSocket(usordCMD->byteData);
         //uint16_t size = 0;
         if (type == MODEM_RESPONSE_DATA) {
-            /*
-            char *usord = response + strlen(GSM_SIMCOM_SOCKET_READ_CMD) + 2;
-            char *usordArgs[3];
-            SplitString(usord, ',', usordArgs, 3, false);
-            usordArgs[2] = ShiftQuotations(usordArgs[2]);
-            size = atoi(usordArgs[1]);
-            // Decode string to same char buffer
-            uint8_t *data = (uint8_t *)usordArgs[2];
-            size_t decoded = decodeFromHex(usordArgs[2], data, size);
-            OnSocketData(usordCMD->byteData, data, decoded);
-            */
+            // TODO:
+            char *cipixget = response + strlen(GSM_SIMCOM_SOCKET_READ_CMD) + 2;
+            char *cipixgetArgs[4];
+            SplitString(cipixget, ',', cipixgetArgs, 4, false);
+
+            uint16_t dataSize = atoi(cipixgetArgs[2]);
+
+            if (dataSize > 0) {
+                gsmManager->SetExpectFixedLength(dataSize, 100000ul);
+                long vals[3] = { 2, socketId, dataSize };
+                gsmManager->AddCommand(new LongArrayModemCMD(vals, 3, GSM_SIMCOM_SOCKET_READ_CMD));
+            }
+
+        } else if (type == MODEM_RESPONSE_EXPECT_DATA) {
+            OnSocketData(socketId, (uint8_t *)response, respLen);
+
         } else if (type == MODEM_RESPONSE_OK) {
-            // TODO: No need to handle next read, event +UUSORD will be triggered again if there is something left
+            // TODO: Check if some thing left?
         } else {
-            CloseSocket(usordCMD->byteData);
+            CloseSocket(socketId);
         }
         return true;
     }
@@ -122,14 +128,10 @@ bool SimComGSMSocketManager::OnGSMEvent(char * data, size_t dataLen)
             available = GSM_SOCKET_BUFFER_SIZE;
         }
 
-        SetExpectingResponse(socketId, available);
-
-        /*
         if (available > 0) {
-            long vals[3] = { 3, socketId, available };
-            gsmManager->ForceCommand(new LongArrayModemCMD(vals, 3, GSM_SIMCOM_SOCKET_READ_CMD));
+            long vals[3] = { 2, socketId, available };
+            gsmManager->AddCommand(new LongArrayModemCMD(vals, 3, GSM_SIMCOM_SOCKET_READ_CMD));
         }
-        */
         return true;
     }
     if (IsEvent(GSM_SIMCOM_SOCKET_WRITE_CMD, data, dataLen)) {

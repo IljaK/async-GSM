@@ -11,7 +11,7 @@ constexpr char GSM_SIMCOM_SOCKET_CONNECT_CMD[] = "+CIPOPEN"; // AT+CIPOPEN=0,"TC
 constexpr char GSM_SIMCOM_SOCKET_CLOSE_CMD[] = "+CIPCLOSE"; // AT+CIPCLOSE is used to close a TCP or UDP Socket
 constexpr char GSM_SIMCOM_SOCKET_CLOSE_EVENT[] = "+IPCLOSE"; // +IPCLOSE: <client_index>,<close_reason>
 
-constexpr char GSM_SIMCOM_SOCKET_READ_CMD[] = "+CIPRXGET"; // +USORD: (0-6),(0-1024)
+constexpr char GSM_SIMCOM_SOCKET_READ_CMD[] = "+CIPRXGET"; // AT+CIPRXGET=2,<link_num>[,<len>]
 constexpr char GSM_SIMCOM_SOCKET_READ_EVENT[] = "+RECEIVE"; // +RECEIVE: <socket>,<length> +RECEIVE: 3,16
 
 /*

@@ -35,25 +35,25 @@ bool QuectelGSMSocketManager::OnGSMResponse(BaseModemCMD *request, char * respon
 
     // Buffer access mode:
     if (strcmp(request->cmd, GSM_QUECTEL_SOCKET_READ_CMD) == 0) {
-        ByteShortModemCMD *usordCMD = (ByteShortModemCMD*)request;
+        ULong2ModemCMD *qirdCMD = (ULong2ModemCMD*)request;
         //GSMSocket *sock = GetSocket(usordCMD->byteData);
         //uint16_t size = 0;
         if (type == MODEM_RESPONSE_DATA) {
-            /*
-            char *usord = response + strlen(GSM_QUECTEL_SOCKET_READ_CMD) + 2;
-            char *usordArgs[3];
-            SplitString(usord, ',', usordArgs, 3, false);
-            usordArgs[2] = ShiftQuotations(usordArgs[2]);
-            size = atoi(usordArgs[1]);
-            // Decode string to same char buffer
-            uint8_t *data = (uint8_t *)usordArgs[2];
-            size_t decoded = decodeFromHex(usordArgs[2], data, size);
-            OnSocketData(usordCMD->byteData, data, decoded);
-            */
+            char *quird = response + strlen(GSM_QUECTEL_SOCKET_READ_CMD) + 2;
+            size_t dataSize = atoi(quird);
+
+            if (dataSize > 0) {
+                gsmManager->SetExpectFixedLength(dataSize, 100000ul);
+                gsmManager->AddCommand(new ULong2ModemCMD(qirdCMD->valueData, GSM_SOCKET_BUFFER_SIZE, GSM_QUECTEL_SOCKET_READ_CMD));
+            }
+
+        } else if (type == MODEM_RESPONSE_EXPECT_DATA) {
+            OnSocketData(qirdCMD->valueData, (uint8_t *)response, respLen);
+
         } else if (type == MODEM_RESPONSE_OK) {
-            // TODO: No need to handle next read, event +UUSORD will be triggered again if there is something left
+            // TODO: Check if some thing left?
         } else {
-            CloseSocket(usordCMD->byteData);
+            CloseSocket(qirdCMD->valueData);
         }
         return true;
     }
@@ -121,7 +121,7 @@ bool QuectelGSMSocketManager::Connect(GSMSocket *sock)
 {
     if (sock == NULL) return false;
     // AT+QIOPEN=<contextID>,<connectID>,<service_type>,<IP_address>/<domain_name>,<remote_port>[,<local_port>[,<access_mode>]]
-    return gsmManager->AddCommand(new SocketConnectContextCMD(1, sock->GetId(), (char *)"TCP", sock->GetIp(), sock->GetPort(), 1, GSM_QUECTEL_SOCKET_CONNECT_CMD, SOCKET_CONNECTION_TIMEOUT));
+    return gsmManager->AddCommand(new SocketConnectContextCMD(1, sock->GetId(), (char *)"TCP", sock->GetIp(), sock->GetPort(), QUECTEL_SOCKET_ACCESS_MODE_BUFFER, GSM_QUECTEL_SOCKET_CONNECT_CMD, SOCKET_CONNECTION_TIMEOUT));
 }
 
 bool QuectelGSMSocketManager::SetKeepAlive(GSMSocket *sock)
@@ -158,16 +158,20 @@ void QuectelGSMSocketManager::HandleURCRecv(char **args, size_t argsLen)
     //Serial.print("HandleURCRecv args: ");
     //Serial.println((int)argsLen);
 
-    // Indirect push mode:
+    // In direct push mode:
     // "recv",<connectID>,<currectrecvlength><CR><LF><data>.
 
+    // In buffer access mode:
+    // "recv",<connectID>
+
     // +QIURC: "recv",0,7
-    if (argsLen < 3) return;
+    if (argsLen == 2) {
+        uint8_t socketId = atoi(args[1]);
+        gsmManager->AddCommand(new ULong2ModemCMD(socketId, GSM_SOCKET_BUFFER_SIZE, GSM_QUECTEL_SOCKET_READ_CMD));
+    } else if (argsLen == 3) {
+        // Direct read data mode, not supported
+    }
 
-    uint8_t socketId = atoi(args[1]);
-    uint16_t available = atoi(args[2]);
-
-    SetExpectingResponse(socketId, available);
 
 }
 void QuectelGSMSocketManager::HandleURCIncoming(char **args, size_t argsLen)

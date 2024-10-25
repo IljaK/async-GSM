@@ -35,8 +35,8 @@ void GSMSerialModem::OnResponseReceived(bool isTimeOut, bool isOverFlow)
 
     if (isExpectingFixedSize) {
         if (debugPrint != NULL) {
-            debugPrint->print("EXPECTED: ");
-            debugPrint->print((int)bufferLength);
+            debugPrint->print("READED: ");
+            debugPrint->print((int)(bufferLength));
             debugPrint->print(" ");
             debugPrint->print((int)isTimeOut);
             debugPrint->print(" ");
@@ -44,7 +44,7 @@ void GSMSerialModem::OnResponseReceived(bool isTimeOut, bool isOverFlow)
             debugPrint->println(" ");
         }
         isExpectingFixedSize = false;
-        OnModemResponse(NULL, buffer, bufferLength, MODEM_RESPONSE_EXPECT_DATA);
+        OnModemResponse(pendingCMD, buffer, bufferLength, MODEM_RESPONSE_EXPECT_DATA);
         return;
     }
 

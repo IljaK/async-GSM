@@ -18,7 +18,6 @@ class SocketArray;
 class GSMSocketManager: public IBaseGSMHandler
 {
 private:
-    uint8_t receivingSocketId = GSM_SOCKET_ERROR_ID;
     SocketArray *socketArray = NULL;
     IGSMSocketManager *socketHandler = NULL;
     uint8_t pendingSockTransmission = 255; // 255 = NONE
@@ -50,7 +49,6 @@ protected:
 
     // Start Socket connection
     virtual bool ConnectSocketInternal(GSMSocket *socket) = 0;
-    void SetExpectingResponse(uint8_t socketId, size_t length);
 
 public:
     GSMSocketManager(GSMModemManager *gsmManager, GPRSManager *gprsManager, uint8_t socketsAmount);
@@ -59,7 +57,7 @@ public:
 
     //bool OnGSMResponse(BaseModemCMD *request, char * response, size_t respLen, MODEM_RESPONSE_TYPE type) override;
     //bool OnGSMEvent(char * data, size_t dataLen) override;
-    bool OnGSMExpectedData(uint8_t * data, size_t dataLen) override;
+    // bool OnGSMExpectedData(uint8_t * data, size_t dataLen) override;
 
     //virtual bool CreateSocket() = 0;
     virtual bool CloseSocket(uint8_t socketId);

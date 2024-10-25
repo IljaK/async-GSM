@@ -129,7 +129,11 @@ void GSMModemManager::OnGSMResponseInternal(BaseModemCMD *cmd, char * response, 
     {
     case MODEM_BOOT_COMPLETED:
         if (type == MODEM_RESPONSE_EXPECT_DATA) {
-            OnGSMExpectedData((uint8_t *)response, respLen);
+            if (cmd == NULL) {
+                OnGSMExpectedData((uint8_t *)response, respLen);
+            } else {
+                OnGSMResponse(cmd, response, respLen, type);
+            }
             return;
         }
         if (cmd != NULL) {

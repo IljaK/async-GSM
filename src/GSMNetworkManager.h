@@ -28,6 +28,23 @@ constexpr char GSM_CMD_SMS_SEND[] = "+CMGS"; // "Send sms"
 constexpr char GSM_CMD_NETWORK_QUALITY[] = "+CSQ"; // Signal quality
 constexpr char GSM_CMD_TIME[] = "+CCLK";
 
+// TODO:
+/*
+Bitmask representing the configuration of send message conclusion:
+    • b0: enables/disables +CMGS/+CMSS set commands to issue the final result code
+    before the SMS message has been sent to the network. Allowed values:
+    o 0 (factory-programmed value): does not provide the final result code before the
+    transaction with the network takes place
+    o 1: provides the final result code before the transaction with the network takes
+    place
+    • b1: enables/disables the +UUCMSRES URC, which presents the SMS sending result
+    (displayed only on the terminal where +CMGS/+CMSS has been issued). Allowed
+    values:
+    o 0 (factory-programmed value): URC disabled
+    o 1: URC enabled
+ */
+// AT+UDCONF=13,<sms_bitmap>
+
 constexpr unsigned long GSM_NETWORG_REG_TIMEOUT = 180ul;
 constexpr unsigned long GSM_UNKNOWN_NETWORK_TIMEOUT = 30ul;
 constexpr unsigned long GSM_NETWORG_REG_ERROR_TIMEOUT = 10000ul;
