@@ -40,7 +40,7 @@ enum GSM_NETWORK_TYPE {
     GSM_NETWORK_3G_HSUPA, // only(WCDMA)
     GSM_NETWORK_3G_HSPA, // (HSDPA and HSUPA, WCDMA)
     GSM_NETWORK_3G_OTHER,
-    GSM_NETWORK_4G_LTE, // 8: registered for PS service, RAT=4G
+    GSM_NETWORK_4G_LTE,
     GSM_NETWORK_5G,
 };
 
